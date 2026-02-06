@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# All in Bloom Floral Studio
 
-## Getting Started
+Elegant, pastel-toned flower shop for the US market with a curated catalog,
+florist choice builder, contact form, fully functional cart, secure auth,
+and an admin panel for managing bouquets.
 
-First, run the development server:
+## Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Next.js App Router + TypeScript
+- Tailwind CSS v4
+- Prisma + SQLite (easy local dev, swap to Postgres later)
+- NextAuth (email code + Google)
+- Stripe Checkout (Google Pay enabled via Stripe)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Install dependencies
+   - `npm install`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+2. Create `.env`
+   - Copy `.env.example` to `.env`
+   - Fill in `NEXTAUTH_SECRET` and `STRIPE_SECRET_KEY`
+   - Optional: `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`
+   - Optional: set `NEXT_PUBLIC_GOOGLE_ENABLED="true"` to show the Google button
+   - Optional: `RESEND_API_KEY` for sending OTP emails
+   - Optional: configure Cloudinary for admin image uploads
 
-## Learn More
+3. Initialize database
+   - `npm run db:push`
+   - `npm run db:seed`
 
-To learn more about Next.js, take a look at the following resources:
+If you change the schema later (for example, to add order details), run
+`npm run db:push` again.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+4. Run the app
+   - `npm run dev`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Admin Access
 
-## Deploy on Vercel
+- Default admin email: `admin@allinbloom.com`
+- Update `ADMIN_EMAIL` in `.env` to your own address before seeding.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Notes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Email OTP works in dev even without a mail provider. The OTP is logged in the
+  server console when `RESEND_API_KEY` is missing.
+- Stripe Checkout supports Google Pay automatically when enabled on the Stripe
+  account and the user device supports it.
+- PayPal is not wired yet to keep setup simple and low cost. Add it later if required.
+- Cloudinary uploads: set `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` and
+  `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET` to enable the image upload button.
+- Image assets are stored in `public/images`.
+
+## Structure
+
+- `src/app/(site)` public pages
+- `src/app/admin` admin panel
+- `src/app/api` API routes (auth, checkout, contact)
+- `src/components` UI building blocks
+- `src/lib` data, auth, and utilities

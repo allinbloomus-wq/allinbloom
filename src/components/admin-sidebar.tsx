@@ -1,0 +1,44 @@
+import Link from "next/link";
+import SignOutButton from "@/components/sign-out-button";
+
+export default function AdminSidebar() {
+  return (
+    <aside className="glass h-fit w-full rounded-[28px] border border-white/80 p-6 lg:max-w-[260px]">
+      <div className="space-y-1">
+        <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
+          All in Bloom
+        </p>
+        <h2 className="text-xl font-semibold text-stone-900">Admin panel</h2>
+      </div>
+      <nav className="mt-6 space-y-3 text-sm text-stone-600">
+        <Link
+          href="/admin"
+          className="block rounded-2xl border border-transparent bg-white/70 px-3 py-2 transition hover:border-stone-200"
+        >
+          Bouquets
+        </Link>
+        <Link
+          href="/admin/orders"
+          className="block rounded-2xl border border-transparent bg-white/70 px-3 py-2 transition hover:border-stone-200"
+        >
+          Orders
+        </Link>
+        <Link
+          href="/admin/promotions"
+          className="block rounded-2xl border border-transparent bg-white/70 px-3 py-2 transition hover:border-stone-200"
+        >
+          Promotions
+        </Link>
+        <Link
+          href="/catalog"
+          className="block rounded-2xl border border-transparent bg-white/70 px-3 py-2 transition hover:border-stone-200"
+        >
+          View storefront
+        </Link>
+      </nav>
+      <div className="mt-6">
+        <SignOutButton />
+      </div>
+    </aside>
+  );
+}

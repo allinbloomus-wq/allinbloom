@@ -1,0 +1,25 @@
+<svg width="640" height="820" viewBox="0 0 640 820" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="640" y2="820" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F6E6EB"/>
+      <stop offset="1" stop-color="#FCEFE4"/>
+    </linearGradient>
+    <radialGradient id="petal" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(320 420) rotate(90) scale(240 240)">
+      <stop stop-color="#F9D6DE"/>
+      <stop offset="1" stop-color="#F4BFCB"/>
+    </radialGradient>
+  </defs>
+  <rect width="640" height="820" rx="48" fill="url(#bg)"/>
+  <circle cx="320" cy="380" r="190" fill="url(#petal)"/>
+  <circle cx="220" cy="310" r="70" fill="#F7C7D5"/>
+  <circle cx="420" cy="330" r="80" fill="#F4B4C5"/>
+  <circle cx="300" cy="520" r="90" fill="#F8DCE4"/>
+  <circle cx="250" cy="470" r="40" fill="#FBE8EE"/>
+  <circle cx="395" cy="470" r="50" fill="#F7CCD8"/>
+  <path d="M210 610C260 520 380 520 430 610C390 690 250 700 210 610Z" fill="#C9D9CF"/>
+  <path d="M260 660C300 610 340 610 380 660C350 720 290 720 260 660Z" fill="#B4C7BD"/>
+  <rect x="295" y="640" width="50" height="120" rx="25" fill="#D6B28C"/>
+  <circle cx="320" cy="360" r="26" fill="#FCEFF3"/>
+  <circle cx="240" cy="310" r="18" fill="#FDF5F8"/>
+  <circle cx="410" cy="330" r="20" fill="#FDF1F6"/>
+</svg>
