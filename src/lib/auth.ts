@@ -42,8 +42,11 @@ const providers = [
 
         let user = await prisma.user.findUnique({ where: { email } });
         if (!user) {
+          if (!name) {
+            return null;
+          }
           user = await prisma.user.create({
-            data: { email, name: name || null },
+            data: { email, name },
           });
         } else if (name && !user.name) {
           user = await prisma.user.update({

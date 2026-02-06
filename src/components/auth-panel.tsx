@@ -7,6 +7,8 @@ export default function AuthPanel() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
+  const [codeSent, setCodeSent] = useState(false);
+  const [needsName, setNeedsName] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const googleEnabled = process.env.NEXT_PUBLIC_GOOGLE_ENABLED === "true";
 
@@ -18,15 +20,29 @@ export default function AuthPanel() {
       body: JSON.stringify({ email }),
     });
 
+    const payload = await response.json().catch(() => ({}));
+
     if (response.ok) {
-      setStatus("Code sent. Check your email.");
-    } else {
-      setStatus("Unable to send code.");
+      const isNew = Boolean(payload?.isNew);
+      setNeedsName(isNew);
+      setCodeSent(true);
+      setStatus(
+        isNew
+          ? "Code sent. Please add your name to finish signup."
+          : "Code sent. Check your email."
+      );
+      return;
     }
+
+    setStatus(payload?.error || "Unable to send code.");
   };
 
   const verifyCode = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (needsName && !name.trim()) {
+      setStatus("Please enter your name to finish signup.");
+      return;
+    }
     setStatus("Verifying...");
 
     const result = await signIn("credentials", {
@@ -60,20 +76,17 @@ export default function AuthPanel() {
       </div>
       <div className="space-y-3">
         <label className="flex flex-col gap-2 text-sm text-stone-700">
-          Full name (first time only)
-          <input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            type="text"
-            placeholder="Jane Doe"
-            className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800"
-          />
-        </label>
-        <label className="flex flex-col gap-2 text-sm text-stone-700">
           Email
           <input
             value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            onChange={(event) => {
+              setEmail(event.target.value);
+              setName("");
+              setCode("");
+              setCodeSent(false);
+              setNeedsName(false);
+              setStatus(null);
+            }}
             type="email"
             placeholder="you@example.com"
             className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800"
@@ -85,27 +98,41 @@ export default function AuthPanel() {
           disabled={!email}
           className="w-full rounded-full border border-stone-200 bg-white/80 px-4 py-2 text-xs uppercase tracking-[0.3em] text-stone-600 disabled:opacity-50"
         >
-          Send code
+          {codeSent ? "Resend code" : "Send code"}
         </button>
       </div>
-      <form onSubmit={verifyCode} className="space-y-3">
-        <label className="flex flex-col gap-2 text-sm text-stone-700">
-          Verification code
-          <input
-            value={code}
-            onChange={(event) => setCode(event.target.value)}
-            placeholder="6-digit code"
-            className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800"
-          />
-        </label>
-        <button
-          type="submit"
-          disabled={!email || !code}
-          className="w-full rounded-full bg-[color:var(--brand)] px-4 py-3 text-xs uppercase tracking-[0.3em] text-white disabled:opacity-50"
-        >
-          Verify & sign in
-        </button>
-      </form>
+      {codeSent ? (
+        <form onSubmit={verifyCode} className="space-y-3">
+          {needsName ? (
+            <label className="flex flex-col gap-2 text-sm text-stone-700">
+              Full name
+              <input
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                type="text"
+                placeholder="Jane Doe"
+                className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800"
+              />
+            </label>
+          ) : null}
+          <label className="flex flex-col gap-2 text-sm text-stone-700">
+            Verification code
+            <input
+              value={code}
+              onChange={(event) => setCode(event.target.value)}
+              placeholder="6-digit code"
+              className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800"
+            />
+          </label>
+          <button
+            type="submit"
+            disabled={!email || !code || (needsName && !name.trim())}
+            className="w-full rounded-full bg-[color:var(--brand)] px-4 py-3 text-xs uppercase tracking-[0.3em] text-white disabled:opacity-50"
+          >
+            Verify & sign in
+          </button>
+        </form>
+      ) : null}
       {googleEnabled ? (
         <>
           <div className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-stone-400">
