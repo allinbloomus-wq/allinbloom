@@ -5,12 +5,14 @@ import type { CartItem } from "@/lib/cart";
 
 type CheckoutButtonProps = {
   items: CartItem[];
-  totalCents: number;
+  deliveryAddress: string;
+  disabled?: boolean;
 };
 
 export default function CheckoutButton({
   items,
-  totalCents,
+  deliveryAddress,
+  disabled,
 }: CheckoutButtonProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,16 +24,20 @@ export default function CheckoutButton({
     const response = await fetch("/api/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ items, totalCents }),
+      body: JSON.stringify({ items, address: deliveryAddress }),
     });
+
+    const data = (await response.json().catch(() => ({}))) as {
+      url?: string;
+      error?: string;
+    };
 
     if (!response.ok) {
       setLoading(false);
-      setError("Checkout is not configured yet.");
+      setError(data.error || "Unable to start checkout.");
       return;
     }
 
-    const data = (await response.json()) as { url?: string };
     if (data.url) {
       window.location.href = data.url;
       return;
@@ -46,7 +52,7 @@ export default function CheckoutButton({
       <button
         type="button"
         onClick={handleCheckout}
-        disabled={loading}
+        disabled={loading || disabled}
         className="w-full rounded-full bg-[color:var(--brand)] px-6 py-3 text-xs uppercase tracking-[0.3em] text-white transition hover:bg-[color:var(--brand-dark)] disabled:opacity-60"
       >
         {loading ? "Redirecting..." : "Checkout"}

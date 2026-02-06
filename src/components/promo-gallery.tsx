@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -46,14 +46,77 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
     [slides]
   );
   const [index, setIndex] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
+  const dragStartX = useRef<number | null>(null);
+  const directionRef = useRef(1);
+  const viewportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (items.length < 2) return;
+    if (items.length < 2 || isDragging) return;
     const interval = setInterval(() => {
-      setIndex((prev) => (prev + 1) % items.length);
+      setIndex((prev) => {
+        const next = prev + directionRef.current;
+        if (next >= items.length) {
+          directionRef.current = -1;
+          return Math.max(prev - 1, 0);
+        }
+        if (next < 0) {
+          directionRef.current = 1;
+          return Math.min(prev + 1, items.length - 1);
+        }
+        return next;
+      });
     }, 5000);
     return () => clearInterval(interval);
-  }, [items.length]);
+  }, [items.length, isDragging]);
+
+  const handlePrev = () => {
+    directionRef.current = -1;
+    setIndex((prev) => Math.max(prev - 1, 0));
+  };
+
+  const handleNext = () => {
+    directionRef.current = 1;
+    setIndex((prev) => Math.min(prev + 1, items.length - 1));
+  };
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (items.length < 2) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragStartX.current = event.clientX;
+    setIsDragging(true);
+    setDragOffset(0);
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging || dragStartX.current === null) return;
+    const delta = event.clientX - dragStartX.current;
+    setDragOffset(delta);
+  };
+
+  const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging || dragStartX.current === null) return;
+    const delta = event.clientX - dragStartX.current;
+    const width = viewportRef.current?.offsetWidth ?? 1;
+    const threshold = Math.min(120, width * 0.2);
+
+    setIndex((prev) => {
+      if (delta > threshold) {
+        directionRef.current = -1;
+        return Math.max(prev - 1, 0);
+      }
+      if (delta < -threshold) {
+        directionRef.current = 1;
+        return Math.min(prev + 1, items.length - 1);
+      }
+      return prev;
+    });
+
+    setIsDragging(false);
+    setDragOffset(0);
+    dragStartX.current = null;
+  };
 
   return (
     <div className="glass rounded-[36px] border border-white/80 p-6">
@@ -71,13 +134,26 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
         </div>
       </div>
 
-      <div className="mt-6 overflow-hidden rounded-[28px] border border-white/80">
+      <div
+        ref={viewportRef}
+        className="relative mt-6 overflow-hidden rounded-[28px] border border-white/80"
+      >
         <div
-          className="flex transition-transform duration-700 ease-out"
-          style={{ transform: `translateX(-${index * 100}%)` }}
+          className={`flex ${isDragging ? "" : "transition-transform duration-700 ease-out"} will-change-transform`}
+          style={{
+            transform: `translateX(calc(-${index * 100}% + ${dragOffset}px))`,
+          }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          onPointerLeave={handlePointerUp}
         >
           {items.map((slide) => (
-            <div key={slide.id} className="w-full flex-shrink-0">
+            <div
+              key={slide.id}
+              className="w-full flex-shrink-0 touch-pan-y cursor-grab active:cursor-grabbing"
+            >
               <div className="relative h-[240px] w-full sm:h-[300px] lg:h-[360px]">
                 <Image
                   src={slide.image}
@@ -112,6 +188,49 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
             </div>
           ))}
         </div>
+
+        {items.length > 1 ? (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-between px-3">
+            <button
+              type="button"
+              onClick={handlePrev}
+              className="pointer-events-auto flex h-11 w-11 items-center justify-center rounded-full border border-white/70 bg-white/80 text-stone-700 shadow-sm backdrop-blur transition hover:scale-105"
+              aria-label="Previous promotion"
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className="h-4 w-4"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M12.78 4.22a.75.75 0 0 1 0 1.06L8.06 10l4.72 4.72a.75.75 0 1 1-1.06 1.06l-5.25-5.25a.75.75 0 0 1 0-1.06l5.25-5.25a.75.75 0 0 1 1.06 0Z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={handleNext}
+              className="pointer-events-auto flex h-11 w-11 items-center justify-center rounded-full border border-white/70 bg-white/80 text-stone-700 shadow-sm backdrop-blur transition hover:scale-105"
+              aria-label="Next promotion"
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className="h-4 w-4"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M7.22 15.78a.75.75 0 0 1 0-1.06L11.94 10 7.22 5.28a.75.75 0 1 1 1.06-1.06l5.25 5.25a.75.75 0 0 1 0 1.06l-5.25 5.25a.75.75 0 0 1-1.06 0Z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+          </div>
+        ) : null}
       </div>
 
       {items.length > 1 ? (
