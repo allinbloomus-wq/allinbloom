@@ -66,6 +66,8 @@ model Bouquet {
   isMixed     Boolean      @default(false)
   isFeatured  Boolean      @default(false)
   isActive    Boolean      @default(true)
+  discountPercent Int      @default(0)
+  discountNote    String?
   image       String
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
@@ -104,5 +106,22 @@ model PromoSlide {
   isActive  Boolean  @default(true)
   position  Int      @default(0)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model StoreSettings {
+  id String @id @default("default")
+  globalDiscountPercent Int @default(0)
+  globalDiscountNote    String?
+  categoryDiscountPercent Int @default(0)
+  categoryDiscountNote    String?
+  categoryFlowerType      String?
+  categoryStyle           String?
+  categoryMixed           String?
+  categoryColor           String?
+  categoryMinPriceCents   Int?
+  categoryMaxPriceCents   Int?
+  firstOrderDiscountPercent Int @default(10)
+  firstOrderDiscountNote    String?
   updatedAt DateTime @updatedAt
 }

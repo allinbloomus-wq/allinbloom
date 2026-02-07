@@ -5,9 +5,13 @@ import Image from "next/image";
 
 type AdminImageUploadProps = {
   defaultValue: string;
+  recommendedSize?: string;
 };
 
-export default function AdminImageUpload({ defaultValue }: AdminImageUploadProps) {
+export default function AdminImageUpload({
+  defaultValue,
+  recommendedSize = "600x800",
+}: AdminImageUploadProps) {
   const [imageUrl, setImageUrl] = useState(defaultValue);
   const [status, setStatus] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -74,7 +78,7 @@ export default function AdminImageUpload({ defaultValue }: AdminImageUploadProps
           />
         </div>
         <div className="space-y-2 text-xs text-stone-600">
-          <p>Recommended size: 600x800.</p>
+          <p>Recommended size: {recommendedSize}.</p>
           <p>Uploads go to Cloudinary and save the URL.</p>
         </div>
       </div>

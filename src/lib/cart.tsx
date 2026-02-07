@@ -19,6 +19,14 @@ export type CartItem = {
     colors?: string[];
     note?: string;
     style?: string;
+    basePriceCents?: number;
+    bouquetDiscountPercent?: number;
+    bouquetDiscountNote?: string;
+    flowerType?: string;
+    bouquetStyle?: string;
+    isMixed?: boolean;
+    bouquetColors?: string;
+    isCustom?: boolean;
   };
 };
 

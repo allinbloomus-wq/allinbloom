@@ -24,7 +24,21 @@ export default function CheckoutButton({
     const response = await fetch("/api/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ items, address: deliveryAddress }),
+      body: JSON.stringify({
+        items: items.map((item) =>
+          item.meta?.isCustom
+            ? {
+                id: item.id,
+                quantity: item.quantity,
+                name: item.name,
+                priceCents: item.priceCents,
+                image: item.image,
+                isCustom: true,
+              }
+            : { id: item.id, quantity: item.quantity }
+        ),
+        address: deliveryAddress,
+      }),
     });
 
     const data = (await response.json().catch(() => ({}))) as {

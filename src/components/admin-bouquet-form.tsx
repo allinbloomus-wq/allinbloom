@@ -55,6 +55,26 @@ export default function AdminBouquetForm({
                 className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
               />
             </label>
+            <label className="flex flex-col gap-2 text-sm text-stone-700">
+              Discount percent
+              <input
+                name="discountPercent"
+                type="number"
+                min="0"
+                max="90"
+                defaultValue={bouquet?.discountPercent ?? 0}
+                className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+              />
+            </label>
+            <label className="flex flex-col gap-2 text-sm text-stone-700">
+              Discount comment
+              <input
+                name="discountNote"
+                defaultValue={bouquet?.discountNote || ""}
+                placeholder="Reason for discount"
+                className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+              />
+            </label>
           </div>
           <label className="flex flex-col gap-2 text-sm text-stone-700">
             Color palette (comma separated)
@@ -68,13 +88,14 @@ export default function AdminBouquetForm({
         <div className="space-y-4">
           <AdminImageUpload
             defaultValue={bouquet?.image || "/images/bouquet-1.svg"}
+            recommendedSize="600x800"
           />
           <label className="flex flex-col gap-2 text-sm text-stone-700">
             Flower type
             <select
               name="flowerType"
               defaultValue={bouquet?.flowerType || FLOWER_TYPES[0]}
-              className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+              className="select-field rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
             >
               {FLOWER_TYPES.map((type) => (
                 <option key={type} value={type}>
@@ -88,7 +109,7 @@ export default function AdminBouquetForm({
             <select
               name="style"
               defaultValue={bouquet?.style || BOUQUET_STYLES[0]}
-              className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+              className="select-field rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
             >
               {BOUQUET_STYLES.map((style) => (
                 <option key={style} value={style}>

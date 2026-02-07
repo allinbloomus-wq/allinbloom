@@ -8,6 +8,12 @@ type AddToCartControlsProps = {
     name: string;
     priceCents: number;
     image: string;
+    discountPercent?: number;
+    discountNote?: string;
+    flowerType?: string;
+    style?: string;
+    colors?: string;
+    isMixed?: boolean;
   };
 };
 
@@ -19,7 +25,24 @@ export default function AddToCartControls({ item }: AddToCartControlsProps) {
     return (
       <button
         type="button"
-        onClick={() => addItem({ ...item, quantity: 1 })}
+        onClick={() =>
+          addItem({
+            id: item.id,
+            name: item.name,
+            priceCents: item.priceCents,
+            image: item.image,
+            quantity: 1,
+            meta: {
+              basePriceCents: item.priceCents,
+              bouquetDiscountPercent: item.discountPercent || 0,
+              bouquetDiscountNote: item.discountNote,
+              flowerType: item.flowerType,
+              bouquetStyle: item.style,
+              bouquetColors: item.colors,
+              isMixed: item.isMixed,
+            },
+          })
+        }
         className="w-full rounded-full bg-[color:var(--brand)] px-4 py-2 text-xs uppercase tracking-[0.3em] text-white transition hover:bg-[color:var(--brand-dark)]"
       >
         Add to cart

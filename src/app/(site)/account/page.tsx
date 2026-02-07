@@ -28,7 +28,9 @@ export default async function AccountPage() {
       <div className="glass rounded-[28px] border border-white/80 p-6 text-sm text-stone-600">
         <p>Name: {session.user.name || "—"}</p>
         <p>Email: {session.user.email}</p>
-        <p>Role: {session.user.role}</p>
+        {session.user.role === "ADMIN" ? (
+          <p>Role: {session.user.role}</p>
+        ) : null}
       </div>
       <div className="glass rounded-[28px] border border-white/80 p-6 text-sm text-stone-600">
         <h2 className="text-lg font-semibold text-stone-900">

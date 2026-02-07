@@ -30,6 +30,12 @@ export default function AdminSidebar() {
           Promotions
         </Link>
         <Link
+          href="/admin/discounts"
+          className="block rounded-2xl border border-transparent bg-white/70 px-3 py-2 transition hover:border-stone-200"
+        >
+          Discounts
+        </Link>
+        <Link
           href="/catalog"
           className="block rounded-2xl border border-transparent bg-white/70 px-3 py-2 transition hover:border-stone-200"
         >

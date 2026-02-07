@@ -21,3 +21,7 @@ export async function getOrdersByEmail(email: string) {
     include: { items: true },
   });
 }
+
+export async function countOrdersByEmail(email: string) {
+  return prisma.order.count({ where: { email } });
+}

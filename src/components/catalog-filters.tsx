@@ -48,7 +48,7 @@ export default function CatalogFilters() {
           <select
             value={flower}
             onChange={(event) => setFlower(event.target.value)}
-            className="rounded-2xl border border-stone-200 bg-white/80 px-3 py-2"
+            className="select-field rounded-2xl border border-stone-200 bg-white/80 px-3 py-2"
           >
             <option value="all">All flowers</option>
             {FLOWER_TYPES.map((option) => (
@@ -63,7 +63,7 @@ export default function CatalogFilters() {
           <select
             value={color}
             onChange={(event) => setColor(event.target.value)}
-            className="rounded-2xl border border-stone-200 bg-white/80 px-3 py-2"
+            className="select-field rounded-2xl border border-stone-200 bg-white/80 px-3 py-2"
           >
             <option value="">Any color</option>
             {COLOR_OPTIONS.map((option) => (
@@ -78,7 +78,7 @@ export default function CatalogFilters() {
           <select
             value={style}
             onChange={(event) => setStyle(event.target.value)}
-            className="rounded-2xl border border-stone-200 bg-white/80 px-3 py-2"
+            className="select-field rounded-2xl border border-stone-200 bg-white/80 px-3 py-2"
           >
             <option value="">Any style</option>
             {BOUQUET_STYLES.map((option) => (
@@ -93,7 +93,7 @@ export default function CatalogFilters() {
           <select
             value={mixed}
             onChange={(event) => setMixed(event.target.value)}
-            className="rounded-2xl border border-stone-200 bg-white/80 px-3 py-2"
+            className="select-field rounded-2xl border border-stone-200 bg-white/80 px-3 py-2"
           >
             <option value="">Mixed or mono</option>
             <option value="mixed">Mixed bouquet</option>

@@ -1,9 +1,22 @@
 import Image from "next/image";
 import type { Bouquet } from "@prisma/client";
 import { formatLabel, formatMoney } from "@/lib/format";
+import type { DiscountInfo } from "@/lib/pricing";
 import AddToCartControls from "@/components/add-to-cart-controls";
 
-export default function BouquetCard({ bouquet }: { bouquet: Bouquet }) {
+type BouquetPricing = {
+  originalPriceCents: number;
+  finalPriceCents: number;
+  discount: DiscountInfo | null;
+};
+
+export default function BouquetCard({
+  bouquet,
+  pricing,
+}: {
+  bouquet: Bouquet;
+  pricing: BouquetPricing;
+}) {
   return (
     <div className="glass flex h-full flex-col gap-4 rounded-[28px] border border-white/80 p-5">
       <div className="overflow-hidden rounded-[22px] border border-white/80 bg-white">
@@ -28,9 +41,20 @@ export default function BouquetCard({ bouquet }: { bouquet: Bouquet }) {
         </p>
       </div>
       <div className="flex items-center justify-between">
-        <p className="text-lg font-semibold text-stone-900">
-          {formatMoney(bouquet.priceCents)}
-        </p>
+        {pricing.discount ? (
+          <div className="flex items-baseline gap-2">
+            <span className="text-sm text-stone-400 line-through">
+              {formatMoney(pricing.originalPriceCents)}
+            </span>
+            <span className="text-lg font-semibold text-[color:var(--brand)]">
+              {formatMoney(pricing.finalPriceCents)}
+            </span>
+          </div>
+        ) : (
+          <p className="text-lg font-semibold text-stone-900">
+            {formatMoney(pricing.originalPriceCents)}
+          </p>
+        )}
         <p className="text-xs uppercase tracking-[0.2em] text-stone-500">
           {formatLabel(bouquet.flowerType)}
         </p>
@@ -41,6 +65,12 @@ export default function BouquetCard({ bouquet }: { bouquet: Bouquet }) {
           name: bouquet.name,
           priceCents: bouquet.priceCents,
           image: bouquet.image,
+          discountPercent: bouquet.discountPercent,
+          discountNote: bouquet.discountNote || undefined,
+          flowerType: bouquet.flowerType,
+          style: bouquet.style,
+          colors: bouquet.colors,
+          isMixed: bouquet.isMixed,
         }}
       />
     </div>

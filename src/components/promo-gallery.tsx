@@ -48,37 +48,70 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
   const [index, setIndex] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
+  const [isAutoPaused, setIsAutoPaused] = useState(false);
   const dragStartX = useRef<number | null>(null);
   const directionRef = useRef(1);
   const viewportRef = useRef<HTMLDivElement>(null);
+  const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [perView, setPerView] = useState(1);
 
   useEffect(() => {
-    if (items.length < 2 || isDragging) return;
+    const updatePerView = () => {
+      setPerView(window.innerWidth >= 1024 ? 3 : 1);
+    };
+    updatePerView();
+    window.addEventListener("resize", updatePerView);
+    return () => window.removeEventListener("resize", updatePerView);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (pauseTimerRef.current) {
+        clearTimeout(pauseTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (items.length < 2 || isDragging || isAutoPaused) return;
     const interval = setInterval(() => {
       setIndex((prev) => {
+        const maxIndex = Math.max(0, items.length - perView);
         const next = prev + directionRef.current;
-        if (next >= items.length) {
+        if (next > maxIndex) {
           directionRef.current = -1;
           return Math.max(prev - 1, 0);
         }
         if (next < 0) {
           directionRef.current = 1;
-          return Math.min(prev + 1, items.length - 1);
+          return Math.min(prev + 1, maxIndex);
         }
         return next;
       });
     }, 5000);
     return () => clearInterval(interval);
-  }, [items.length, isDragging]);
+  }, [items.length, isDragging, perView, isAutoPaused]);
+
+  const pauseAutoscroll = () => {
+    setIsAutoPaused(true);
+    if (pauseTimerRef.current) {
+      clearTimeout(pauseTimerRef.current);
+    }
+    pauseTimerRef.current = setTimeout(() => {
+      setIsAutoPaused(false);
+    }, 20000);
+  };
 
   const handlePrev = () => {
     directionRef.current = -1;
     setIndex((prev) => Math.max(prev - 1, 0));
+    pauseAutoscroll();
   };
 
   const handleNext = () => {
     directionRef.current = 1;
-    setIndex((prev) => Math.min(prev + 1, items.length - 1));
+    setIndex((prev) => Math.min(prev + 1, Math.max(0, items.length - perView)));
+    pauseAutoscroll();
   };
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -102,13 +135,14 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
     const threshold = Math.min(120, width * 0.2);
 
     setIndex((prev) => {
+      const maxIndex = Math.max(0, items.length - perView);
       if (delta > threshold) {
         directionRef.current = -1;
         return Math.max(prev - 1, 0);
       }
       if (delta < -threshold) {
         directionRef.current = 1;
-        return Math.min(prev + 1, items.length - 1);
+        return Math.min(prev + 1, maxIndex);
       }
       return prev;
     });
@@ -116,6 +150,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
     setIsDragging(false);
     setDragOffset(0);
     dragStartX.current = null;
+    pauseAutoscroll();
   };
 
   return (
@@ -136,12 +171,12 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
 
       <div
         ref={viewportRef}
-        className="relative mt-6 overflow-hidden rounded-[28px] border border-white/80"
+        className="relative mt-6 select-none overflow-hidden rounded-[28px] border border-white/80 px-0"
       >
         <div
-          className={`flex ${isDragging ? "" : "transition-transform duration-700 ease-out"} will-change-transform`}
+          className={`flex gap-0 ${isDragging ? "" : "transition-transform duration-700 ease-out"} will-change-transform lg:gap-4`}
           style={{
-            transform: `translateX(calc(-${index * 100}% + ${dragOffset}px))`,
+            transform: `translateX(calc(-${index * (100 / perView)}% + ${dragOffset}px))`,
           }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -152,9 +187,9 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
           {items.map((slide) => (
             <div
               key={slide.id}
-              className="w-full flex-shrink-0 touch-pan-y cursor-grab active:cursor-grabbing"
+              className="w-full flex-shrink-0 touch-pan-y cursor-grab active:cursor-grabbing lg:w-1/3"
             >
-              <div className="relative h-[240px] w-full sm:h-[300px] lg:h-[360px]">
+              <div className="relative w-full overflow-hidden rounded-[24px] border border-white/80 aspect-[9/16] sm:aspect-[9/16] lg:aspect-[9/16]">
                 <Image
                   src={slide.image}
                   alt={slide.title}
@@ -239,7 +274,10 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
             <button
               key={slide.id}
               type="button"
-              onClick={() => setIndex(idx)}
+              onClick={() => {
+                setIndex(idx);
+                pauseAutoscroll();
+              }}
               className={`h-2 w-2 rounded-full transition ${
                 idx === index ? "bg-[color:var(--brand)]" : "bg-stone-300"
               }`}

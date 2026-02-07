@@ -1,13 +1,40 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useCart } from "@/lib/cart";
 import { formatMoney } from "@/lib/format";
+import { getCartItemDiscount } from "@/lib/pricing";
 import CheckoutButton from "@/components/checkout-button";
 
-export default function CartView() {
-  const { items, updateQuantity, removeItem, subtotalCents } = useCart();
+type DiscountInfo = {
+  percent: number;
+  note: string;
+};
+
+type CartViewProps = {
+  isAuthenticated: boolean;
+  globalDiscount: DiscountInfo | null;
+  firstOrderDiscount: DiscountInfo | null;
+  categoryDiscount: {
+    percent: number;
+    note: string;
+    flowerType?: string | null;
+    style?: string | null;
+    mixed?: string | null;
+    color?: string | null;
+    minPriceCents?: number | null;
+    maxPriceCents?: number | null;
+  } | null;
+};
+
+export default function CartView({
+  isAuthenticated,
+  globalDiscount,
+  firstOrderDiscount,
+  categoryDiscount,
+}: CartViewProps) {
+  const { items, updateQuantity, removeItem } = useCart();
   const [address, setAddress] = useState("");
   const [quote, setQuote] = useState<{
     feeCents: number;
@@ -17,8 +44,71 @@ export default function CartView() {
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
 
+  const lineItems = useMemo(() => {
+    return items.map((item) => {
+      const basePrice = item.meta?.basePriceCents ?? item.priceCents;
+      const discount = getCartItemDiscount(
+        {
+          basePriceCents: basePrice,
+          bouquetDiscountPercent: item.meta?.bouquetDiscountPercent,
+          bouquetDiscountNote: item.meta?.bouquetDiscountNote,
+          flowerType: item.meta?.flowerType,
+          style: item.meta?.bouquetStyle,
+          isMixed: item.meta?.isMixed,
+          colors: item.meta?.bouquetColors,
+        },
+        {
+          globalDiscountPercent: globalDiscount?.percent || 0,
+          globalDiscountNote: globalDiscount?.note || null,
+          categoryDiscountPercent: categoryDiscount?.percent || 0,
+          categoryDiscountNote: categoryDiscount?.note || null,
+          categoryFlowerType: categoryDiscount?.flowerType || null,
+          categoryStyle: categoryDiscount?.style || null,
+          categoryMixed: categoryDiscount?.mixed || null,
+          categoryColor: categoryDiscount?.color || null,
+          categoryMinPriceCents: categoryDiscount?.minPriceCents ?? null,
+          categoryMaxPriceCents: categoryDiscount?.maxPriceCents ?? null,
+        }
+      );
+
+      const discountedPrice = discount
+        ? Math.max(
+            0,
+            Math.round(basePrice * (100 - discount.percent) / 100)
+          )
+        : basePrice;
+
+      return {
+        ...item,
+        basePrice,
+        discount,
+        discountedPrice,
+        lineTotal: discountedPrice * item.quantity,
+        lineOriginal: basePrice * item.quantity,
+      };
+    });
+  }, [items, globalDiscount, categoryDiscount]);
+
+  const subtotalCents = useMemo(
+    () => lineItems.reduce((sum, item) => sum + item.lineTotal, 0),
+    [lineItems]
+  );
+
+  const hasAnyDiscount = useMemo(
+    () => lineItems.some((item) => Boolean(item.discount)),
+    [lineItems]
+  );
+
+  const firstOrderDiscountCents = useMemo(() => {
+    if (!firstOrderDiscount || hasAnyDiscount) return 0;
+    return Math.round(subtotalCents * (firstOrderDiscount.percent / 100));
+  }, [firstOrderDiscount, subtotalCents, hasAnyDiscount]);
+
   const shippingCents = quote?.feeCents ?? 0;
-  const totalCents = subtotalCents + shippingCents;
+  const totalCents = Math.max(
+    0,
+    subtotalCents - firstOrderDiscountCents + shippingCents
+  );
 
   const requestQuote = async () => {
     const trimmed = address.trim();
@@ -65,7 +155,7 @@ export default function CartView() {
   return (
     <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
       <div className="space-y-4">
-        {items.map((item) => (
+        {lineItems.map((item) => (
           <div
             key={item.id}
             className="glass flex flex-col gap-4 rounded-[28px] border border-white/80 p-4 sm:flex-row sm:items-center sm:justify-between"
@@ -87,9 +177,23 @@ export default function CartView() {
                 {item.meta?.note ? (
                   <p className="text-xs text-stone-500">{item.meta.note}</p>
                 ) : null}
-                <p className="text-xs uppercase tracking-[0.2em] text-stone-500">
-                  {formatMoney(item.priceCents)}
-                </p>
+                {item.discount ? (
+                  <div className="space-y-1">
+                    <p className="text-xs uppercase tracking-[0.2em] text-stone-400 line-through">
+                      {formatMoney(item.basePrice)}
+                    </p>
+                    <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--brand)]">
+                      {formatMoney(item.discountedPrice)}
+                    </p>
+                    <p className="text-xs text-stone-500">
+                      -{item.discount.percent}% · {item.discount.note}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-xs uppercase tracking-[0.2em] text-stone-500">
+                    {formatMoney(item.basePrice)}
+                  </p>
+                )}
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-3">
@@ -165,6 +269,14 @@ export default function CartView() {
             <span>Subtotal</span>
             <span>{formatMoney(subtotalCents)}</span>
           </div>
+          {firstOrderDiscount && !hasAnyDiscount ? (
+            <div className="flex justify-between text-sm text-stone-600">
+              <span>
+                First order discount ({firstOrderDiscount.percent}%)
+              </span>
+              <span>-{formatMoney(firstOrderDiscountCents)}</span>
+            </div>
+          ) : null}
           <div className="flex justify-between">
             <span>Delivery</span>
             <span>
@@ -183,8 +295,18 @@ export default function CartView() {
         <CheckoutButton
           items={items}
           deliveryAddress={address.trim()}
-          disabled={!quote || quoteLoading || Boolean(quoteError)}
+          disabled={
+            !quote ||
+            quoteLoading ||
+            Boolean(quoteError) ||
+            !isAuthenticated
+          }
         />
+        {!isAuthenticated ? (
+          <p className="text-xs uppercase tracking-[0.24em] text-rose-700">
+            Please sign in to place an order.
+          </p>
+        ) : null}
         <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
           Secure checkout with Stripe
         </p>

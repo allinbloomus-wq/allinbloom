@@ -6,6 +6,8 @@ import PromoCard from "@/components/promo-card";
 import PromoGallery from "@/components/promo-gallery";
 import { getFeaturedBouquets } from "@/lib/data/bouquets";
 import { getActivePromoSlides } from "@/lib/data/promotions";
+import { getStoreSettings } from "@/lib/data/settings";
+import { getBouquetPricing } from "@/lib/pricing";
 
 const galleryImages = [
   "/images/bouquet-1.svg",
@@ -19,6 +21,7 @@ const galleryImages = [
 export default async function HomePage() {
   const featured = await getFeaturedBouquets();
   const promoSlides = await getActivePromoSlides();
+  const settings = await getStoreSettings();
 
   return (
     <div className="flex flex-col gap-20">
@@ -49,6 +52,15 @@ export default async function HomePage() {
               Explore signature sets
             </Link>
           </div>
+          <a
+            href="https://www.instagram.com/all_in_bloom_studio"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-3 rounded-full bg-[color:var(--brand)] px-6 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-white shadow-[0_12px_28px_rgba(108,20,10,0.28)] transition hover:-translate-y-0.5 hover:bg-[color:var(--brand-dark)]"
+          >
+            Instagram
+            <span className="text-white/80">↗</span>
+          </a>
           <div className="grid gap-4 sm:grid-cols-3">
             {[
               { label: "Seasonal stems", value: "125+" },
@@ -137,7 +149,11 @@ export default async function HomePage() {
         </div>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {featured.map((bouquet) => (
-            <BouquetCard key={bouquet.id} bouquet={bouquet} />
+            <BouquetCard
+              key={bouquet.id}
+              bouquet={bouquet}
+              pricing={getBouquetPricing(bouquet, settings)}
+            />
           ))}
         </div>
       </section>

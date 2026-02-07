@@ -10,6 +10,8 @@ export type BouquetFormPayload = {
   isMixed: boolean;
   isFeatured: boolean;
   isActive: boolean;
+  discountPercent: number;
+  discountNote: string | null;
   image: string;
 };
 
@@ -29,6 +31,15 @@ export const parseBouquetForm = (formData: FormData): BouquetFormPayload => {
   const price = Number(formData.get("price") || 0);
   const image = String(formData.get("image") || "/images/bouquet-1.svg").trim();
   const colors = String(formData.get("colors") || "").toLowerCase().trim();
+  const discountPercent = Math.min(
+    90,
+    Math.max(0, Math.round(Number(formData.get("discountPercent") || 0)))
+  );
+  const discountNote = String(formData.get("discountNote") || "").trim();
+
+  if (discountPercent > 0 && !discountNote) {
+    throw new Error("Discount note is required when a discount is set.");
+  }
 
   return {
     name,
@@ -48,6 +59,8 @@ export const parseBouquetForm = (formData: FormData): BouquetFormPayload => {
     isMixed: formData.get("isMixed") === "on",
     isFeatured: formData.get("isFeatured") === "on",
     isActive: formData.get("isActive") === "on",
+    discountPercent,
+    discountNote: discountPercent > 0 ? discountNote : null,
     image,
   };
 };

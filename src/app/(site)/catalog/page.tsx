@@ -2,6 +2,8 @@ import BouquetCard from "@/components/bouquet-card";
 import CatalogFilters from "@/components/catalog-filters";
 import { getBouquets } from "@/lib/data/bouquets";
 import type { CatalogSearchParams } from "@/lib/data/bouquets";
+import { getStoreSettings } from "@/lib/data/settings";
+import { getBouquetPricing } from "@/lib/pricing";
 
 export default async function CatalogPage({
   searchParams,
@@ -10,6 +12,7 @@ export default async function CatalogPage({
 }) {
   const params = await searchParams;
   const bouquets = await getBouquets(params);
+  const settings = await getStoreSettings();
   const isFeatured = params.filter === "featured";
 
   return (
@@ -31,7 +34,11 @@ export default async function CatalogPage({
       {bouquets.length ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {bouquets.map((bouquet) => (
-            <BouquetCard key={bouquet.id} bouquet={bouquet} />
+            <BouquetCard
+              key={bouquet.id}
+              bouquet={bouquet}
+              pricing={getBouquetPricing(bouquet, settings)}
+            />
           ))}
         </div>
       ) : (
