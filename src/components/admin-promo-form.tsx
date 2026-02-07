@@ -62,7 +62,7 @@ export default function AdminPromoForm({ slide, action }: AdminPromoFormProps) {
         </div>
         <div className="space-y-4">
           <AdminImageUpload
-            defaultValue={slide?.image || "/images/promo-1.svg"}
+            defaultValue={slide?.image || "/images/promo-1.png"}
             recommendedSize="900x1600"
           />
         </div>

@@ -10,12 +10,12 @@ import { getStoreSettings } from "@/lib/data/settings";
 import { getBouquetPricing } from "@/lib/pricing";
 
 const galleryImages = [
-  "/images/bouquet-1.svg",
-  "/images/bouquet-2.svg",
-  "/images/bouquet-3.svg",
-  "/images/bouquet-4.svg",
-  "/images/bouquet-5.svg",
-  "/images/bouquet-6.svg",
+  "/images/bouquet-1.png",
+  "/images/bouquet-2.png",
+  "/images/bouquet-3.png",
+  "/images/bouquet-4.png",
+  "/images/bouquet-5.png",
+  "/images/bouquet-6.png",
 ];
 
 export default async function HomePage() {
@@ -87,7 +87,7 @@ export default async function HomePage() {
           </div>
           <div className="glass overflow-hidden rounded-[32px] border border-white/80 p-4">
             <Image
-              src="/images/hero-bouquet.svg"
+              src="/images/hero-bouquet.png"
               alt="Elegant floral bouquet"
               width={520}
               height={640}

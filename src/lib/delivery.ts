@@ -91,7 +91,7 @@ export async function getDeliveryQuote(
   if (feeCents === null) {
     return {
       ok: false,
-      error: "Delivery is available within 35 miles of our studio.",
+      error: "Delivery is available within 30 miles of our studio.",
     };
   }
 
