@@ -48,6 +48,8 @@ CREATE TABLE "Bouquet" (
     "isMixed" BOOLEAN NOT NULL DEFAULT false,
     "isFeatured" BOOLEAN NOT NULL DEFAULT false,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "discountPercent" INTEGER NOT NULL DEFAULT 0,
+    "discountNote" TEXT,
     "image" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -94,6 +96,26 @@ CREATE TABLE "PromoSlide" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "PromoSlide_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "StoreSettings" (
+    "id" TEXT NOT NULL DEFAULT 'default',
+    "globalDiscountPercent" INTEGER NOT NULL DEFAULT 0,
+    "globalDiscountNote" TEXT,
+    "categoryDiscountPercent" INTEGER NOT NULL DEFAULT 0,
+    "categoryDiscountNote" TEXT,
+    "categoryFlowerType" TEXT,
+    "categoryStyle" TEXT,
+    "categoryMixed" TEXT,
+    "categoryColor" TEXT,
+    "categoryMinPriceCents" INTEGER,
+    "categoryMaxPriceCents" INTEGER,
+    "firstOrderDiscountPercent" INTEGER NOT NULL DEFAULT 10,
+    "firstOrderDiscountNote" TEXT,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "StoreSettings_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
