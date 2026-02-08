@@ -16,6 +16,27 @@ type CheckoutItem = {
   isCustom?: boolean;
 };
 
+function getSiteUrl(request: Request) {
+  const configured =
+    process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_SITE_URL;
+  if (configured) {
+    try {
+      return new URL(configured).origin;
+    } catch {
+      // fall through to header + localhost
+    }
+  }
+  const originHeader = request.headers.get("origin");
+  if (originHeader) {
+    try {
+      return new URL(originHeader).origin;
+    } catch {
+      // ignore invalid header
+    }
+  }
+  return "http://localhost:3000";
+}
+
 export async function POST(request: Request) {
   const stripeSecret = process.env.STRIPE_SECRET_KEY;
   if (!stripeSecret) {
@@ -54,7 +75,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: delivery.error }, { status: 400 });
   }
 
-  const origin = request.headers.get("origin") || "http://localhost:3000";
+  const origin = getSiteUrl(request);
   const bouquetIds = items.map((item) => item.id);
   const bouquets = await prisma.bouquet.findMany({
     where: { id: { in: bouquetIds }, isActive: true },

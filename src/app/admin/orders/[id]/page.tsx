@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Stripe from "stripe";
 import { getOrderById } from "@/lib/data/orders";
 import { formatDateTime, formatMoney } from "@/lib/format";
+import { prisma } from "@/lib/db";
 
 export default async function AdminOrderDetailPage({
   params,
@@ -26,6 +27,21 @@ export default async function AdminOrderDetailPage({
     stripeSession = await stripe.checkout.sessions.retrieve(
       order.stripeSessionId
     );
+
+    const isPaid =
+      stripeSession.payment_status === "paid" &&
+      stripeSession.status === "complete";
+    const amountMatches =
+      typeof stripeSession.amount_total === "number" &&
+      stripeSession.amount_total === order.totalCents;
+
+    if (isPaid && amountMatches && order.status !== "PAID") {
+      await prisma.order.update({
+        where: { id: order.id },
+        data: { status: "PAID" },
+      });
+      order.status = "PAID";
+    }
   }
 
   const shipping = stripeSession?.shipping_details;

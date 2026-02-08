@@ -1,0 +1,88 @@
+import { NextResponse } from "next/server";
+import Stripe from "stripe";
+import { prisma } from "@/lib/db";
+
+export async function POST(request: Request) {
+  const stripeSecret = process.env.STRIPE_SECRET_KEY;
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  if (!stripeSecret || !webhookSecret) {
+    return NextResponse.json(
+      { error: "Stripe webhook is not configured." },
+      { status: 400 }
+    );
+  }
+
+  const signature = request.headers.get("stripe-signature");
+  if (!signature) {
+    return NextResponse.json(
+      { error: "Missing Stripe signature." },
+      { status: 400 }
+    );
+  }
+
+  const body = await request.text();
+  const stripe = new Stripe(stripeSecret, { apiVersion: "2024-06-20" });
+
+  let event: Stripe.Event;
+  try {
+    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+  } catch (error) {
+    console.error("Stripe webhook signature verification failed", error);
+    return NextResponse.json(
+      { error: "Invalid signature." },
+      { status: 400 }
+    );
+  }
+
+  if (
+    event.type === "checkout.session.completed" ||
+    event.type === "checkout.session.async_payment_succeeded"
+  ) {
+    const session = event.data.object as Stripe.Checkout.Session;
+    const orderId = session.metadata?.orderId;
+    if (!orderId) {
+      return NextResponse.json({ received: true });
+    }
+
+    const order = await prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) {
+      return NextResponse.json({ received: true });
+    }
+
+    const isPaid =
+      session.payment_status === "paid" && session.status === "complete";
+    const amountMatches =
+      typeof session.amount_total === "number" &&
+      session.amount_total === order.totalCents;
+    const currencyMatches =
+      !session.currency ||
+      session.currency.toLowerCase() === order.currency.toLowerCase();
+
+    if (isPaid && amountMatches && currencyMatches) {
+      await prisma.order.update({
+        where: { id: orderId },
+        data: {
+          status: "PAID",
+          stripeSessionId: session.id || order.stripeSessionId,
+        },
+      });
+    }
+  }
+
+  if (
+    event.type === "checkout.session.expired" ||
+    event.type === "checkout.session.async_payment_failed"
+  ) {
+    const session = event.data.object as Stripe.Checkout.Session;
+    const orderId = session.metadata?.orderId;
+    if (orderId) {
+      await prisma.order.updateMany({
+        where: { id: orderId, status: { not: "PAID" } },
+        data: { status: "CANCELED" },
+      });
+    }
+  }
+
+  return NextResponse.json({ received: true });
+}

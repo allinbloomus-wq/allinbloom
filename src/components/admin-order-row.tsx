@@ -7,6 +7,7 @@ type AdminOrderRowProps = {
 };
 
 export default function AdminOrderRow({ order }: AdminOrderRowProps) {
+  const isPaid = order.status === "PAID";
   return (
     <div className="rounded-[24px] border border-white/80 bg-white/70 p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -25,6 +26,15 @@ export default function AdminOrderRow({ order }: AdminOrderRowProps) {
           ) : null}
         </div>
         <div className="flex flex-wrap gap-2">
+          <div
+            className={`rounded-full px-4 py-2 text-xs uppercase tracking-[0.3em] ${
+              isPaid
+                ? "border border-emerald-200 bg-emerald-100 text-emerald-700"
+                : "border border-rose-200 bg-rose-100 text-rose-700"
+            }`}
+          >
+            {isPaid ? "Оплачен" : "Оплата не прошла"}
+          </div>
           <div className="rounded-full border border-stone-200 bg-white/80 px-4 py-2 text-xs uppercase tracking-[0.3em] text-stone-600">
             {order.items.length} items
           </div>
