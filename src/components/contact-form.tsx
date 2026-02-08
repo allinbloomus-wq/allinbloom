@@ -11,7 +11,8 @@ export default function ContactForm() {
     event.preventDefault();
     setStatus("sending");
 
-    const formData = new FormData(event.currentTarget);
+    const form = event.currentTarget; // Сохраняем ссылку на форму
+    const formData = new FormData(form);
     const payload = {
       name: formData.get("name"),
       email: formData.get("email"),
@@ -26,7 +27,7 @@ export default function ContactForm() {
 
     if (response.ok) {
       setStatus("sent");
-      event.currentTarget.reset();
+      form.reset(); // Используем сохраненную ссылку
     } else {
       setStatus("error");
     }

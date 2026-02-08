@@ -26,5 +26,5 @@ export const COLOR_OPTIONS = [
 
 export const PRICE_LIMITS = {
   min: 45,
-  max: 200,
+  max: 2000,
 };

@@ -19,6 +19,7 @@
     "next-auth": "^4.24.11",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "resend": "^6.9.1",
     "stripe": "^14.25.0"
   },
   "devDependencies": {
