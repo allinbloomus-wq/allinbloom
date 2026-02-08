@@ -6,7 +6,7 @@ import Link from "next/link";
 
 type PromoSlide = {
   id: string;
-  title: string;
+  title?: string | null;
   subtitle?: string | null;
   image: string;
   link?: string | null;
@@ -19,17 +19,17 @@ type PromoGalleryProps = {
 const FALLBACK_SLIDES: PromoSlide[] = [
   {
     id: "fallback-1",
-    title: "Seasonal promotion",
-    subtitle: "Soft blush bouquets with signature wraps.",
+    title: "",
+    subtitle: "",
     image: "/images/promo-1.png",
-    link: "/catalog?filter=featured",
+    link: "",
   },
   {
     id: "fallback-2",
-    title: "Florist choice spotlight",
-    subtitle: "Custom bouquets crafted in hours.",
+    title: "",
+    subtitle: "",
     image: "/images/promo-2.png",
-    link: "/catalog",
+    link: "",
   },
   {
     id: "fallback-3",
@@ -192,33 +192,39 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
               <div className="relative w-full overflow-hidden rounded-[24px] border border-white/80 aspect-[9/16] sm:aspect-[9/16] lg:aspect-[9/16]">
                 <Image
                   src={slide.image}
-                  alt={slide.title}
+                  alt={slide.title || "Promo slide"}
                   fill
                   className="object-cover"
                   sizes="(max-width: 768px) 100vw, 900px"
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/10 to-transparent" />
-                <div className="absolute left-6 top-6 max-w-md text-white">
-                  <p className="text-xs uppercase tracking-[0.3em] text-white/70">
-                    Promotion
-                  </p>
-                  <h3 className="mt-2 text-2xl font-semibold sm:text-3xl">
-                    {slide.title}
-                  </h3>
-                  {slide.subtitle ? (
-                    <p className="mt-2 text-sm text-white/80">
-                      {slide.subtitle}
-                    </p>
-                  ) : null}
-                  {slide.link ? (
-                    <Link
-                      href={slide.link}
-                      className="mt-4 inline-flex rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs uppercase tracking-[0.3em] text-white backdrop-blur"
-                    >
-                      View details
-                    </Link>
-                  ) : null}
-                </div>
+                {(slide.title || slide.subtitle || slide.link) && (
+                  <div className="absolute left-6 top-6 max-w-md text-white">
+                    {slide.title && (
+                      <>
+                        <p className="text-xs uppercase tracking-[0.3em] text-white/70">
+                          Promotion
+                        </p>
+                        <h3 className="mt-2 text-2xl font-semibold sm:text-3xl">
+                          {slide.title}
+                        </h3>
+                      </>
+                    )}
+                    {slide.subtitle && (
+                      <p className="mt-2 text-sm text-white/80">
+                        {slide.subtitle}
+                      </p>
+                    )}
+                    {slide.link && (
+                      <Link
+                        href={slide.link}
+                        className="mt-4 inline-flex rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs uppercase tracking-[0.3em] text-white backdrop-blur"
+                      >
+                        View details
+                      </Link>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ))}

@@ -10,7 +10,7 @@ export default function AdminPromoRow({ slide }: { slide: PromoSlide }) {
         <div className="h-16 w-24 overflow-hidden rounded-2xl border border-white/80 bg-white">
           <Image
             src={slide.image}
-            alt={slide.title}
+            alt={slide.title || "Promo slide"}
             width={120}
             height={80}
             className="h-full w-full object-cover"
@@ -18,7 +18,7 @@ export default function AdminPromoRow({ slide }: { slide: PromoSlide }) {
         </div>
         <div>
           <p className="text-sm font-semibold text-stone-900">
-            {slide.title}
+            {slide.title || "Untitled slide"}
           </p>
           <p className="text-xs text-stone-500">
             Position: {slide.position}

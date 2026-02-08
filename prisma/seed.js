@@ -13,7 +13,7 @@ const bouquets = [
     colors: "blush,ivory,champagne",
     isMixed: true,
     isFeatured: true,
-    image: "/images/bouquet-1.svg",
+    image: "/images/bouquet-1.png",
   },
   {
     name: "Velvet Tulip Reverie",
@@ -25,7 +25,7 @@ const bouquets = [
     colors: "ruby,blush,peach",
     isMixed: false,
     isFeatured: true,
-    image: "/images/bouquet-2.svg",
+    image: "/images/bouquet-2.png",
   },
   {
     name: "Lily Champagne Cloud",
@@ -37,7 +37,7 @@ const bouquets = [
     colors: "ivory,champagne,sage",
     isMixed: true,
     isFeatured: true,
-    image: "/images/bouquet-3.svg",
+    image: "/images/bouquet-3.png",
   },
   {
     name: "Peony Muse",
@@ -49,7 +49,7 @@ const bouquets = [
     colors: "blush,peach,champagne",
     isMixed: true,
     isFeatured: false,
-    image: "/images/bouquet-4.svg",
+    image: "/images/bouquet-4.png",
   },
   {
     name: "Sage Orchid Mist",
@@ -61,7 +61,7 @@ const bouquets = [
     colors: "sage,ivory",
     isMixed: false,
     isFeatured: false,
-    image: "/images/bouquet-5.svg",
+    image: "/images/bouquet-5.png",
   },
   {
     name: "Sunlit Garden",
@@ -73,7 +73,7 @@ const bouquets = [
     colors: "peach,blush,champagne",
     isMixed: true,
     isFeatured: false,
-    image: "/images/bouquet-6.svg",
+    image: "/images/bouquet-6.png",
   },
   {
     name: "Ivory Poem",
@@ -85,7 +85,7 @@ const bouquets = [
     colors: "ivory,sage",
     isMixed: false,
     isFeatured: false,
-    image: "/images/bouquet-7.svg",
+    image: "/images/bouquet-7.png",
   },
   {
     name: "Lavender Haze",
@@ -97,30 +97,30 @@ const bouquets = [
     colors: "lavender,blush,ivory",
     isMixed: true,
     isFeatured: false,
-    image: "/images/bouquet-8.svg",
+    image: "/images/bouquet-8.png",
   },
 ];
 
 const promoSlides = [
   {
-    title: "Winter Romance Offer",
-    subtitle: "Save 12% on blush rose bouquets this week only.",
-    image: "/images/promo-1.svg",
-    link: "/catalog?filter=featured",
+    title: "",
+    subtitle: "",
+    image: "/images/promo-1.png",
+    link: "",
     position: 1,
   },
   {
-    title: "Floral Studio Pick",
-    subtitle: "Our florists curate a custom bouquet in 3 hours.",
-    image: "/images/promo-2.svg",
-    link: "/catalog",
+    title: "",
+    subtitle: "",
+    image: "/images/promo-2.png",
+    link: "",
     position: 2,
   },
   {
     title: "Gift-ready wraps",
     subtitle: "Signature satin ribbon and handwritten note included.",
-    image: "/images/promo-3.svg",
-    link: "/catalog",
+    image: "/images/promo-3.png",
+    link: "/catalog?filter=featured",
     position: 3,
   },
 ];

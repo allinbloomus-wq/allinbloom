@@ -17,16 +17,15 @@ export default function AdminPromoForm({ slide, action }: AdminPromoFormProps) {
       <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-4">
           <label className="flex flex-col gap-2 text-sm text-stone-700">
-            Title
+            Title (optional)
             <input
               name="title"
-              defaultValue={slide?.title}
-              required
+              defaultValue={slide?.title || ""}
               className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
             />
           </label>
           <label className="flex flex-col gap-2 text-sm text-stone-700">
-            Subtitle
+            Subtitle (optional)
             <input
               name="subtitle"
               defaultValue={slide?.subtitle || ""}
@@ -81,3 +80,4 @@ export default function AdminPromoForm({ slide, action }: AdminPromoFormProps) {
     </form>
   );
 }
+
