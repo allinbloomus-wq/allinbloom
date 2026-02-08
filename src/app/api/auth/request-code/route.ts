@@ -23,8 +23,21 @@ export async function POST(request: Request) {
     });
 
     if (recentCount >= 5) {
+      const oldest = await prisma.verificationCode.findFirst({
+        where: { email, createdAt: { gt: windowStart } },
+        orderBy: { createdAt: "asc" },
+      });
+      const retryAfterSec = oldest
+        ? Math.max(
+            1,
+            Math.ceil((oldest.createdAt.getTime() + 15 * 60 * 1000 - now.getTime()) / 1000)
+          )
+        : 15 * 60;
       return NextResponse.json(
-        { error: "Too many requests. Please try again later." },
+        {
+          error: "Too many requests. Please try again later.",
+          retryAfterSec,
+        },
         { status: 429 }
       );
     }
@@ -34,9 +47,16 @@ export async function POST(request: Request) {
       orderBy: { createdAt: "desc" },
     });
 
-    if (lastCode && now.getTime() - lastCode.createdAt.getTime() < 60 * 1000) {
+    if (lastCode && now.getTime() - lastCode.createdAt.getTime() < 20 * 1000) {
+      const retryAfterSec = Math.max(
+        1,
+        Math.ceil((lastCode.createdAt.getTime() + 20 * 1000 - now.getTime()) / 1000)
+      );
       return NextResponse.json(
-        { error: "Please wait a moment before requesting another code." },
+        {
+          error: "Please wait a moment before requesting another code.",
+          retryAfterSec,
+        },
         { status: 429 }
       );
     }

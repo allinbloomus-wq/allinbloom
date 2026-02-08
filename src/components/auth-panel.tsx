@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
 
 export default function AuthPanel() {
@@ -10,7 +10,22 @@ export default function AuthPanel() {
   const [codeSent, setCodeSent] = useState(false);
   const [needsName, setNeedsName] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [retryAfter, setRetryAfter] = useState<number | null>(null);
   const googleEnabled = process.env.NEXT_PUBLIC_GOOGLE_ENABLED === "true";
+
+  useEffect(() => {
+    if (!retryAfter) return;
+    const timer = setInterval(() => {
+      setRetryAfter((prev) => {
+        if (!prev || prev <= 1) {
+          clearInterval(timer);
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [retryAfter]);
 
   const requestCode = async () => {
     setStatus("Sending code...");
@@ -23,17 +38,16 @@ export default function AuthPanel() {
     const payload = await response.json().catch(() => ({}));
 
     if (response.ok) {
-      const isNew = Boolean(payload?.isNew);
-      setNeedsName(isNew);
+      setNeedsName(false);
       setCodeSent(true);
-      setStatus(
-        isNew
-          ? "Code sent. Please add your name to finish signup."
-          : "Code sent. Check your email."
-      );
+      setRetryAfter(null);
+      setStatus("Code sent. Check your email.");
       return;
     }
 
+    if (response.status === 429 && payload?.retryAfterSec) {
+      setRetryAfter(payload.retryAfterSec);
+    }
     setStatus(payload?.error || "Unable to send code.");
   };
 
@@ -54,6 +68,11 @@ export default function AuthPanel() {
     });
 
     if (result?.error) {
+      if (result.error === "NAME_REQUIRED" || !name.trim()) {
+        setNeedsName(true);
+        setStatus("Please enter your name to finish signup.");
+        return;
+      }
       setStatus("Invalid code. Please try again.");
       return;
     }
@@ -95,10 +114,14 @@ export default function AuthPanel() {
         <button
           type="button"
           onClick={requestCode}
-          disabled={!email}
+          disabled={!email || Boolean(retryAfter)}
           className="w-full rounded-full border border-stone-200 bg-white/80 px-4 py-2 text-xs uppercase tracking-[0.3em] text-stone-600 disabled:opacity-50"
         >
-          {codeSent ? "Resend code" : "Send code"}
+          {retryAfter
+            ? `Resend in ${retryAfter}s`
+            : codeSent
+            ? "Resend code"
+            : "Send code"}
         </button>
       </div>
       {codeSent ? (

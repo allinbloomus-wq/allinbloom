@@ -1,6 +1,16 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect } from "react";
+import { useCart } from "@/lib/cart";
 
 export default function CheckoutSuccessPage() {
+  const { clear } = useCart();
+
+  useEffect(() => {
+    clear();
+  }, [clear]);
+
   return (
     <div className="mx-auto flex max-w-2xl flex-col items-center gap-6 text-center">
       <div className="rounded-full bg-white/80 px-5 py-2 text-xs uppercase tracking-[0.32em] text-stone-500">

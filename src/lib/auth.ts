@@ -38,12 +38,10 @@ const providers = [
         return null;
       }
 
-      await prisma.verificationCode.deleteMany({ where: { email } });
-
         let user = await prisma.user.findUnique({ where: { email } });
         if (!user) {
           if (!name) {
-            return null;
+            throw new Error("NAME_REQUIRED");
           }
           user = await prisma.user.create({
             data: { email, name },
@@ -54,6 +52,8 @@ const providers = [
             data: { name },
           });
         }
+
+      await prisma.verificationCode.deleteMany({ where: { email } });
 
       return {
         id: user.id,

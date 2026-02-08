@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useCart } from "@/lib/cart";
 import { formatMoney } from "@/lib/format";
 import { getCartItemDiscount } from "@/lib/pricing";
@@ -36,6 +36,8 @@ export default function CartView({
 }: CartViewProps) {
   const { items, updateQuantity, removeItem } = useCart();
   const [address, setAddress] = useState("");
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const autocompleteRef = useRef<any>(null);
   const [quote, setQuote] = useState<{
     feeCents: number;
     miles: number;
@@ -43,6 +45,60 @@ export default function CartView({
   } | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
+  const mapsKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+  useEffect(() => {
+    if (!mapsKey || !inputRef.current) return;
+    if (autocompleteRef.current) return;
+
+    const loadGoogleMaps = () =>
+      new Promise<void>((resolve, reject) => {
+        if ((window as any).google?.maps?.places) {
+          resolve();
+          return;
+        }
+        const existing = document.getElementById("google-maps-js");
+        if (existing) {
+          existing.addEventListener("load", () => resolve());
+          existing.addEventListener("error", () => reject());
+          return;
+        }
+        const script = document.createElement("script");
+        script.id = "google-maps-js";
+        script.async = true;
+        script.defer = true;
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${mapsKey}&libraries=places`;
+        script.onload = () => resolve();
+        script.onerror = () => reject();
+        document.head.appendChild(script);
+      });
+
+    loadGoogleMaps()
+      .then(() => {
+        if (!inputRef.current) return;
+        const googleMaps = (window as any).google;
+        if (!googleMaps?.maps?.places) return;
+        autocompleteRef.current = new googleMaps.maps.places.Autocomplete(
+          inputRef.current,
+          {
+            types: ["address"],
+            componentRestrictions: { country: "us" },
+            fields: ["formatted_address"],
+          }
+        );
+        autocompleteRef.current.addListener("place_changed", () => {
+          const place = autocompleteRef.current?.getPlace();
+          if (place?.formatted_address) {
+            setAddress(place.formatted_address);
+            setQuote(null);
+            setQuoteError(null);
+          }
+        });
+      })
+      .catch(() => {
+        // Ignore script load errors; user can still type manually.
+      });
+  }, [mapsKey]);
 
   const lineItems = useMemo(() => {
     return items.map((item) => {
@@ -231,6 +287,7 @@ export default function CartView({
           <label className="flex flex-col gap-2 text-sm text-stone-700">
             Delivery address
             <input
+              ref={inputRef}
               value={address}
               onChange={(event) => {
                 setAddress(event.target.value);

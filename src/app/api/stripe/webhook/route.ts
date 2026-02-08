@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { prisma } from "@/lib/db";
+import { sendAdminOrderEmail, sendCustomerOrderEmail } from "@/lib/email";
 
 export async function POST(request: Request) {
   const stripeSecret = process.env.STRIPE_SECRET_KEY;
@@ -45,7 +46,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ received: true });
     }
 
-    const order = await prisma.order.findUnique({ where: { id: orderId } });
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { items: true },
+    });
     if (!order) {
       return NextResponse.json({ received: true });
     }
@@ -60,13 +64,35 @@ export async function POST(request: Request) {
       session.currency.toLowerCase() === order.currency.toLowerCase();
 
     if (isPaid && amountMatches && currencyMatches) {
-      await prisma.order.update({
-        where: { id: orderId },
+      const updated = await prisma.order.updateMany({
+        where: { id: orderId, status: { not: "PAID" } },
         data: {
           status: "PAID",
           stripeSessionId: session.id || order.stripeSessionId,
         },
       });
+
+      if (updated.count > 0) {
+        const emailPayload = {
+          orderId: order.id,
+          totalCents: order.totalCents,
+          currency: order.currency,
+          email: order.email,
+          items: order.items.map((item) => ({
+            name: item.name,
+            quantity: item.quantity,
+            priceCents: item.priceCents,
+          })),
+          deliveryAddress: session.metadata?.deliveryAddress || null,
+          deliveryMiles: session.metadata?.deliveryMiles || null,
+          deliveryFeeCents: session.metadata?.deliveryFeeCents || null,
+          firstOrderDiscountPercent:
+            session.metadata?.firstOrderDiscountPercent || null,
+        };
+
+        await sendAdminOrderEmail(emailPayload);
+        await sendCustomerOrderEmail(emailPayload);
+      }
     }
   }
 
