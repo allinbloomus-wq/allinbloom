@@ -23,7 +23,7 @@ export default async function AdminOrderDetailPage({
     | undefined = undefined;
 
   if (stripeSecret && order.stripeSessionId) {
-    const stripe = new Stripe(stripeSecret, { apiVersion: "2024-06-20" });
+    const stripe = new Stripe(stripeSecret);
     stripeSession = await stripe.checkout.sessions.retrieve(
       order.stripeSessionId
     );
