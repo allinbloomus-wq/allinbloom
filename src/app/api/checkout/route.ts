@@ -227,6 +227,7 @@ export async function POST(request: Request) {
         currency: "usd",
         product_data: {
           name: "Delivery",
+          images: [],
         },
         unit_amount: delivery.feeCents,
       },
