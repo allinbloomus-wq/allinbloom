@@ -7,7 +7,7 @@ import { generateOtp, verifyOtp } from "@/lib/otp";
 import { sendOtpEmail } from "@/lib/email";
 import { redirect } from "next/navigation";
 
-const providers = [
+const providers: NextAuthOptions["providers"] = [
   CredentialsProvider({
     name: "Email code",
       credentials: {
