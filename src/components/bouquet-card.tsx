@@ -1,8 +1,8 @@
-import Image from "next/image";
 import type { Bouquet } from "@prisma/client";
 import { formatLabel, formatMoney } from "@/lib/format";
 import type { DiscountInfo } from "@/lib/pricing";
 import AddToCartControls from "@/components/add-to-cart-controls";
+import BouquetImageLightbox from "@/components/bouquet-image-lightbox";
 
 type BouquetPricing = {
   originalPriceCents: number;
@@ -20,12 +20,10 @@ export default function BouquetCard({
   return (
     <div className="glass flex h-full flex-col gap-4 rounded-[28px] border border-white/80 p-5">
       <div className="overflow-hidden rounded-[22px] border border-white/80 bg-white">
-        <Image
+        <BouquetImageLightbox
           src={bouquet.image}
           alt={bouquet.name}
-          width={420}
-          height={520}
-          className="h-60 w-full object-cover"
+          className="block w-full"
         />
       </div>
       <div className="flex-1 space-y-2">

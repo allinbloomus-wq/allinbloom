@@ -78,6 +78,7 @@ export async function POST(request: Request) {
           totalCents: order.totalCents,
           currency: order.currency,
           email: order.email,
+          phone: session.metadata?.phone || order.phone || null,
           items: order.items.map((item) => ({
             name: item.name,
             quantity: item.quantity,

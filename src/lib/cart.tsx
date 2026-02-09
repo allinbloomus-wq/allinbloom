@@ -91,6 +91,14 @@ type CartContextValue = {
 
 const CartContext = createContext<CartContextValue | null>(null);
 
+export function clearCartStorage() {
+  try {
+    localStorage.removeItem(CART_KEY);
+  } catch {
+    // Ignore storage errors (e.g., disabled cookies).
+  }
+}
+
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, { items: [] });
 
@@ -124,6 +132,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const clear = useCallback(() => {
     dispatch({ type: "clear" });
+    clearCartStorage();
   }, []);
 
   const value = useMemo(() => {

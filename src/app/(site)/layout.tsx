@@ -9,6 +9,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
         {children}
       </main>
       <Footer />
+      <div id="lightbox-root" />
     </div>
   );
 }

@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
-import { useCart } from "@/lib/cart";
+import { clearCartStorage, useCart } from "@/lib/cart";
 
 export default function CheckoutSuccessPage() {
   const { clear } = useCart();
 
   useEffect(() => {
+    clearCartStorage();
     clear();
   }, [clear]);
 

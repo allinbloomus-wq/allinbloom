@@ -62,6 +62,7 @@ export async function sendAdminOrderEmail(params: {
   totalCents: number;
   currency: string;
   email?: string | null;
+  phone?: string | null;
   items: AdminOrderItem[];
   deliveryAddress?: string | null;
   deliveryMiles?: string | null;
@@ -83,6 +84,7 @@ export async function sendAdminOrderEmail(params: {
 
   const safeOrderId = escapeHtml(params.orderId);
   const safeEmail = escapeHtml(params.email || "—");
+  const safePhone = escapeHtml(params.phone || "—");
   const safeAddress = escapeHtml(params.deliveryAddress || "—");
   const safeMiles = escapeHtml(params.deliveryMiles || "—");
   const safeFee = escapeHtml(formatCents(params.deliveryFeeCents));
@@ -105,6 +107,7 @@ export async function sendAdminOrderEmail(params: {
       <h2>Order paid</h2>
       <p><strong>Order:</strong> ${safeOrderId}</p>
       <p><strong>Customer email:</strong> ${safeEmail}</p>
+      <p><strong>Phone:</strong> ${safePhone}</p>
       <p><strong>Total:</strong> ${totalFormatted}</p>
       <p><strong>Delivery address:</strong> ${safeAddress}</p>
       <p><strong>Delivery miles:</strong> ${safeMiles}</p>
@@ -135,6 +138,7 @@ export async function sendCustomerOrderEmail(params: {
   totalCents: number;
   currency: string;
   email?: string | null;
+  phone?: string | null;
   items: AdminOrderItem[];
   deliveryAddress?: string | null;
   deliveryMiles?: string | null;
@@ -155,6 +159,7 @@ export async function sendCustomerOrderEmail(params: {
 
   const safeOrderId = escapeHtml(params.orderId);
   const safeEmail = escapeHtml(params.email);
+  const safePhone = escapeHtml(params.phone || "—");
   const safeAddress = escapeHtml(params.deliveryAddress || "—");
   const safeMiles = escapeHtml(params.deliveryMiles || "—");
   const safeFee = escapeHtml(formatCents(params.deliveryFeeCents));
@@ -177,6 +182,7 @@ export async function sendCustomerOrderEmail(params: {
       <h2>Thank you for your order!</h2>
       <p><strong>Order:</strong> ${safeOrderId}</p>
       <p><strong>Email:</strong> ${safeEmail}</p>
+      <p><strong>Phone:</strong> ${safePhone}</p>
       <p><strong>Total:</strong> ${totalFormatted}</p>
       <p><strong>Delivery address:</strong> ${safeAddress}</p>
       <p><strong>Delivery miles:</strong> ${safeMiles}</p>

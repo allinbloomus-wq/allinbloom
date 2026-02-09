@@ -49,6 +49,15 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const items = (body?.items || []) as CheckoutItem[];
   const address = String(body?.address || "").trim();
+  const rawPhone = String(body?.phone || "").trim();
+
+  const digits = rawPhone.replace(/\D/g, "");
+  const normalizedPhone =
+    digits.length === 10
+      ? `+1${digits}`
+      : digits.length >= 11 && digits.length <= 15
+      ? `+${digits}`
+      : "";
 
   if (!items.length) {
     return NextResponse.json({ error: "No items provided." }, { status: 400 });
@@ -65,6 +74,13 @@ export async function POST(request: Request) {
   if (!address) {
     return NextResponse.json(
       { error: "Delivery address is required." },
+      { status: 400 }
+    );
+  }
+
+  if (!normalizedPhone) {
+    return NextResponse.json(
+      { error: "A valid phone number is required." },
       { status: 400 }
     );
   }
@@ -180,12 +196,20 @@ export async function POST(request: Request) {
   const order = await prisma.order.create({
     data: {
       email: session.user.email,
+      phone: normalizedPhone,
       totalCents: computedTotal,
       items: {
         create: orderItems,
       },
     },
   });
+
+  if (session.user.email) {
+    await prisma.user.updateMany({
+      where: { email: session.user.email },
+      data: { phone: normalizedPhone },
+    });
+  }
 
   const lineItems = discountedItems.map((item) => ({
     price_data: {
@@ -226,6 +250,7 @@ export async function POST(request: Request) {
       deliveryMiles: delivery.miles.toFixed(1),
       deliveryFeeCents: String(delivery.feeCents),
       firstOrderDiscountPercent: String(firstOrderDiscountPercent),
+      phone: normalizedPhone,
     },
   });
 

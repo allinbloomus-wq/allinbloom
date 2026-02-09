@@ -36,6 +36,7 @@ export default function CartView({
 }: CartViewProps) {
   const { items, updateQuantity, removeItem } = useCart();
   const [address, setAddress] = useState("");
+  const [phone, setPhone] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
   const autocompleteRef = useRef<any>(null);
   const [quote, setQuote] = useState<{
@@ -46,6 +47,10 @@ export default function CartView({
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const mapsKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const phoneDigits = phone.replace(/\D/g, "");
+  const phoneValid =
+    phoneDigits.length === 10 ||
+    (phoneDigits.length >= 11 && phoneDigits.length <= 15);
 
   useEffect(() => {
     if (!mapsKey || !inputRef.current) return;
@@ -298,6 +303,22 @@ export default function CartView({
               className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800"
             />
           </label>
+          <label className="flex flex-col gap-2 text-sm text-stone-700">
+            Phone number
+            <input
+              value={phone}
+              onChange={(event) => setPhone(event.target.value)}
+              placeholder="+1 312 555 0123"
+              inputMode="tel"
+              autoComplete="tel"
+              className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800"
+            />
+          </label>
+          {phone && !phoneValid ? (
+            <p className="text-xs uppercase tracking-[0.24em] text-rose-700">
+              Enter a valid phone number.
+            </p>
+          ) : null}
           <button
             type="button"
             onClick={requestQuote}
@@ -352,11 +373,13 @@ export default function CartView({
         <CheckoutButton
           items={items}
           deliveryAddress={address.trim()}
+          phone={phone.trim()}
           disabled={
             !quote ||
             quoteLoading ||
             Boolean(quoteError) ||
-            !isAuthenticated
+            !isAuthenticated ||
+            !phoneValid
           }
         />
         {!isAuthenticated ? (

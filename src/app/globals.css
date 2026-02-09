@@ -94,3 +94,20 @@
     transform: translateY(-8px);
   }
 }
+
+
+/* Блокировка кликов по элементам под lightbox */
+body[data-lightbox-open="true"] {
+  overflow: hidden;
+}
+
+/* Блокируем все кнопки открытия картинок когда lightbox открыт */
+body[data-lightbox-open="true"] button[aria-label="Open image"] {
+  pointer-events: none;
+}
+
+/* Но разрешаем клики по header */
+body[data-lightbox-open="true"] header,
+body[data-lightbox-open="true"] header * {
+  pointer-events: auto;
+}

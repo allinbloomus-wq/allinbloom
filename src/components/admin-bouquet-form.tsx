@@ -88,7 +88,7 @@ export default function AdminBouquetForm({
         <div className="space-y-4">
           <AdminImageUpload
             defaultValue={bouquet?.image || "/images/bouquet-0.png"}
-            recommendedSize="height:600, width:800"
+            recommendedSize="1000x1000"
           />
           <label className="flex flex-col gap-2 text-sm text-stone-700">
             Flower type

@@ -38,6 +38,21 @@ export default async function HomePage() {
             gifting. Curated by artisan florists, designed for every elegant
             moment in your life.
           </p>
+          <div className="relative animate-float lg:hidden">
+            <div className="glass absolute right-6 top-6 z-10 hidden h-14 w-36 rounded-full border border-white/80 text-xs font-semibold uppercase tracking-[0.3em] text-stone-700 sm:flex items-center justify-center">
+              New arrivals
+            </div>
+            <div className="glass overflow-hidden rounded-[32px] border border-white/80 p-4">
+              <Image
+                src="/images/hero-bouquet.png"
+                alt="Elegant floral bouquet"
+                width={520}
+                height={640}
+                className="h-auto w-full rounded-[26px] object-cover"
+                priority
+              />
+            </div>
+          </div>
           <div className="flex flex-wrap gap-4">
             <Link
               href="/catalog"
@@ -81,7 +96,7 @@ export default async function HomePage() {
             ))}
           </div>
         </div>
-        <div className="relative animate-float">
+        <div className="relative animate-float hidden lg:block">
           <div className="glass absolute right-6 top-6 z-10 hidden h-14 w-36 rounded-full border border-white/80 text-xs font-semibold uppercase tracking-[0.3em] text-stone-700 sm:flex items-center justify-center">
             New arrivals
           </div>
@@ -96,38 +111,6 @@ export default async function HomePage() {
             />
           </div>
         </div>
-      </section>
-
-      <section className="animate-rise [animation-delay:80ms]">
-        <PromoGallery slides={promoSlides} />
-      </section>
-
-      <section className="grid gap-10 rounded-[36px] border border-white/80 bg-white/70 p-8 shadow-sm lg:grid-cols-[1fr_1.1fr] animate-rise [animation-delay:120ms]">
-        <div className="space-y-5">
-          <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
-            FLORIST CHOICE BOUQUET
-          </p>
-          <h2 className="text-3xl font-semibold text-stone-900 sm:text-4xl">
-            Let our florists craft a bouquet just for you
-          </h2>
-          <p className="text-sm leading-relaxed text-stone-600">
-            Choose your mood, palette, and price point. We will hand-pick the
-            freshest stems and design a one-of-a-kind bouquet with a personal
-            note from our atelier.
-          </p>
-          <ul className="flex flex-wrap gap-3 text-xs uppercase tracking-[0.22em] text-stone-500">
-            <li className="rounded-full border border-stone-200 bg-white/70 px-3 py-1">
-              same-day delivery
-            </li>
-            <li className="rounded-full border border-stone-200 bg-white/70 px-3 py-1">
-              seasonal selection
-            </li>
-            <li className="rounded-full border border-stone-200 bg-white/70 px-3 py-1">
-              handwritten note
-            </li>
-          </ul>
-        </div>
-        <FloristChoiceForm />
       </section>
 
       <section className="space-y-6 animate-rise [animation-delay:200ms]">
@@ -156,6 +139,10 @@ export default async function HomePage() {
             />
           ))}
         </div>
+      </section>
+
+      <section className="animate-rise [animation-delay:80ms]">
+        <PromoGallery slides={promoSlides} />
       </section>
 
       <section className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center animate-rise [animation-delay:280ms]">
@@ -188,14 +175,14 @@ export default async function HomePage() {
           {galleryImages.map((src) => (
             <div
               key={src}
-              className="glass overflow-hidden rounded-[28px] border border-white/80"
+              className="glass overflow-hidden rounded-[28px] border border-white/80 aspect-square"
             >
               <Image
                 src={src}
                 alt="Bouquet gallery preview"
-                width={320}
+                width={400}
                 height={400}
-                className="h-64 w-full object-cover"
+                className="h-full w-full object-cover"
               />
             </div>
           ))}
@@ -215,7 +202,35 @@ export default async function HomePage() {
         />
       </section>
 
-      <section className="grid gap-6 rounded-[36px] border border-white/80 bg-white/70 p-8 shadow-sm lg:grid-cols-[0.9fr_1.1fr] animate-rise [animation-delay:420ms]">
+      <section className="grid gap-10 rounded-[36px] border border-white/80 bg-white/70 p-8 shadow-sm lg:grid-cols-[1fr_1.1fr] animate-rise [animation-delay:480ms]">
+        <div className="space-y-5">
+          <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
+            FLORIST CHOICE BOUQUET
+          </p>
+          <h2 className="text-3xl font-semibold text-stone-900 sm:text-4xl">
+            Let our florists craft a bouquet just for you
+          </h2>
+          <p className="text-sm leading-relaxed text-stone-600">
+            Choose your mood, palette, and price point. We will hand-pick the
+            freshest stems and design a one-of-a-kind bouquet with a personal
+            note from our atelier.
+          </p>
+          <ul className="flex flex-wrap gap-3 text-xs uppercase tracking-[0.22em] text-stone-500">
+            <li className="rounded-full border border-stone-200 bg-white/70 px-3 py-1">
+              same-day delivery
+            </li>
+            <li className="rounded-full border border-stone-200 bg-white/70 px-3 py-1">
+              seasonal selection
+            </li>
+            <li className="rounded-full border border-stone-200 bg-white/70 px-3 py-1">
+              handwritten note
+            </li>
+          </ul>
+        </div>
+        <FloristChoiceForm />
+      </section>
+
+      <section className="grid gap-6 rounded-[36px] border border-white/80 bg-white/70 p-8 shadow-sm lg:grid-cols-[0.9fr_1.1fr] animate-rise [animation-delay:520ms]">
         <div className="space-y-4">
           <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
             Visit our studio

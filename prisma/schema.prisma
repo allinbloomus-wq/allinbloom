@@ -39,6 +39,7 @@ model User {
   id        String   @id @default(cuid())
   email     String   @unique
   name      String?
+  phone     String?
   role      Role     @default(CUSTOMER)
   image     String?
   createdAt DateTime @default(now())
@@ -77,6 +78,7 @@ model Bouquet {
 model Order {
   id              String       @id @default(cuid())
   email           String?
+  phone           String?
   stripeSessionId String?      @unique
   totalCents      Int
   currency        String       @default("USD")

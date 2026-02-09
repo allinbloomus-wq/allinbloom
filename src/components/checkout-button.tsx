@@ -6,12 +6,14 @@ import type { CartItem } from "@/lib/cart";
 type CheckoutButtonProps = {
   items: CartItem[];
   deliveryAddress: string;
+  phone: string;
   disabled?: boolean;
 };
 
 export default function CheckoutButton({
   items,
   deliveryAddress,
+  phone,
   disabled,
 }: CheckoutButtonProps) {
   const [loading, setLoading] = useState(false);
@@ -38,6 +40,7 @@ export default function CheckoutButton({
             : { id: item.id, quantity: item.quantity }
         ),
         address: deliveryAddress,
+        phone,
       }),
     });
 

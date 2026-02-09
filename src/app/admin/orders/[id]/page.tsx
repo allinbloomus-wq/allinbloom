@@ -88,6 +88,7 @@ export default async function AdminOrderDetailPage({
               <p>Status: {order.status}</p>
               <p>Created: {formatDateTime(order.createdAt)}</p>
               {order.email ? <p>Email: {order.email}</p> : null}
+              {order.phone ? <p>Phone: {order.phone}</p> : null}
               {stripeSession ? (
                 <p>
                   Stripe payment: {stripeSession.payment_status} (

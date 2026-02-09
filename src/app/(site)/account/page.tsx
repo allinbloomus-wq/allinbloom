@@ -1,9 +1,10 @@
-import { getServerSession } from "next-auth";
+﻿import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import SignOutButton from "@/components/sign-out-button";
 import { getOrdersByEmail } from "@/lib/data/orders";
 import { formatDateTime, formatMoney } from "@/lib/format";
+import { prisma } from "@/lib/db";
 
 export default async function AccountPage() {
   const session = await getServerSession(authOptions);
@@ -14,6 +15,9 @@ export default async function AccountPage() {
 
   const email = session.user.email;
   const orders = email ? await getOrdersByEmail(email) : [];
+  const dbUser = email
+    ? await prisma.user.findUnique({ where: { email } })
+    : null;
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
@@ -26,8 +30,9 @@ export default async function AccountPage() {
         </h1>
       </div>
       <div className="glass rounded-[28px] border border-white/80 p-6 text-sm text-stone-600">
-        <p>Name: {session.user.name || "—"}</p>
+        <p>Name: {session.user.name || "-"}</p>
         <p>Email: {session.user.email}</p>
+        {dbUser?.phone ? <p>Phone: {dbUser.phone}</p> : null}
         {session.user.role === "ADMIN" ? (
           <p>Role: {session.user.role}</p>
         ) : null}
