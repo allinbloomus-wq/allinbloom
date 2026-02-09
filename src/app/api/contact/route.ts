@@ -1,7 +1,19 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Ленивая инициализация - создаём клиент только когда он нужен
+let resendClient: Resend | null = null;
+
+function getResendClient() {
+  if (!resendClient) {
+    if (!process.env.RESEND_API_KEY) {
+      throw new Error("RESEND_API_KEY is not configured");
+    }
+    resendClient = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resendClient;
+}
+
 const RATE_WINDOW_MS = 15 * 60 * 1000;
 const RATE_LIMIT = 5;
 const rateLimit = new Map<string, { count: number; resetAt: number }>();
@@ -80,6 +92,9 @@ export async function POST(request: Request) {
     const safeName = escapeHtml(name);
     const safeEmail = escapeHtml(email);
     const safeMessage = escapeHtml(message).replace(/\n/g, "<br>");
+
+    // Получаем клиент только при выполнении запроса
+    const resend = getResendClient();
 
     // Send email via Resend
     await resend.emails.send({
