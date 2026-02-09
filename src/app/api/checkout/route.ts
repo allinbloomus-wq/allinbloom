@@ -173,9 +173,7 @@ export async function POST(request: Request) {
     0
   );
   const computedTotal = discountedSubtotal + delivery.feeCents;
-  const stripe = new Stripe(stripeSecret, {
-    apiVersion: "2024-06-20",
-  });
+  const stripe = new Stripe(stripeSecret);
 
   const orderItems = discountedItems.map((item) => ({
     name: item.name,
