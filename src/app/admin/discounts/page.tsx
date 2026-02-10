@@ -83,11 +83,11 @@ export default async function AdminDiscountsPage() {
           </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-stone-900">
-              Category discount
-            </h2>
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold text-stone-900">
+            Category discount
+          </h2>
+          <div className="grid gap-4 lg:grid-cols-2">
             <label className="flex flex-col gap-2 text-sm text-stone-700">
               Discount percent
               <input
@@ -99,17 +99,6 @@ export default async function AdminDiscountsPage() {
                 className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
               />
             </label>
-            <label className="flex flex-col gap-2 text-sm text-stone-700">
-              Discount comment
-              <input
-                name="categoryDiscountNote"
-                defaultValue={settings.categoryDiscountNote || ""}
-                placeholder="Reason for discount"
-                className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
-              />
-            </label>
-          </div>
-          <div className="space-y-4">
             <label className="flex flex-col gap-2 text-sm text-stone-700">
               Flower type
               <select
@@ -124,6 +113,15 @@ export default async function AdminDiscountsPage() {
                   </option>
                 ))}
               </select>
+            </label>
+            <label className="flex flex-col gap-2 text-sm text-stone-700">
+              Discount comment
+              <input
+                name="categoryDiscountNote"
+                defaultValue={settings.categoryDiscountNote || ""}
+                placeholder="Reason for discount"
+                className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+              />
             </label>
             <label className="flex flex-col gap-2 text-sm text-stone-700">
               Style
@@ -167,38 +165,36 @@ export default async function AdminDiscountsPage() {
                 ))}
               </select>
             </label>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="flex flex-col gap-2 text-sm text-stone-700">
-                Min price (USD)
-                <input
-                  name="categoryMinPrice"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  defaultValue={
-                    settings.categoryMinPriceCents !== null
-                      ? (settings.categoryMinPriceCents / 100).toFixed(2)
-                      : ""
-                  }
-                  className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
-                />
-              </label>
-              <label className="flex flex-col gap-2 text-sm text-stone-700">
-                Max price (USD)
-                <input
-                  name="categoryMaxPrice"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  defaultValue={
-                    settings.categoryMaxPriceCents !== null
-                      ? (settings.categoryMaxPriceCents / 100).toFixed(2)
-                      : ""
-                  }
-                  className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
-                />
-              </label>
-            </div>
+            <label className="flex flex-col gap-2 text-sm text-stone-700">
+              Min price (USD)
+              <input
+                name="categoryMinPrice"
+                type="number"
+                step="0.01"
+                min="0"
+                defaultValue={
+                  settings.categoryMinPriceCents !== null
+                    ? (settings.categoryMinPriceCents / 100).toFixed(2)
+                    : ""
+                }
+                className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+              />
+            </label>
+            <label className="flex flex-col gap-2 text-sm text-stone-700">
+              Max price (USD)
+              <input
+                name="categoryMaxPrice"
+                type="number"
+                step="0.01"
+                min="0"
+                defaultValue={
+                  settings.categoryMaxPriceCents !== null
+                    ? (settings.categoryMaxPriceCents / 100).toFixed(2)
+                    : ""
+                }
+                className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+              />
+            </label>
           </div>
         </div>
 
