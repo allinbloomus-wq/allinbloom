@@ -1,11 +1,13 @@
 import { getAdminOrders } from "@/lib/data/orders";
 import AdminOrderRow from "@/components/admin-order-row";
+import AdminOrdersSeen from "@/components/admin-orders-seen";
 
 export default async function AdminOrdersPage() {
   const orders = await getAdminOrders();
 
   return (
     <div className="space-y-6">
+      <AdminOrdersSeen />
       <div>
         <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
           Admin studio

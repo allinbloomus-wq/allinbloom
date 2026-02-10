@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { getOrderById } from "@/lib/data/orders";
 import { formatDateTime, formatMoney } from "@/lib/format";
 import { prisma } from "@/lib/db";
+import AdminOrdersSeen from "@/components/admin-orders-seen";
 
 export default async function AdminOrderDetailPage({
   params,
@@ -49,6 +50,7 @@ export default async function AdminOrderDetailPage({
 
   return (
     <div className="space-y-6">
+      <AdminOrdersSeen />
       <div>
         <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
           Order details

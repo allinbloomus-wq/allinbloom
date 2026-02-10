@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import CartBadge from "@/components/cart-badge";
+import AdminOrdersBadge from "@/components/admin-orders-badge";
 
 export default async function Header() {
   const session = await getServerSession(authOptions);
@@ -26,8 +27,12 @@ export default async function Header() {
                 Contact
               </Link>
               {isAdmin ? (
-                <Link href="/admin" className="hover:text-stone-700">
+                <Link
+                  href="/admin"
+                  className="relative inline-flex items-center hover:text-stone-700"
+                >
                   Admin
+                  <AdminOrdersBadge />
                 </Link>
               ) : null}
             </nav>
@@ -50,8 +55,12 @@ export default async function Header() {
             Contact
           </Link>
           {isAdmin ? (
-            <Link href="/admin" className="hover:text-stone-700">
+            <Link
+              href="/admin"
+              className="relative inline-flex items-center hover:text-stone-700"
+            >
               Admin
+              <AdminOrdersBadge />
             </Link>
           ) : null}
         </nav>

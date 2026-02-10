@@ -1,5 +1,6 @@
 import Link from "next/link";
 import SignOutButton from "@/components/sign-out-button";
+import AdminOrdersBadge from "@/components/admin-orders-badge";
 
 export default function AdminSidebar() {
   return (
@@ -19,9 +20,10 @@ export default function AdminSidebar() {
         </Link>
         <Link
           href="/admin/orders"
-          className="block rounded-2xl border border-transparent bg-white/70 px-3 py-2 transition hover:border-stone-200"
+          className="relative block rounded-2xl border border-transparent bg-white/70 px-3 py-2 transition hover:border-stone-200"
         >
           Orders
+          <AdminOrdersBadge />
         </Link>
         <Link
           href="/admin/promotions"
