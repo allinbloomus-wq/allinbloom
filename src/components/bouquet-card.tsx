@@ -1,3 +1,5 @@
+"use client";
+
 import type { Bouquet } from "@prisma/client";
 import { formatLabel, formatMoney } from "@/lib/format";
 import type { DiscountInfo } from "@/lib/pricing";

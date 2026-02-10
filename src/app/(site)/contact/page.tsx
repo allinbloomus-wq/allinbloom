@@ -32,7 +32,7 @@ export default function ContactPage() {
         </p>
         <div className="space-y-2 text-sm text-stone-600">
           <p>Studio hotline: +1 (224) 213-3823</p>
-          <p>Email: hello@allinbloom.com</p>
+          <p>Email: allinbloom.us@gmail.com</p>
           <p>Hours: Mon-Sat 9:00 AM to 7:00 PM</p>
           <a
             href="https://www.instagram.com/all_in_bloom_studio"

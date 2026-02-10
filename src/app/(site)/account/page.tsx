@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth-session";
 import SignOutButton from "@/components/sign-out-button";
 import { getOrdersByEmail } from "@/lib/data/orders";
 import { formatDateTime, formatMoney, formatOrderStatus } from "@/lib/format";
-import { prisma } from "@/lib/db";
+import { getCurrentUser } from "@/lib/data/users";
 
 export const metadata: Metadata = {
   title: "Account",
@@ -16,17 +15,15 @@ export const metadata: Metadata = {
 };
 
 export default async function AccountPage() {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user) {
+  const { user } = requireAuth();
+  if (!user) {
     redirect("/auth");
   }
 
-  const email = session.user.email;
-  const orders = email ? await getOrdersByEmail(email) : [];
-  const dbUser = email
-    ? await prisma.user.findUnique({ where: { email } })
-    : null;
+  const [orders, currentUser] = await Promise.all([
+    getOrdersByEmail(user.email),
+    getCurrentUser(),
+  ]);
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
@@ -39,11 +36,11 @@ export default async function AccountPage() {
         </h1>
       </div>
       <div className="glass rounded-[28px] border border-white/80 p-6 text-sm text-stone-600">
-        <p>Name: {session.user.name || "-"}</p>
-        <p>Email: {session.user.email}</p>
-        {dbUser?.phone ? <p>Phone: {dbUser.phone}</p> : null}
-        {session.user.role === "ADMIN" ? (
-          <p>Role: {session.user.role}</p>
+        <p>Name: {currentUser?.name || user.name || "-"}</p>
+        <p>Email: {currentUser?.email || user.email}</p>
+        {currentUser?.phone ? <p>Phone: {currentUser.phone}</p> : null}
+        {user.role === "ADMIN" ? (
+          <p>Role: {user.role}</p>
         ) : null}
       </div>
       <div className="glass rounded-[28px] border border-white/80 p-6 text-sm text-stone-600">
@@ -81,7 +78,7 @@ export default async function AccountPage() {
           )}
         </div>
       </div>
-      {session.user.role === "ADMIN" ? (
+      {user.role === "ADMIN" ? (
         <div className="glass rounded-[28px] border border-white/80 p-6 text-sm text-stone-600">
           <p>You have admin access.</p>
           <a

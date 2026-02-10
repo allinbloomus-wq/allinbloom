@@ -9,6 +9,7 @@ import {
   dayKeyToDate,
   getDayKey,
 } from "@/lib/admin-orders";
+import { clientFetch } from "@/lib/api-client";
 
 type AdminOrder = Omit<Order, "createdAt"> & {
   createdAt: string;
@@ -54,9 +55,10 @@ export default function AdminOrdersList({
     setError(null);
 
     try {
-      const response = await fetch(
+      const response = await clientFetch(
         `/api/admin/orders/by-day?date=${targetDayKey}`,
-        { cache: "no-store" }
+        { cache: "no-store" },
+        true
       );
       if (!response.ok) {
         throw new Error("Failed to load");

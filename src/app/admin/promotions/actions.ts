@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/db";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth-session";
+import { apiFetch } from "@/lib/api-server";
 
 const parsePromoForm = (formData: FormData) => {
   const title = String(formData.get("title") || "").trim();
@@ -23,28 +23,53 @@ const parsePromoForm = (formData: FormData) => {
 };
 
 export async function createPromoSlide(formData: FormData) {
-  await requireAdmin();
+  requireAdmin();
   const data = parsePromoForm(formData);
-  await prisma.promoSlide.create({ data });
+  const response = await apiFetch(
+    "/api/promotions",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    },
+    true
+  );
+  if (!response.ok) {
+    throw new Error("Unable to create promotion.");
+  }
   revalidatePath("/");
   revalidatePath("/admin/promotions");
   redirect("/admin/promotions");
 }
 
 export async function updatePromoSlide(formData: FormData) {
-  await requireAdmin();
+  requireAdmin();
   const id = String(formData.get("id") || "");
   const data = parsePromoForm(formData);
-  await prisma.promoSlide.update({ where: { id }, data });
+  const response = await apiFetch(
+    `/api/promotions/${id}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    },
+    true
+  );
+  if (!response.ok) {
+    throw new Error("Unable to update promotion.");
+  }
   revalidatePath("/");
   revalidatePath("/admin/promotions");
   redirect("/admin/promotions");
 }
 
 export async function deletePromoSlide(formData: FormData) {
-  await requireAdmin();
+  requireAdmin();
   const id = String(formData.get("id") || "");
-  await prisma.promoSlide.delete({ where: { id } });
+  const response = await apiFetch(`/api/promotions/${id}`, { method: "DELETE" }, true);
+  if (!response.ok) {
+    throw new Error("Unable to delete promotion.");
+  }
   revalidatePath("/");
   revalidatePath("/admin/promotions");
 }

@@ -1,6 +1,8 @@
 import { formatMoney } from "@/lib/format";
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
+const DEFAULT_FROM = "All in Bloom Floral Studio <allinbloom.us@gmail.com>";
+const DEFAULT_REPLY_TO = "allinbloom.us@gmail.com";
 
 function escapeHtml(value: string) {
   return value
@@ -11,11 +13,32 @@ function escapeHtml(value: string) {
     .replace(/'/g, "&#39;");
 }
 
+function formatCents(value?: string | null) {
+  if (!value) return "-";
+  const cents = Number(value);
+  if (!Number.isFinite(cents)) return "-";
+  return formatMoney(cents);
+}
+
+function buildReplyTo(candidate?: string | null) {
+  return (
+    candidate ||
+    process.env.EMAIL_REPLY_TO ||
+    process.env.ADMIN_EMAIL ||
+    DEFAULT_REPLY_TO
+  );
+}
+
+type AdminOrderItem = {
+  name: string;
+  quantity: number;
+  priceCents: number;
+};
+
 export async function sendOtpEmail(email: string, code: string) {
   const apiKey = process.env.RESEND_API_KEY;
-  const from =
-    process.env.EMAIL_FROM ||
-    "All in Bloom Floral Studio <no-reply@allinbloom.com>";
+  const from = process.env.EMAIL_FROM || DEFAULT_FROM;
+  const replyTo = buildReplyTo();
 
   if (!apiKey) {
     console.info(`[DEV] OTP code for ${email}: ${code}`);
@@ -26,7 +49,9 @@ export async function sendOtpEmail(email: string, code: string) {
     from,
     to: [email],
     subject: "Your All in Bloom Floral Studio verification code",
+    text: `Your one-time code is ${code}. It expires in 10 minutes.`,
     html: `<p>Your one-time code is <strong>${code}</strong>. It expires in 10 minutes.</p>`,
+    reply_to: replyTo,
   };
 
   const response = await fetch(RESEND_ENDPOINT, {
@@ -44,19 +69,6 @@ export async function sendOtpEmail(email: string, code: string) {
   }
 }
 
-function formatCents(value?: string | null) {
-  if (!value) return "—";
-  const cents = Number(value);
-  if (!Number.isFinite(cents)) return "—";
-  return formatMoney(cents);
-}
-
-type AdminOrderItem = {
-  name: string;
-  quantity: number;
-  priceCents: number;
-};
-
 export async function sendAdminOrderEmail(params: {
   orderId: string;
   totalCents: number;
@@ -70,9 +82,7 @@ export async function sendAdminOrderEmail(params: {
   firstOrderDiscountPercent?: string | null;
 }) {
   const apiKey = process.env.RESEND_API_KEY;
-  const from =
-    process.env.EMAIL_FROM ||
-    "All in Bloom Floral Studio <no-reply@allinbloom.com>";
+  const from = process.env.EMAIL_FROM || DEFAULT_FROM;
   const adminEmail = process.env.ADMIN_EMAIL;
 
   if (!apiKey || !adminEmail) {
@@ -83,10 +93,10 @@ export async function sendAdminOrderEmail(params: {
   }
 
   const safeOrderId = escapeHtml(params.orderId);
-  const safeEmail = escapeHtml(params.email || "—");
-  const safePhone = escapeHtml(params.phone || "—");
-  const safeAddress = escapeHtml(params.deliveryAddress || "—");
-  const safeMiles = escapeHtml(params.deliveryMiles || "—");
+  const safeEmail = escapeHtml(params.email || "-");
+  const safePhone = escapeHtml(params.phone || "-");
+  const safeAddress = escapeHtml(params.deliveryAddress || "-");
+  const safeMiles = escapeHtml(params.deliveryMiles || "-");
   const safeFee = escapeHtml(formatCents(params.deliveryFeeCents));
   const safeDiscount = escapeHtml(params.firstOrderDiscountPercent || "0");
   const totalFormatted = escapeHtml(formatMoney(params.totalCents));
@@ -95,14 +105,33 @@ export async function sendAdminOrderEmail(params: {
     .map((item) => {
       const safeName = escapeHtml(item.name);
       const formatted = escapeHtml(formatMoney(item.priceCents));
-      return `<li>${item.quantity} × ${safeName} — ${formatted}</li>`;
+      return `<li>${item.quantity} x ${safeName} - ${formatted}</li>`;
     })
     .join("");
+
+  const itemsText = params.items
+    .map(
+      (item) => `${item.quantity} x ${item.name} - ${formatMoney(item.priceCents)}`
+    )
+    .join("\n");
 
   const payload = {
     from,
     to: [adminEmail],
     subject: `New paid order ${safeOrderId}`,
+    text: [
+      "Order paid",
+      `Order: ${params.orderId}`,
+      `Customer email: ${params.email || "-"}`,
+      `Phone: ${params.phone || "-"}`,
+      `Total: ${formatMoney(params.totalCents)}`,
+      `Delivery address: ${params.deliveryAddress || "-"}`,
+      `Delivery miles: ${params.deliveryMiles || "-"}`,
+      `Delivery fee: ${formatCents(params.deliveryFeeCents)}`,
+      `First order discount %: ${params.firstOrderDiscountPercent || "0"}`,
+      "Items:",
+      itemsText || "-",
+    ].join("\n"),
     html: `
       <h2>Order paid</h2>
       <p><strong>Order:</strong> ${safeOrderId}</p>
@@ -116,6 +145,7 @@ export async function sendAdminOrderEmail(params: {
       <h3>Items</h3>
       <ul>${itemsHtml}</ul>
     `,
+    reply_to: buildReplyTo(params.email),
   };
 
   const response = await fetch(RESEND_ENDPOINT, {
@@ -146,9 +176,7 @@ export async function sendCustomerOrderEmail(params: {
   firstOrderDiscountPercent?: string | null;
 }) {
   const apiKey = process.env.RESEND_API_KEY;
-  const from =
-    process.env.EMAIL_FROM ||
-    "All in Bloom Floral Studio <no-reply@allinbloom.com>";
+  const from = process.env.EMAIL_FROM || DEFAULT_FROM;
 
   if (!apiKey || !params.email) {
     console.info("[DEV] Customer order email skipped (missing config).", {
@@ -159,9 +187,9 @@ export async function sendCustomerOrderEmail(params: {
 
   const safeOrderId = escapeHtml(params.orderId);
   const safeEmail = escapeHtml(params.email);
-  const safePhone = escapeHtml(params.phone || "—");
-  const safeAddress = escapeHtml(params.deliveryAddress || "—");
-  const safeMiles = escapeHtml(params.deliveryMiles || "—");
+  const safePhone = escapeHtml(params.phone || "-");
+  const safeAddress = escapeHtml(params.deliveryAddress || "-");
+  const safeMiles = escapeHtml(params.deliveryMiles || "-");
   const safeFee = escapeHtml(formatCents(params.deliveryFeeCents));
   const safeDiscount = escapeHtml(params.firstOrderDiscountPercent || "0");
   const totalFormatted = escapeHtml(formatMoney(params.totalCents));
@@ -170,14 +198,33 @@ export async function sendCustomerOrderEmail(params: {
     .map((item) => {
       const safeName = escapeHtml(item.name);
       const formatted = escapeHtml(formatMoney(item.priceCents));
-      return `<li>${item.quantity} × ${safeName} — ${formatted}</li>`;
+      return `<li>${item.quantity} x ${safeName} - ${formatted}</li>`;
     })
     .join("");
+
+  const itemsText = params.items
+    .map(
+      (item) => `${item.quantity} x ${item.name} - ${formatMoney(item.priceCents)}`
+    )
+    .join("\n");
 
   const payload = {
     from,
     to: [params.email],
     subject: `Your order ${safeOrderId} is confirmed`,
+    text: [
+      "Thank you for your order!",
+      `Order: ${params.orderId}`,
+      `Email: ${params.email}`,
+      `Phone: ${params.phone || "-"}`,
+      `Total: ${formatMoney(params.totalCents)}`,
+      `Delivery address: ${params.deliveryAddress || "-"}`,
+      `Delivery miles: ${params.deliveryMiles || "-"}`,
+      `Delivery fee: ${formatCents(params.deliveryFeeCents)}`,
+      `First order discount %: ${params.firstOrderDiscountPercent || "0"}`,
+      "Items:",
+      itemsText || "-",
+    ].join("\n"),
     html: `
       <h2>Thank you for your order!</h2>
       <p><strong>Order:</strong> ${safeOrderId}</p>
@@ -191,6 +238,7 @@ export async function sendCustomerOrderEmail(params: {
       <h3>Items</h3>
       <ul>${itemsHtml}</ul>
     `,
+    reply_to: buildReplyTo(),
   };
 
   const response = await fetch(RESEND_ENDPOINT, {

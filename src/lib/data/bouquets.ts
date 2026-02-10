@@ -1,6 +1,6 @@
-import type { Bouquet, BouquetStyle, FlowerType, Prisma } from "@prisma/client";
-import { prisma } from "@/lib/db";
+import type { Bouquet } from "@prisma/client";
 import { BOUQUET_STYLES, FLOWER_TYPES } from "@/lib/constants";
+import { apiFetch } from "@/lib/api-server";
 
 export type CatalogSearchParams = {
   flower?: string;
@@ -10,6 +10,11 @@ export type CatalogSearchParams = {
   min?: string;
   max?: string;
   filter?: string;
+};
+
+export type CatalogPagination = {
+  cursor?: string;
+  take?: number;
 };
 
 const toNumber = (value?: string) => {
@@ -28,68 +33,51 @@ const normalizeEnum = <T extends readonly string[]>(
 };
 
 export async function getFeaturedBouquets(): Promise<Bouquet[]> {
-  return prisma.bouquet.findMany({
-    where: { isFeatured: true, isActive: true },
-    orderBy: { createdAt: "desc" },
-    take: 6,
-  });
+  const response = await apiFetch("/api/catalog?filter=featured&take=6");
+  if (!response.ok) return [];
+  const data = (await response.json()) as {
+    items?: Array<{ bouquet: Bouquet }>;
+  };
+  return (data.items || []).map((item) => item.bouquet);
 }
 
 export async function getBouquetById(id: string): Promise<Bouquet | null> {
-  return prisma.bouquet.findUnique({ where: { id } });
+  const response = await apiFetch(`/api/bouquets/${id}`);
+  if (!response.ok) return null;
+  return response.json();
 }
 
 export async function getAdminBouquets(): Promise<Bouquet[]> {
-  return prisma.bouquet.findMany({
-    orderBy: { updatedAt: "desc" },
-  });
+  const response = await apiFetch("/api/bouquets?include_inactive=true", {}, true);
+  if (!response.ok) return [];
+  return response.json();
 }
 
 export async function getBouquets(
-  filters: CatalogSearchParams = {}
+  filters: CatalogSearchParams = {},
+  pagination: CatalogPagination = {}
 ): Promise<Bouquet[]> {
   const flowerType = normalizeEnum(filters.flower, FLOWER_TYPES);
   const style = normalizeEnum(filters.style, BOUQUET_STYLES);
   const min = toNumber(filters.min);
   const max = toNumber(filters.max);
+  const { cursor, take } = pagination;
 
-  const where: Prisma.BouquetWhereInput = {
-    isActive: true,
+  const params = new URLSearchParams();
+  if (filters.filter) params.set("filter", filters.filter);
+  if (flowerType) params.set("flower", flowerType.toLowerCase());
+  if (filters.color) params.set("color", filters.color);
+  if (style) params.set("style", style.toLowerCase());
+  if (filters.mixed) params.set("mixed", filters.mixed);
+  if (min !== undefined) params.set("min", String(min));
+  if (max !== undefined) params.set("max", String(max));
+  if (cursor) params.set("cursor", cursor);
+  if (take) params.set("take", String(take));
+
+  const response = await apiFetch(`/api/catalog?${params.toString()}`);
+  if (!response.ok) return [];
+  const data = (await response.json()) as {
+    items?: Array<{ bouquet: Bouquet }>;
   };
-
-  if (filters.filter === "featured") {
-    where.isFeatured = true;
-  }
-
-  if (flowerType && flowerType !== "ALL") {
-    where.flowerType = flowerType as FlowerType;
-  }
-
-  if (style) {
-    where.style = style as BouquetStyle;
-  }
-
-  if (filters.mixed === "mixed") {
-    where.isMixed = true;
-  }
-
-  if (filters.mixed === "mono") {
-    where.isMixed = false;
-  }
-
-  if (min !== undefined || max !== undefined) {
-    where.priceCents = {
-      ...(min !== undefined ? { gte: Math.round(min * 100) } : {}),
-      ...(max !== undefined ? { lte: Math.round(max * 100) } : {}),
-    };
-  }
-
-  if (filters.color) {
-    where.colors = { contains: filters.color.toLowerCase() };
-  }
-
-  return prisma.bouquet.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-  });
+  return (data.items || []).map((item) => item.bouquet);
 }

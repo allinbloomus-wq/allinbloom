@@ -1,25 +1,24 @@
-import { prisma } from "@/lib/db";
+import { apiFetch } from "@/lib/api-server";
+
+const parseResponse = async (response: Response) => {
+  if (!response.ok) {
+    throw new Error("Unable to load promotions.");
+  }
+  return response.json();
+};
 
 export async function getActivePromoSlides() {
-  return prisma.promoSlide.findMany({
-    where: { isActive: true },
-    orderBy: { position: "asc" },
-    select: {
-      id: true,
-      title: true,
-      subtitle: true,
-      image: true,
-      link: true,
-    },
-  });
+  const response = await apiFetch("/api/promotions");
+  return parseResponse(response);
 }
 
 export async function getAdminPromoSlides() {
-  return prisma.promoSlide.findMany({
-    orderBy: [{ position: "asc" }, { updatedAt: "desc" }],
-  });
+  const response = await apiFetch("/api/promotions?include_inactive=true", {}, true);
+  return parseResponse(response);
 }
 
 export async function getPromoSlideById(id: string) {
-  return prisma.promoSlide.findUnique({ where: { id } });
+  const response = await apiFetch(`/api/promotions/${id}`, {}, true);
+  if (!response.ok) return null;
+  return response.json();
 }

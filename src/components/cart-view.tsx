@@ -47,6 +47,7 @@ export default function CartView({
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const mapsKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const deliveryLocked = !isAuthenticated;
   const formatPhone = (localDigits: string) => {
     const part1 = localDigits.slice(0, 3);
     const part2 = localDigits.slice(3, 6);
@@ -61,6 +62,7 @@ export default function CartView({
   const phoneValue = formatPhone(phoneLocal);
 
   useEffect(() => {
+    if (deliveryLocked) return;
     if (!mapsKey || !inputRef.current) return;
     if (autocompleteRef.current) return;
 
@@ -111,7 +113,7 @@ export default function CartView({
       .catch(() => {
         // Ignore script load errors; user can still type manually.
       });
-  }, [mapsKey]);
+  }, [mapsKey, deliveryLocked]);
 
   const lineItems = useMemo(() => {
     return items.map((item) => {
@@ -180,6 +182,11 @@ export default function CartView({
   );
 
   const requestQuote = async () => {
+    if (deliveryLocked) {
+      setQuote(null);
+      setQuoteError("Please sign in to check delivery.");
+      return;
+    }
     const trimmed = address.trim();
     if (!trimmed) {
       setQuote(null);
@@ -307,8 +314,13 @@ export default function CartView({
                 setQuote(null);
                 setQuoteError(null);
               }}
-              placeholder="Street, city, state, ZIP"
-              className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800"
+              placeholder={
+                deliveryLocked
+                  ? "Sign in to enter a delivery address"
+                  : "Street, city, state, ZIP"
+              }
+              disabled={deliveryLocked}
+              className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-stone-400"
             />
           </label>
           <label className="flex flex-col gap-2 text-sm text-stone-700">
@@ -321,12 +333,15 @@ export default function CartView({
                   digits.startsWith("1") ? digits.slice(1) : digits;
                 setPhoneLocal(local.slice(0, 10));
               }}
-              placeholder="+1 312 555 0123"
+              placeholder={
+                deliveryLocked ? "Sign in to add a phone number" : "+1 312 555 0123"
+              }
               inputMode="numeric"
               autoComplete="tel"
               maxLength={15}
               pattern="^\\+1 \\d{3} \\d{3} \\d{4}$"
-              className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800"
+              disabled={deliveryLocked}
+              className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-stone-400"
             />
           </label>
           {phoneLocal.length > 0 && !phoneValid ? (
@@ -337,10 +352,14 @@ export default function CartView({
           <button
             type="button"
             onClick={requestQuote}
-            disabled={quoteLoading || !address.trim()}
+            disabled={deliveryLocked || quoteLoading || !address.trim()}
             className="w-full rounded-full border border-stone-200 bg-white/80 px-4 py-2 text-xs uppercase tracking-[0.3em] text-stone-600 disabled:opacity-50"
           >
-            {quoteLoading ? "Checking..." : "Check delivery"}
+            {deliveryLocked
+              ? "Sign in to check delivery"
+              : quoteLoading
+              ? "Checking..."
+              : "Check delivery"}
           </button>
           <p className="text-xs text-stone-500">
             Delivery pricing: free within 10 miles, $15 within 20 miles, $30

@@ -1,11 +1,20 @@
 import type { Metadata } from "next";
-import BouquetCard from "@/components/bouquet-card";
 import CatalogFilters from "@/components/catalog-filters";
+import CatalogGrid from "@/components/catalog-grid";
 import { getBouquets } from "@/lib/data/bouquets";
 import type { CatalogSearchParams } from "@/lib/data/bouquets";
 import { getStoreSettings } from "@/lib/data/settings";
 import { getBouquetPricing } from "@/lib/pricing";
 import { SITE_DESCRIPTION } from "@/lib/site";
+import { headers } from "next/headers";
+
+const MOBILE_UA =
+  /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i;
+
+const getInitialPageSize = () => {
+  const ua = headers().get("user-agent") || "";
+  return MOBILE_UA.test(ua) ? 6 : 12;
+};
 
 export async function generateMetadata({
   searchParams,
@@ -42,9 +51,27 @@ export default async function CatalogPage({
   searchParams: Promise<CatalogSearchParams>;
 }) {
   const params = await searchParams;
-  const bouquets = await getBouquets(params);
+  const pageSize = getInitialPageSize();
+  const rawBouquets = await getBouquets(params, { take: pageSize + 1 });
+  const hasMore = rawBouquets.length > pageSize;
+  const bouquets = hasMore ? rawBouquets.slice(0, pageSize) : rawBouquets;
   const settings = await getStoreSettings();
   const isFeatured = params.filter === "featured";
+  const initialItems = bouquets.map((bouquet) => ({
+    bouquet,
+    pricing: getBouquetPricing(bouquet, settings),
+  }));
+  const lastBouquet = bouquets[bouquets.length - 1];
+  const initialCursor = hasMore && lastBouquet ? lastBouquet.id : null;
+  const filtersKey = [
+    params.filter || "",
+    params.flower || "",
+    params.color || "",
+    params.style || "",
+    params.mixed || "",
+    params.min || "",
+    params.max || "",
+  ].join("|");
 
   return (
     <div className="flex flex-col gap-10">
@@ -62,22 +89,12 @@ export default async function CatalogPage({
         </p>
       </div>
       <CatalogFilters />
-      {bouquets.length ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {bouquets.map((bouquet) => (
-            <BouquetCard
-              key={bouquet.id}
-              bouquet={bouquet}
-              pricing={getBouquetPricing(bouquet, settings)}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="glass rounded-[28px] border border-white/80 p-8 text-center text-sm text-stone-600">
-          No bouquets match these filters. Try a softer palette or wider price
-          range.
-        </div>
-      )}
+      <CatalogGrid
+        initialItems={initialItems}
+        initialCursor={initialCursor}
+        filters={params}
+        filtersKey={filtersKey}
+      />
     </div>
   );
 }

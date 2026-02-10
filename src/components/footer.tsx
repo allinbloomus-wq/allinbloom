@@ -33,18 +33,24 @@ export default function Footer() {
           </p>
           <p>Chicago studio</p>
           <p>Same-day delivery across Chicago</p>
-          <p>hello@allinbloom.com</p>
+          <p>allinbloom.us@gmail.com</p>
         </div>
       </div>
       <div className="border-t border-white/60 py-4 text-center text-xs uppercase tracking-[0.3em] text-stone-500">
-        <a
-          href="https://t.me/otdamgololobov"
-          target="_blank"
-          rel="noreferrer"
-          className="transition hover:text-stone-700"
-        >
-          created by otdamgololobov
-        </a>
+        <div className="flex flex-col items-center gap-1">
+          <p>
+            © {new Date().getFullYear()} All in Bloom Floral Studio. All rights
+            reserved.
+          </p>
+          <a
+            href="https://t.me/otdamgololobov"
+            target="_blank"
+            rel="noreferrer"
+            className="transition hover:text-stone-700"
+          >
+            created by otdamgololobov
+          </a>
+        </div>
       </div>
     </footer>
   );

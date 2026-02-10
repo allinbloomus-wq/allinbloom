@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import ImageWithFallback from "@/components/image-with-fallback";
+import { clientFetch } from "@/lib/api-client";
 
 type AdminImageUploadProps = {
   defaultValue: string;
@@ -36,16 +37,16 @@ export default function AdminImageUpload({
     formData.append("upload_preset", uploadPreset);
 
     try {
-      const response = await fetch("/api/upload", {
+      const response = await clientFetch("/api/upload", {
         method: "POST",
         body: formData,
-      });
+      }, true);
       const data = await response.json();
 
       if (!response.ok) {
-        setStatus(data?.error?.message || "Upload failed.");
+        setStatus(data?.detail || data?.error?.message || "Upload failed.");
       } else {
-        const url = data.secure_url || data.url;
+        const url = data.url;
         if (url) {
           setImageUrl(url);
           setStatus("Upload complete.");

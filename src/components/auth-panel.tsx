@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { signIn } from "next-auth/react";
+import { setAuthSession } from "@/lib/auth-client";
 
 export default function AuthPanel() {
   const [email, setEmail] = useState("");
@@ -11,7 +11,9 @@ export default function AuthPanel() {
   const [needsName, setNeedsName] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [retryAfter, setRetryAfter] = useState<number | null>(null);
-  const googleEnabled = process.env.NEXT_PUBLIC_GOOGLE_ENABLED === "true";
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
+  const googleEnabled =
+    process.env.NEXT_PUBLIC_GOOGLE_ENABLED === "true" && Boolean(googleClientId);
 
   useEffect(() => {
     if (!retryAfter) return;
@@ -26,6 +28,50 @@ export default function AuthPanel() {
     }, 1000);
     return () => clearInterval(timer);
   }, [retryAfter]);
+
+  useEffect(() => {
+    if (!googleEnabled || !googleClientId) return;
+    if (document.getElementById("google-identity")) return;
+
+    const script = document.createElement("script");
+    script.id = "google-identity";
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      const google = (window as any).google;
+      if (!google?.accounts?.id) return;
+      google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: async (response: { credential?: string }) => {
+          if (!response?.credential) {
+            setStatus("Unable to sign in with Google.");
+            return;
+          }
+          setStatus("Signing in...");
+          const verify = await fetch("/api/auth/google", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ idToken: response.credential }),
+          });
+          const payload = await verify.json().catch(() => ({}));
+          if (!verify.ok) {
+            setStatus(payload?.detail || "Unable to sign in with Google.");
+            return;
+          }
+          const token = payload?.accessToken || payload?.access_token;
+          const user = payload?.user;
+          if (!token || !user) {
+            setStatus("Unable to sign in with Google.");
+            return;
+          }
+          setAuthSession(token, user);
+          window.location.href = "/";
+        },
+      });
+    };
+    document.head.appendChild(script);
+  }, [googleEnabled, googleClientId]);
 
   const requestCode = async () => {
     setStatus("Sending code...");
@@ -48,7 +94,7 @@ export default function AuthPanel() {
     if (response.status === 429 && payload?.retryAfterSec) {
       setRetryAfter(payload.retryAfterSec);
     }
-    setStatus(payload?.error || "Unable to send code.");
+    setStatus(payload?.error || payload?.detail || "Unable to send code.");
   };
 
   const verifyCode = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -59,24 +105,36 @@ export default function AuthPanel() {
     }
     setStatus("Verifying...");
 
-    const result = await signIn("credentials", {
-      email,
-      name,
-      code,
-      redirect: false,
-      callbackUrl: "/",
+    const response = await fetch("/api/auth/verify-code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email,
+        code,
+        name: name.trim() || undefined,
+      }),
     });
 
-    if (result?.error) {
-      if (result.error === "NAME_REQUIRED" || !name.trim()) {
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const message =
+        payload?.detail || payload?.error || "Invalid code. Please try again.";
+      if (String(message).toLowerCase().includes("name")) {
         setNeedsName(true);
         setStatus("Please enter your name to finish signup.");
         return;
       }
-      setStatus("Invalid code. Please try again.");
+      setStatus(message);
       return;
     }
 
+    const token = payload?.accessToken || payload?.access_token;
+    const user = payload?.user;
+    if (!token || !user) {
+      setStatus("Unable to sign in.");
+      return;
+    }
+    setAuthSession(token, user);
     window.location.href = "/";
   };
 
@@ -165,7 +223,14 @@ export default function AuthPanel() {
           </div>
           <button
             type="button"
-            onClick={() => signIn("google", { callbackUrl: "/" })}
+            onClick={() => {
+              const google = (window as any).google;
+              if (!google?.accounts?.id) {
+                setStatus("Google sign-in is not ready yet.");
+                return;
+              }
+              google.accounts.id.prompt();
+            }}
             className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-stone-200 bg-white/80 px-4 py-3 text-xs uppercase tracking-[0.3em] text-stone-600"
           >
             <svg

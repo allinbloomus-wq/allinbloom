@@ -14,7 +14,7 @@ export const SITE_KEYWORDS = [
   "All in Bloom Floral Studio",
 ];
 
-export const SITE_EMAIL = "hello@allinbloom.com";
+export const SITE_EMAIL = "allinbloom.us@gmail.com";
 export const SITE_PHONE = "+1-224-213-3823";
 export const SITE_CITY = "Chicago";
 export const SITE_REGION = "IL";

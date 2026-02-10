@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { CartItem } from "@/lib/cart";
+import { clientFetch } from "@/lib/api-client";
 
 type CheckoutButtonProps = {
   items: CartItem[];
@@ -23,7 +24,7 @@ export default function CheckoutButton({
     setLoading(true);
     setError(null);
 
-    const response = await fetch("/api/checkout", {
+    const response = await clientFetch("/api/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -42,7 +43,7 @@ export default function CheckoutButton({
         address: deliveryAddress,
         phone,
       }),
-    });
+    }, true);
 
     const data = (await response.json().catch(() => ({}))) as {
       url?: string;

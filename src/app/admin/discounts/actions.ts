@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth-session";
 import { updateStoreSettings } from "@/lib/data/settings";
 import { clampPercent } from "@/lib/pricing";
 
@@ -13,7 +13,7 @@ const parsePriceCents = (value: FormDataEntryValue | null) => {
 };
 
 export async function updateDiscountSettings(formData: FormData) {
-  await requireAdmin();
+  requireAdmin();
 
   const globalPercent = clampPercent(
     Number(formData.get("globalDiscountPercent") || 0)

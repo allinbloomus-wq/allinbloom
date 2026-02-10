@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth-session";
 import CartBadge from "@/components/cart-badge";
 import AdminOrdersBadge from "@/components/admin-orders-badge";
 
 export default async function Header() {
-  const session = await getServerSession(authOptions);
-  const isAdmin = session?.user?.role === "ADMIN";
+  const { user } = getAuthSession();
+  const isAdmin = user?.role === "ADMIN";
+  const isSignedIn = Boolean(user);
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/60 bg-white/70 backdrop-blur-xl">
@@ -39,10 +39,10 @@ export default async function Header() {
           </div>
         <div className="flex items-center gap-3">
           <Link
-            href={session ? "/account" : "/auth"}
+            href={isSignedIn ? "/account" : "/auth"}
             className="rounded-full border border-stone-200 bg-white/80 px-4 py-2 text-xs uppercase tracking-[0.3em] text-stone-600"
           >
-            {session ? "Account" : "Sign in"}
+            {isSignedIn ? "Account" : "Sign in"}
           </Link>
           <CartBadge />
         </div>

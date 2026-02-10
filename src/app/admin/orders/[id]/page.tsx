@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import Stripe from "stripe";
 import { getOrderById } from "@/lib/data/orders";
 import { formatDateTime, formatMoney, formatOrderStatus } from "@/lib/format";
-import { prisma } from "@/lib/db";
 
 export default async function AdminOrderDetailPage({
   params,
@@ -27,37 +26,6 @@ export default async function AdminOrderDetailPage({
     stripeSession = await stripe.checkout.sessions.retrieve(
       order.stripeSessionId
     );
-
-    const isPaid =
-      stripeSession.payment_status === "paid" &&
-      stripeSession.status === "complete";
-    const amountMatches =
-      typeof stripeSession.amount_total === "number" &&
-      stripeSession.amount_total === order.totalCents;
-
-    if (isPaid && amountMatches && order.status !== "PAID") {
-      await prisma.order.update({
-        where: { id: order.id },
-        data: { status: "PAID" },
-      });
-      order.status = "PAID";
-    }
-
-    const nowSeconds = Math.floor(Date.now() / 1000);
-    const isExpired =
-      stripeSession.status === "expired" ||
-      (typeof stripeSession.expires_at === "number" &&
-        stripeSession.expires_at < nowSeconds);
-    const isUnpaidComplete =
-      stripeSession.payment_status === "unpaid" && stripeSession.status !== "open";
-
-    if ((isExpired || isUnpaidComplete) && order.status === "PENDING") {
-      await prisma.order.update({
-        where: { id: order.id },
-        data: { status: "FAILED" },
-      });
-      order.status = "FAILED";
-    }
   }
 
   const shipping = stripeSession?.shipping_details;

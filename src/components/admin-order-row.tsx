@@ -5,6 +5,7 @@ import type { Order, OrderItem } from "@prisma/client";
 import Link from "next/link";
 import { formatDateTime, formatMoney, formatOrderStatus } from "@/lib/format";
 import { ADMIN_ORDERS_BADGE_EVENT } from "@/lib/admin-orders";
+import { clientFetch } from "@/lib/api-client";
 
 type AdminOrderRowProps = {
   order: Omit<Order, "createdAt"> & {
@@ -24,11 +25,12 @@ export default function AdminOrderRow({ order }: AdminOrderRowProps) {
     if (isLoading) return;
     setIsLoading(true);
     try {
-      const response = await fetch(
+      const response = await clientFetch(
         `/api/admin/orders/${order.id}/toggle-read`,
         {
           method: "PATCH",
-        }
+        },
+        true
       );
       if (!response.ok) {
         return;

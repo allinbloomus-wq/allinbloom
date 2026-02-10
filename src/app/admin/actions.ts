@@ -2,30 +2,55 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/db";
 import { parseBouquetForm } from "@/lib/bouquet-form";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth-session";
+import { apiFetch } from "@/lib/api-server";
 
 export async function createBouquet(formData: FormData) {
-  await requireAdmin();
+  requireAdmin();
   const data = parseBouquetForm(formData);
-  await prisma.bouquet.create({ data });
+  const response = await apiFetch(
+    "/api/bouquets",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    },
+    true
+  );
+  if (!response.ok) {
+    throw new Error("Unable to create bouquet.");
+  }
   revalidatePath("/admin");
   redirect("/admin");
 }
 
 export async function updateBouquet(formData: FormData) {
-  await requireAdmin();
+  requireAdmin();
   const id = String(formData.get("id") || "");
   const data = parseBouquetForm(formData);
-  await prisma.bouquet.update({ where: { id }, data });
+  const response = await apiFetch(
+    `/api/bouquets/${id}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    },
+    true
+  );
+  if (!response.ok) {
+    throw new Error("Unable to update bouquet.");
+  }
   revalidatePath("/admin");
   redirect("/admin");
 }
 
 export async function deleteBouquet(formData: FormData) {
-  await requireAdmin();
+  requireAdmin();
   const id = String(formData.get("id") || "");
-  await prisma.bouquet.delete({ where: { id } });
+  const response = await apiFetch(`/api/bouquets/${id}`, { method: "DELETE" }, true);
+  if (!response.ok) {
+    throw new Error("Unable to delete bouquet.");
+  }
   revalidatePath("/admin");
 }

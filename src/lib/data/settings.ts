@@ -1,35 +1,28 @@
 import type { StoreSettings } from "@prisma/client";
-import { prisma } from "@/lib/db";
-
-const DEFAULT_SETTINGS: Omit<StoreSettings, "updatedAt"> = {
-  id: "default",
-  globalDiscountPercent: 0,
-  globalDiscountNote: null,
-  categoryDiscountPercent: 0,
-  categoryDiscountNote: null,
-  categoryFlowerType: null,
-  categoryStyle: null,
-  categoryMixed: null,
-  categoryColor: null,
-  categoryMinPriceCents: null,
-  categoryMaxPriceCents: null,
-  firstOrderDiscountPercent: 10,
-  firstOrderDiscountNote: "10% off your first order",
-};
+import { apiFetch } from "@/lib/api-server";
 
 export async function getStoreSettings(): Promise<StoreSettings> {
-  return prisma.storeSettings.upsert({
-    where: { id: "default" },
-    update: {},
-    create: DEFAULT_SETTINGS,
-  });
+  const response = await apiFetch("/api/settings");
+  if (!response.ok) {
+    throw new Error("Unable to load store settings.");
+  }
+  return response.json();
 }
 
 export async function updateStoreSettings(
   data: Partial<Omit<StoreSettings, "id" | "updatedAt">>
 ) {
-  return prisma.storeSettings.update({
-    where: { id: "default" },
-    data,
-  });
+  const response = await apiFetch(
+    "/api/settings",
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    },
+    true
+  );
+  if (!response.ok) {
+    throw new Error("Unable to update settings.");
+  }
+  return response.json();
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ADMIN_ORDERS_BADGE_EVENT } from "@/lib/admin-orders";
+import { clientFetch } from "@/lib/api-client";
 
 type AdminOrdersCountResponse = {
   count?: number;
@@ -9,9 +10,9 @@ type AdminOrdersCountResponse = {
 
 async function fetchAdminOrdersCount() {
   try {
-    const response = await fetch("/api/admin/orders/new-count", {
+    const response = await clientFetch("/api/admin/orders/new-count", {
       cache: "no-store",
-    });
+    }, true);
     if (!response.ok) {
       return 0;
     }

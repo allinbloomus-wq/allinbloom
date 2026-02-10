@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import { getServerSession } from "next-auth";
 import CartView from "@/components/cart-view";
-import { authOptions } from "@/lib/auth";
 import { getStoreSettings } from "@/lib/data/settings";
 import { countOrdersByEmail } from "@/lib/data/orders";
+import { getAuthSession } from "@/lib/auth-session";
 
 export const metadata: Metadata = {
   title: "Cart",
@@ -14,9 +13,9 @@ export const metadata: Metadata = {
 };
 
 export default async function CartPage() {
-  const session = await getServerSession(authOptions);
+  const { user } = getAuthSession();
   const settings = await getStoreSettings();
-  const email = session?.user?.email || null;
+  const email = user?.email || null;
   const orderCount = email ? await countOrdersByEmail(email) : 0;
   const isFirstOrderEligible = Boolean(email && orderCount === 0);
 
@@ -31,7 +30,7 @@ export default async function CartPage() {
         </h1>
       </div>
       <CartView
-        isAuthenticated={Boolean(session?.user)}
+        isAuthenticated={Boolean(user)}
         globalDiscount={
           settings.globalDiscountPercent > 0
             ? {
