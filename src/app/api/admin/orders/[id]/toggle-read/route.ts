@@ -5,14 +5,14 @@ import { prisma } from "@/lib/db";
 
 export async function PATCH(
   _request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   if (!session?.user || session.user.role !== "ADMIN") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const orderId = params.id;
+  const { id: orderId } = await params;
   if (!orderId) {
     return NextResponse.json({ error: "Missing order id" }, { status: 400 });
   }
