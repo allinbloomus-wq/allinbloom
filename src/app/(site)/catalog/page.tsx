@@ -1,9 +1,40 @@
+import type { Metadata } from "next";
 import BouquetCard from "@/components/bouquet-card";
 import CatalogFilters from "@/components/catalog-filters";
 import { getBouquets } from "@/lib/data/bouquets";
 import type { CatalogSearchParams } from "@/lib/data/bouquets";
 import { getStoreSettings } from "@/lib/data/settings";
 import { getBouquetPricing } from "@/lib/pricing";
+import { SITE_DESCRIPTION } from "@/lib/site";
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<CatalogSearchParams>;
+}): Promise<Metadata> {
+  const params = await searchParams;
+  const isFeatured = params.filter === "featured";
+  const title = isFeatured
+    ? "Signature Bouquets | Chicago Florist"
+    : "Bouquet Catalog | Chicago Flower Delivery";
+  const description = isFeatured
+    ? "Discover our most-loved signature bouquets curated by Chicago florists."
+    : "Browse our full Chicago flower delivery catalog. Filter by palette, style, and price.";
+  const canonical = isFeatured ? "/catalog?filter=featured" : "/catalog";
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical,
+    },
+    openGraph: {
+      title,
+      description: SITE_DESCRIPTION,
+      url: canonical,
+    },
+  };
+}
 
 export default async function CatalogPage({
   searchParams,

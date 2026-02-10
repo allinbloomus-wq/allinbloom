@@ -14,7 +14,7 @@ const DEFAULT_SETTINGS: Omit<StoreSettings, "updatedAt"> = {
   categoryMinPriceCents: null,
   categoryMaxPriceCents: null,
   firstOrderDiscountPercent: 10,
-  firstOrderDiscountNote: "Скидка 10% на первый заказ",
+  firstOrderDiscountNote: "10% off your first order",
 };
 
 export async function getStoreSettings(): Promise<StoreSettings> {

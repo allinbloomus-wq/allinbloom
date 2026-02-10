@@ -106,7 +106,7 @@ export async function POST(request: Request) {
     if (orderId) {
       await prisma.order.updateMany({
         where: { id: orderId, status: { not: "PAID" } },
-        data: { status: "CANCELED" },
+        data: { status: "FAILED" },
       });
     }
   }

@@ -11,7 +11,7 @@ export default function ContactForm() {
     event.preventDefault();
     setStatus("sending");
 
-    const form = event.currentTarget; // Сохраняем ссылку на форму
+    const form = event.currentTarget; // Keep a reference to the form.
     const formData = new FormData(form);
     const payload = {
       name: formData.get("name"),
@@ -27,7 +27,7 @@ export default function ContactForm() {
 
     if (response.ok) {
       setStatus("sent");
-      form.reset(); // Используем сохраненную ссылку
+      form.reset(); // Reuse the same form reference.
     } else {
       setStatus("error");
     }

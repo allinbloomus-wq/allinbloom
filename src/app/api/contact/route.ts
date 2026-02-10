@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 
-// Ленивая инициализация - создаём клиент только когда он нужен
+// Lazy initialization: create the client only when needed.
 let resendClient: Resend | null = null;
 
 function getResendClient() {
@@ -93,10 +93,10 @@ export async function POST(request: Request) {
     const safeEmail = escapeHtml(email);
     const safeMessage = escapeHtml(message).replace(/\n/g, "<br>");
 
-    // Получаем клиент только при выполнении запроса
+    // Create the client only when we are ready to send.
     const resend = getResendClient();
 
-    // Send email via Resend
+    // Send email via Resend.
     await resend.emails.send({
       from: process.env.EMAIL_FROM!,
       to: process.env.ADMIN_EMAIL!,

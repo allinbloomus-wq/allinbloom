@@ -1,26 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  ADMIN_ORDERS_LAST_SEEN_KEY,
-  ADMIN_ORDERS_SEEN_EVENT,
-} from "@/lib/admin-orders";
+import { ADMIN_ORDERS_BADGE_EVENT } from "@/lib/admin-orders";
 
 type AdminOrdersCountResponse = {
   count?: number;
 };
 
-async function fetchAdminOrdersCount(since: string | null) {
+async function fetchAdminOrdersCount() {
   try {
-    const params = new URLSearchParams();
-    if (since) {
-      params.set("since", since);
-    }
-    const url = params.size
-      ? `/api/admin/orders/new-count?${params.toString()}`
-      : "/api/admin/orders/new-count";
-
-    const response = await fetch(url, { cache: "no-store" });
+    const response = await fetch("/api/admin/orders/new-count", {
+      cache: "no-store",
+    });
     if (!response.ok) {
       return 0;
     }
@@ -38,9 +29,7 @@ export default function AdminOrdersBadge() {
   useEffect(() => {
     let active = true;
     const load = async () => {
-      const nextCount = await fetchAdminOrdersCount(
-        window.localStorage.getItem(ADMIN_ORDERS_LAST_SEEN_KEY)
-      );
+      const nextCount = await fetchAdminOrdersCount();
       if (active) {
         setCount(nextCount);
       }
@@ -52,16 +41,14 @@ export default function AdminOrdersBadge() {
       void load();
     };
 
-    window.addEventListener(ADMIN_ORDERS_SEEN_EVENT, handleRefresh);
+    window.addEventListener(ADMIN_ORDERS_BADGE_EVENT, handleRefresh);
     window.addEventListener("focus", handleRefresh);
-    window.addEventListener("storage", handleRefresh);
     const intervalId = window.setInterval(handleRefresh, 60000);
 
     return () => {
       active = false;
-      window.removeEventListener(ADMIN_ORDERS_SEEN_EVENT, handleRefresh);
+      window.removeEventListener(ADMIN_ORDERS_BADGE_EVENT, handleRefresh);
       window.removeEventListener("focus", handleRefresh);
-      window.removeEventListener("storage", handleRefresh);
       window.clearInterval(intervalId);
     };
   }, []);

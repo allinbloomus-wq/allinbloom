@@ -50,14 +50,9 @@ export async function POST(request: Request) {
   const items = (body?.items || []) as CheckoutItem[];
   const address = String(body?.address || "").trim();
   const rawPhone = String(body?.phone || "").trim();
-
   const digits = rawPhone.replace(/\D/g, "");
   const normalizedPhone =
-    digits.length === 10
-      ? `+1${digits}`
-      : digits.length >= 11 && digits.length <= 15
-      ? `+${digits}`
-      : "";
+    digits.length === 11 && digits.startsWith("1") ? `+${digits}` : "";
 
   if (!items.length) {
     return NextResponse.json({ error: "No items provided." }, { status: 400 });
@@ -80,7 +75,7 @@ export async function POST(request: Request) {
 
   if (!normalizedPhone) {
     return NextResponse.json(
-      { error: "A valid phone number is required." },
+      { error: "Use phone format +1 312 555 0123." },
       { status: 400 }
     );
   }

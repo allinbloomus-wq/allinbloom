@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import { createPortal } from "react-dom";
+import ImageWithFallback from "@/components/image-with-fallback";
+import BouquetPlaceholder from "@/components/bouquet-placeholder";
 
 type BouquetImageLightboxProps = {
   src: string;
@@ -20,6 +21,7 @@ export default function BouquetImageLightbox({
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const [headerOffset, setHeaderOffset] = useState(0);
   const [scale, setScale] = useState(1);
+  const [lightboxError, setLightboxError] = useState(false);
   const pointersRef = useRef(new Map<number, { x: number; y: number }>());
   const startDistanceRef = useRef<number | null>(null);
   const startScaleRef = useRef(1);
@@ -43,12 +45,12 @@ export default function BouquetImageLightbox({
     return () => window.removeEventListener("resize", updateOffset);
   }, [open]);
 
-  // Блокировка body и установка флага
+  // Lock body scroll and set the lightbox flag.
   useEffect(() => {
     if (!open) return;
 
     const previousOverflow = document.body.style.overflow;
-    
+
     document.body.style.overflow = "hidden";
     document.body.dataset.lightboxOpen = "true";
 
@@ -58,7 +60,7 @@ export default function BouquetImageLightbox({
     };
   }, [open]);
 
-  // Закрытие по Escape
+  // Close on Escape.
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -76,10 +78,11 @@ export default function BouquetImageLightbox({
     setScale(1);
     pointersRef.current.clear();
     startDistanceRef.current = null;
+    setLightboxError(false);
   };
 
   const handleOpenClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    // Не даем открыть если уже что-то открыто
+    // Avoid opening multiple lightboxes.
     if (document.body.dataset.lightboxOpen === "true") {
       event.preventDefault();
       event.stopPropagation();
@@ -88,10 +91,11 @@ export default function BouquetImageLightbox({
 
     setScale(1);
     setOpen(true);
+    setLightboxError(false);
   };
 
   const handleOverlayClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    // Закрываем только если клик был НЕ по контейнеру с картинкой
+    // Only close when clicking outside the image container.
     if (
       imageContainerRef.current &&
       !imageContainerRef.current.contains(event.target as Node)
@@ -100,13 +104,15 @@ export default function BouquetImageLightbox({
     }
   };
 
-  const handleImageContainerPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    // Не обрабатываем события от кнопки Close
+  const handleImageContainerPointerDown = (
+    event: React.PointerEvent<HTMLDivElement>
+  ) => {
+    // Ignore clicks on the Close button.
     if (closeRef.current?.contains(event.target as Node)) {
       return;
     }
 
-    // Останавливаем всплытие чтобы не закрыть lightbox
+    // Prevent bubbling so the overlay does not close.
     event.stopPropagation();
 
     const target = event.currentTarget as HTMLDivElement;
@@ -114,7 +120,7 @@ export default function BouquetImageLightbox({
       try {
         target.setPointerCapture(event.pointerId);
       } catch (e) {
-        // Игнорируем ошибки setPointerCapture
+        // Ignore setPointerCapture errors.
       }
     }
 
@@ -123,7 +129,7 @@ export default function BouquetImageLightbox({
       y: event.clientY,
     });
 
-    // Начало pinch-to-zoom при двух пальцах
+    // Start pinch-to-zoom when two pointers are active.
     if (pointersRef.current.size === 2) {
       const [p1, p2] = Array.from(pointersRef.current.values());
       const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
@@ -140,7 +146,7 @@ export default function BouquetImageLightbox({
       y: event.clientY,
     });
 
-    // Обрабатываем масштабирование только при двух пальцах
+    // Scale only when two pointers are active.
     if (pointersRef.current.size === 2 && startDistanceRef.current) {
       const [p1, p2] = Array.from(pointersRef.current.values());
       const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
@@ -167,7 +173,7 @@ export default function BouquetImageLightbox({
         className={className}
         aria-label="Open image"
       >
-        <Image
+        <ImageWithFallback
           src={src}
           alt={alt}
           width={520}
@@ -179,12 +185,12 @@ export default function BouquetImageLightbox({
         ? createPortal(
             <div
               className="fixed bg-black/70 flex items-center justify-center p-4"
-              style={{ 
+              style={{
                 top: headerOffset,
                 left: 0,
                 right: 0,
                 bottom: 0,
-                zIndex: 50 
+                zIndex: 50,
               }}
               role="dialog"
               aria-modal="true"
@@ -212,13 +218,24 @@ export default function BouquetImageLightbox({
                 >
                   Close
                 </button>
-                <img
-                  src={src}
-                  alt={alt}
-                  className="max-h-[85vh] max-w-[90vw] block"
-                  style={{ objectFit: "contain", height: "auto", width: "auto" }}
-                  draggable={false}
-                />
+                {lightboxError ? (
+                  <div className="flex h-[70vh] w-[70vw] max-w-[90vw] items-center justify-center rounded-3xl border border-white/30 bg-white/80 text-[color:var(--brand)] opacity-40">
+                    <BouquetPlaceholder className="h-24 w-24" />
+                  </div>
+                ) : (
+                  <img
+                    src={src}
+                    alt={alt}
+                    className="max-h-[85vh] max-w-[90vw] block"
+                    style={{
+                      objectFit: "contain",
+                      height: "auto",
+                      width: "auto",
+                    }}
+                    draggable={false}
+                    onError={() => setLightboxError(true)}
+                  />
+                )}
               </div>
             </div>,
             portalRoot

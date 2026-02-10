@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
+import ImageWithFallback from "@/components/image-with-fallback";
 
 type AdminImageUploadProps = {
   defaultValue: string;
@@ -66,7 +66,7 @@ export default function AdminImageUpload({
     <div className="space-y-4">
       <div className="flex items-center gap-4">
         <div className="h-32 w-32 overflow-hidden rounded-[22px] border border-white/80 bg-white">
-          <Image
+          <ImageWithFallback
             src={imageUrl}
             alt="Bouquet preview"
             width={160}

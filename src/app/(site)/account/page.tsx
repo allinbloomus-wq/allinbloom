@@ -1,10 +1,19 @@
-﻿import { getServerSession } from "next-auth";
+import type { Metadata } from "next";
+import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import SignOutButton from "@/components/sign-out-button";
 import { getOrdersByEmail } from "@/lib/data/orders";
-import { formatDateTime, formatMoney } from "@/lib/format";
+import { formatDateTime, formatMoney, formatOrderStatus } from "@/lib/format";
 import { prisma } from "@/lib/db";
+
+export const metadata: Metadata = {
+  title: "Account",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function AccountPage() {
   const session = await getServerSession(authOptions);
@@ -49,7 +58,8 @@ export default async function AccountPage() {
                 className="rounded-2xl border border-white/80 bg-white/70 p-4"
               >
                 <p className="text-xs uppercase tracking-[0.2em] text-stone-500">
-                  Order {order.id.slice(0, 8)} - {order.status}
+                  Order {order.id.slice(0, 8)} -{" "}
+                  {formatOrderStatus(order.status)}
                 </p>
                 <p className="text-sm font-semibold text-stone-900">
                   {formatMoney(order.totalCents)}

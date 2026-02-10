@@ -32,6 +32,7 @@ enum BouquetStyle {
 enum OrderStatus {
   PENDING
   PAID
+  FAILED
   CANCELED
 }
 
@@ -83,6 +84,7 @@ model Order {
   totalCents      Int
   currency        String       @default("USD")
   status          OrderStatus  @default(PENDING)
+  isRead          Boolean      @default(false)
   createdAt       DateTime     @default(now())
   items           OrderItem[]
 }

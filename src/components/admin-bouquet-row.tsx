@@ -1,15 +1,15 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { Bouquet } from "@prisma/client";
 import { formatLabel, formatMoney } from "@/lib/format";
 import { deleteBouquet } from "@/app/admin/actions";
+import ImageWithFallback from "@/components/image-with-fallback";
 
 export default function AdminBouquetRow({ bouquet }: { bouquet: Bouquet }) {
   return (
     <div className="flex flex-col gap-4 rounded-[24px] border border-white/80 bg-white/70 p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-4">
         <div className="h-16 w-16 overflow-hidden rounded-2xl border border-white/80 bg-white">
-          <Image
+          <ImageWithFallback
             src={bouquet.image}
             alt={bouquet.name}
             width={80}

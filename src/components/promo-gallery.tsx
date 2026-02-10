@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
+import ImageWithFallback from "@/components/image-with-fallback";
 
 type PromoSlide = {
   id: string;
@@ -116,7 +116,13 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (items.length < 2) return;
-    event.currentTarget.setPointerCapture(event.pointerId);
+    if (event.currentTarget.setPointerCapture) {
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        // Ignore unsupported pointer capture (notably on some mobile browsers).
+      }
+    }
     dragStartX.current = event.clientX;
     setIsDragging(true);
     setDragOffset(0);
@@ -174,7 +180,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
         className="relative mt-6 select-none overflow-hidden rounded-[28px] border border-white/80 px-0"
       >
         <div
-          className={`flex gap-0 ${isDragging ? "" : "transition-transform duration-700 ease-out"} will-change-transform lg:gap-4`}
+          className={`flex gap-0 touch-pan-y ${isDragging ? "" : "transition-transform duration-700 ease-out"} will-change-transform lg:gap-4`}
           style={{
             transform: `translateX(calc(-${index * (100 / perView)}% + ${dragOffset}px))`,
           }}
@@ -190,7 +196,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
               className="w-full flex-shrink-0 touch-pan-y cursor-grab active:cursor-grabbing lg:w-1/3"
             >
               <div className="relative w-full overflow-hidden rounded-[24px] border border-white/80 aspect-[9/16] sm:aspect-[9/16] lg:aspect-[9/16]">
-                <Image
+                <ImageWithFallback
                   src={slide.image}
                   alt={slide.title || "Promo slide"}
                   fill

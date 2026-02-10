@@ -1,8 +1,17 @@
+import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import CartView from "@/components/cart-view";
 import { authOptions } from "@/lib/auth";
 import { getStoreSettings } from "@/lib/data/settings";
 import { countOrdersByEmail } from "@/lib/data/orders";
+
+export const metadata: Metadata = {
+  title: "Cart",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function CartPage() {
   const session = await getServerSession(authOptions);
@@ -27,7 +36,7 @@ export default async function CartPage() {
           settings.globalDiscountPercent > 0
             ? {
                 percent: settings.globalDiscountPercent,
-                note: settings.globalDiscountNote || "Скидка",
+                note: settings.globalDiscountNote || "Discount",
               }
             : null
         }
@@ -35,7 +44,7 @@ export default async function CartPage() {
           settings.categoryDiscountPercent > 0
             ? {
                 percent: settings.categoryDiscountPercent,
-                note: settings.categoryDiscountNote || "Скидка",
+                note: settings.categoryDiscountNote || "Discount",
                 flowerType: settings.categoryFlowerType,
                 style: settings.categoryStyle,
                 mixed: settings.categoryMixed,
@@ -51,7 +60,7 @@ export default async function CartPage() {
                 percent: settings.firstOrderDiscountPercent,
                 note:
                   settings.firstOrderDiscountNote ||
-                  "Скидка 10% на первый заказ",
+                  "10% off your first order",
               }
             : null
         }

@@ -1,0 +1,28 @@
+import type { MetadataRoute } from "next";
+import { SITE_ORIGIN } from "@/lib/site";
+
+export default function sitemap(): MetadataRoute.Sitemap {
+  const baseUrl = SITE_ORIGIN.replace(/\/$/, "");
+  const lastModified = new Date();
+
+  return [
+    {
+      url: `${baseUrl}/`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 1,
+    },
+    {
+      url: `${baseUrl}/catalog`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/contact`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+  ];
+}

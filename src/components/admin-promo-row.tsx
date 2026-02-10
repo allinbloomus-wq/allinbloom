@@ -1,14 +1,14 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { PromoSlide } from "@prisma/client";
 import { deletePromoSlide } from "@/app/admin/promotions/actions";
+import ImageWithFallback from "@/components/image-with-fallback";
 
 export default function AdminPromoRow({ slide }: { slide: PromoSlide }) {
   return (
     <div className="flex flex-col gap-4 rounded-[24px] border border-white/80 bg-white/70 p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-4">
         <div className="h-16 w-24 overflow-hidden rounded-2xl border border-white/80 bg-white">
-          <Image
+          <ImageWithFallback
             src={slide.image}
             alt={slide.title || "Promo slide"}
             width={120}

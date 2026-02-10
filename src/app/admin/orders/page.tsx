@@ -1,13 +1,27 @@
-import { getAdminOrders } from "@/lib/data/orders";
-import AdminOrderRow from "@/components/admin-order-row";
-import AdminOrdersSeen from "@/components/admin-orders-seen";
+import { getAdminOrdersByDay } from "@/lib/data/orders";
+import {
+  addDaysToDayKey,
+  getDayKey,
+} from "@/lib/admin-orders";
+import AdminOrdersList from "@/components/admin-orders-list";
 
 export default async function AdminOrdersPage() {
-  const orders = await getAdminOrders();
+  const todayKey = getDayKey(new Date());
+  const yesterdayKey = addDaysToDayKey(todayKey, -1);
+
+  const [todayOrders, yesterdayOrders] = await Promise.all([
+    getAdminOrdersByDay(todayKey),
+    getAdminOrdersByDay(yesterdayKey),
+  ]);
+
+  const initialDays = [
+    { dayKey: todayKey, orders: todayOrders },
+    { dayKey: yesterdayKey, orders: yesterdayOrders },
+  ];
+  const initialOldestDayKey = addDaysToDayKey(yesterdayKey, -1);
 
   return (
     <div className="space-y-6">
-      <AdminOrdersSeen />
       <div>
         <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
           Admin studio
@@ -16,17 +30,10 @@ export default async function AdminOrdersPage() {
           Customer orders
         </h1>
       </div>
-      <div className="grid gap-4">
-        {orders.length ? (
-          orders.map((order) => (
-            <AdminOrderRow key={order.id} order={order} />
-          ))
-        ) : (
-          <div className="glass rounded-[28px] border border-white/80 p-8 text-center text-sm text-stone-600">
-            No orders yet.
-          </div>
-        )}
-      </div>
+      <AdminOrdersList
+        initialDays={initialDays}
+        initialOldestDayKey={initialOldestDayKey}
+      />
     </div>
   );
 }

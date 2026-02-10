@@ -42,7 +42,10 @@ const hasCategoryFilters = (settings: CategorySettings) =>
   );
 
 const matchesCategory = (
-  bouquet: Pick<Bouquet, "flowerType" | "style" | "isMixed" | "colors" | "priceCents">,
+  bouquet: Pick<
+    Bouquet,
+    "flowerType" | "style" | "isMixed" | "colors" | "priceCents"
+  >,
   settings: CategorySettings
 ) => {
   if (settings.categoryDiscountPercent <= 0) return false;
@@ -107,7 +110,7 @@ export const getBouquetDiscount = (
   if (bouquet.discountPercent > 0) {
     return {
       percent: bouquet.discountPercent,
-      note: bouquet.discountNote || "Скидка",
+      note: bouquet.discountNote || "Discount",
       source: "bouquet",
     };
   }
@@ -115,7 +118,7 @@ export const getBouquetDiscount = (
   if (matchesCategory(bouquet, settings)) {
     return {
       percent: settings.categoryDiscountPercent,
-      note: settings.categoryDiscountNote || "Скидка",
+      note: settings.categoryDiscountNote || "Discount",
       source: "category",
     };
   }
@@ -123,7 +126,7 @@ export const getBouquetDiscount = (
   if (settings.globalDiscountPercent > 0) {
     return {
       percent: settings.globalDiscountPercent,
-      note: settings.globalDiscountNote || "Скидка",
+      note: settings.globalDiscountNote || "Discount",
       source: "global",
     };
   }
@@ -171,7 +174,7 @@ export const getCartItemDiscount = (
   if (item.bouquetDiscountPercent && item.bouquetDiscountPercent > 0) {
     return {
       percent: item.bouquetDiscountPercent,
-      note: item.bouquetDiscountNote || "Скидка",
+      note: item.bouquetDiscountNote || "Discount",
       source: "bouquet",
     };
   }
@@ -190,7 +193,7 @@ export const getCartItemDiscount = (
   ) {
     return {
       percent: settings.categoryDiscountPercent,
-      note: settings.categoryDiscountNote || "Скидка",
+      note: settings.categoryDiscountNote || "Discount",
       source: "category",
     };
   }
@@ -198,7 +201,7 @@ export const getCartItemDiscount = (
   if (settings.globalDiscountPercent > 0) {
     return {
       percent: settings.globalDiscountPercent,
-      note: settings.globalDiscountNote || "Скидка",
+      note: settings.globalDiscountNote || "Discount",
       source: "global",
     };
   }

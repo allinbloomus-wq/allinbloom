@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import BouquetCard from "@/components/bouquet-card";
@@ -8,6 +9,37 @@ import { getFeaturedBouquets } from "@/lib/data/bouquets";
 import { getActivePromoSlides } from "@/lib/data/promotions";
 import { getStoreSettings } from "@/lib/data/settings";
 import { getBouquetPricing } from "@/lib/pricing";
+import {
+  SITE_CITY,
+  SITE_COUNTRY,
+  SITE_DESCRIPTION,
+  SITE_EMAIL,
+  SITE_INSTAGRAM,
+  SITE_NAME,
+  SITE_ORIGIN,
+  SITE_PHONE,
+  SITE_REGION,
+  SITE_TAGLINE,
+} from "@/lib/site";
+
+export const metadata: Metadata = {
+  title: "Chicago Flower Delivery & Luxury Bouquets",
+  description: SITE_DESCRIPTION,
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "Chicago Flower Delivery & Luxury Bouquets",
+    description: SITE_DESCRIPTION,
+    url: "/",
+    images: [
+      {
+        url: "/images/hero-bouquet.png",
+        alt: SITE_TAGLINE,
+      },
+    ],
+  },
+};
 
 const galleryImages = [
   "/images/bouquet-1.png",
@@ -22,9 +54,35 @@ export default async function HomePage() {
   const featured = await getFeaturedBouquets();
   const promoSlides = await getActivePromoSlides();
   const settings = await getStoreSettings();
+  const localBusinessSchema = {
+    "@context": "https://schema.org",
+    "@type": "Florist",
+    name: SITE_NAME,
+    url: SITE_ORIGIN,
+    image: `${SITE_ORIGIN}/images/hero-bouquet.png`,
+    description: SITE_DESCRIPTION,
+    telephone: SITE_PHONE,
+    email: SITE_EMAIL,
+    priceRange: "$$",
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: SITE_CITY,
+      addressRegion: SITE_REGION,
+      addressCountry: SITE_COUNTRY,
+    },
+    areaServed: `${SITE_CITY}, ${SITE_REGION}`,
+    sameAs: [SITE_INSTAGRAM],
+    openingHours: ["Mo-Sa 09:00-19:00"],
+  };
 
   return (
     <div className="flex flex-col gap-20">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(localBusinessSchema),
+        }}
+      />
       <section className="grid gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-center animate-rise">
         <div className="space-y-6">
           <div className="inline-flex items-center gap-2 rounded-full bg-white/70 px-4 py-2 text-xs uppercase tracking-[0.24em] text-stone-700 shadow-sm">
@@ -74,7 +132,16 @@ export default async function HomePage() {
             className="inline-flex items-center gap-3 rounded-full bg-[color:var(--brand)] px-6 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-white shadow-[0_12px_28px_rgba(108,20,10,0.28)] transition hover:-translate-y-0.5 hover:bg-[color:var(--brand-dark)]"
           >
             Instagram
-            <span className="text-white/80">↗</span>
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="h-4 w-4 text-white/90"
+            >
+              <path
+                fill="currentColor"
+                d="M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4Zm0 2a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H7Zm10 1.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8Zm0 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z"
+              />
+            </svg>
           </a>
           <div className="grid gap-4 sm:grid-cols-3">
             {[
@@ -247,7 +314,7 @@ export default async function HomePage() {
         <div className="overflow-hidden rounded-[28px] border border-white/80 bg-white">
           <iframe
             title="All in Bloom Floral Studio map"
-            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d379077.60318086424!2d-88.79021143865815!3d42.07439745469514!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x880fa5438e640395%3A0xc9a43fb3bbb9b85c!2z0KDQvtC70LvQuNC90LMg0JzQtdC00L7Rg9GBLCDQmNC70LvQuNC90L7QudGBIDYwMDA4LCDQodCo0JA!5e0!3m2!1sru!2sde!4v1770372032469!5m2!1sru!2sde"
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d379077.60318086424!2d-88.79021143865815!3d42.07439745469514!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x880fa5438e640395%3A0xc9a43fb3bbb9b85c!2z0KDQvtC70LvQuNC90LMg0JzQtdC00L7Rg9GBLCDQmNC70LvQuNC90L7QudGBIDYwMDA4LCDQodCo0JA!5e0!3m2!1sen!2sus!4v1770372032469!5m2!1sen!2sus"
             className="h-[280px] w-full sm:h-[360px]"
             style={{ border: 0 }}
             allowFullScreen

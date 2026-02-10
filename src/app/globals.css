@@ -95,18 +95,17 @@
   }
 }
 
-
-/* Блокировка кликов по элементам под lightbox */
+/* Prevent interactions beneath the lightbox. */
 body[data-lightbox-open="true"] {
   overflow: hidden;
 }
 
-/* Блокируем все кнопки открытия картинок когда lightbox открыт */
+/* Disable image open buttons while the lightbox is active. */
 body[data-lightbox-open="true"] button[aria-label="Open image"] {
   pointer-events: none;
 }
 
-/* Но разрешаем клики по header */
+/* Keep the header clickable while the lightbox is open. */
 body[data-lightbox-open="true"] header,
 body[data-lightbox-open="true"] header * {
   pointer-events: auto;

@@ -1,9 +1,8 @@
 import { notFound } from "next/navigation";
 import Stripe from "stripe";
 import { getOrderById } from "@/lib/data/orders";
-import { formatDateTime, formatMoney } from "@/lib/format";
+import { formatDateTime, formatMoney, formatOrderStatus } from "@/lib/format";
 import { prisma } from "@/lib/db";
-import AdminOrdersSeen from "@/components/admin-orders-seen";
 
 export default async function AdminOrderDetailPage({
   params,
@@ -43,6 +42,22 @@ export default async function AdminOrderDetailPage({
       });
       order.status = "PAID";
     }
+
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    const isExpired =
+      stripeSession.status === "expired" ||
+      (typeof stripeSession.expires_at === "number" &&
+        stripeSession.expires_at < nowSeconds);
+    const isUnpaidComplete =
+      stripeSession.payment_status === "unpaid" && stripeSession.status !== "open";
+
+    if ((isExpired || isUnpaidComplete) && order.status === "PENDING") {
+      await prisma.order.update({
+        where: { id: order.id },
+        data: { status: "FAILED" },
+      });
+      order.status = "FAILED";
+    }
   }
 
   const shipping = stripeSession?.shipping_details;
@@ -50,7 +65,6 @@ export default async function AdminOrderDetailPage({
 
   return (
     <div className="space-y-6">
-      <AdminOrdersSeen />
       <div>
         <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
           Order details
@@ -87,7 +101,7 @@ export default async function AdminOrderDetailPage({
               Order summary
             </h2>
             <div className="mt-3 space-y-2">
-              <p>Status: {order.status}</p>
+              <p>Status: {formatOrderStatus(order.status)}</p>
               <p>Created: {formatDateTime(order.createdAt)}</p>
               {order.email ? <p>Email: {order.email}</p> : null}
               {order.phone ? <p>Phone: {order.phone}</p> : null}

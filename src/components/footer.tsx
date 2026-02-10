@@ -37,7 +37,14 @@ export default function Footer() {
         </div>
       </div>
       <div className="border-t border-white/60 py-4 text-center text-xs uppercase tracking-[0.3em] text-stone-500">
-        Crafted with care - 2026
+        <a
+          href="https://t.me/otdamgololobov"
+          target="_blank"
+          rel="noreferrer"
+          className="transition hover:text-stone-700"
+        >
+          created by otdamgololobov
+        </a>
       </div>
     </footer>
   );

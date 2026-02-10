@@ -1,11 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCart } from "@/lib/cart";
 import { formatMoney } from "@/lib/format";
 import { getCartItemDiscount } from "@/lib/pricing";
 import CheckoutButton from "@/components/checkout-button";
+import ImageWithFallback from "@/components/image-with-fallback";
 
 type DiscountInfo = {
   percent: number;
@@ -36,7 +36,7 @@ export default function CartView({
 }: CartViewProps) {
   const { items, updateQuantity, removeItem } = useCart();
   const [address, setAddress] = useState("");
-  const [phone, setPhone] = useState("");
+  const [phoneLocal, setPhoneLocal] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
   const autocompleteRef = useRef<any>(null);
   const [quote, setQuote] = useState<{
@@ -47,10 +47,18 @@ export default function CartView({
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const mapsKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-  const phoneDigits = phone.replace(/\D/g, "");
-  const phoneValid =
-    phoneDigits.length === 10 ||
-    (phoneDigits.length >= 11 && phoneDigits.length <= 15);
+  const formatPhone = (localDigits: string) => {
+    const part1 = localDigits.slice(0, 3);
+    const part2 = localDigits.slice(3, 6);
+    const part3 = localDigits.slice(6, 10);
+    let result = "+1";
+    if (part1) result += ` ${part1}`;
+    if (part2) result += ` ${part2}`;
+    if (part3) result += ` ${part3}`;
+    return result;
+  };
+  const phoneValid = phoneLocal.length === 10;
+  const phoneValue = formatPhone(phoneLocal);
 
   useEffect(() => {
     if (!mapsKey || !inputRef.current) return;
@@ -223,7 +231,7 @@ export default function CartView({
           >
             <div className="flex items-center gap-4">
               <div className="h-20 w-20 overflow-hidden rounded-2xl border border-white/80 bg-white">
-                <Image
+                <ImageWithFallback
                   src={item.image}
                   alt={item.name}
                   width={120}
@@ -306,17 +314,24 @@ export default function CartView({
           <label className="flex flex-col gap-2 text-sm text-stone-700">
             Phone number
             <input
-              value={phone}
-              onChange={(event) => setPhone(event.target.value)}
+              value={phoneValue}
+              onChange={(event) => {
+                const digits = event.target.value.replace(/\D/g, "");
+                const local =
+                  digits.startsWith("1") ? digits.slice(1) : digits;
+                setPhoneLocal(local.slice(0, 10));
+              }}
               placeholder="+1 312 555 0123"
-              inputMode="tel"
+              inputMode="numeric"
               autoComplete="tel"
+              maxLength={15}
+              pattern="^\\+1 \\d{3} \\d{3} \\d{4}$"
               className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800"
             />
           </label>
-          {phone && !phoneValid ? (
+          {phoneLocal.length > 0 && !phoneValid ? (
             <p className="text-xs uppercase tracking-[0.24em] text-rose-700">
-              Enter a valid phone number.
+              Use format +1 312 555 0123.
             </p>
           ) : null}
           <button
@@ -373,7 +388,7 @@ export default function CartView({
         <CheckoutButton
           items={items}
           deliveryAddress={address.trim()}
-          phone={phone.trim()}
+          phone={phoneValue}
           disabled={
             !quote ||
             quoteLoading ||

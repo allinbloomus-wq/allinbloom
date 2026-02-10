@@ -13,7 +13,7 @@ type DeliveryQuoteOk = {
   distanceText: string;
   feeCents: number;
   baseAddress: string;
-  formattedAddress: string; // Добавляем валидированный адрес от Google
+  formattedAddress: string; // Validated address from Google
 };
 
 type DeliveryQuoteError = {
@@ -23,29 +23,38 @@ type DeliveryQuoteError = {
 
 export type DeliveryQuote = DeliveryQuoteOk | DeliveryQuoteError;
 
-// Валидация формата адреса
-function validateAddressFormat(address: string): { valid: boolean; error?: string } {
+// Validate address format.
+function validateAddressFormat(
+  address: string
+): { valid: boolean; error?: string } {
   const trimmed = address.trim();
-  
-  // Минимальная длина
+
+  // Minimum length.
   if (trimmed.length < 10) {
-    return { valid: false, error: "Address is too short. Please provide a complete address." };
+    return {
+      valid: false,
+      error: "Address is too short. Please provide a complete address.",
+    };
   }
-  
-  // Должна быть хотя бы одна цифра (номер дома)
+
+  // Must include at least one digit (house number).
   if (!/\d/.test(trimmed)) {
     return { valid: false, error: "Please include a street number." };
   }
-  
-  // Должна быть хотя бы одна запятая (разделитель между частями адреса)
-  if (!trimmed.includes(',')) {
-    return { valid: false, error: "Please provide a complete address with city and state (e.g., 123 Main St, Chicago, IL)." };
+
+  // Must include a comma to separate address parts.
+  if (!trimmed.includes(",")) {
+    return {
+      valid: false,
+      error:
+        "Please provide a complete address with city and state (e.g., 123 Main St, Chicago, IL).",
+    };
   }
-  
+
   return { valid: true };
 }
 
-// Валидация геокодинга через Google Geocoding API
+// Validate geocoding via Google Geocoding API.
 async function validateAndGeocodeAddress(
   address: string,
   apiKey: string
@@ -83,7 +92,10 @@ async function validateAndGeocodeAddress(
     };
 
     if (data.status === "ZERO_RESULTS") {
-      return { valid: false, error: "Address not found. Please check and try again." };
+      return {
+        valid: false,
+        error: "Address not found. Please check and try again.",
+      };
     }
 
     if (data.status !== "OK" || !data.results || data.results.length === 0) {
@@ -91,41 +103,49 @@ async function validateAndGeocodeAddress(
     }
 
     const result = data.results[0];
-    
-    // Проверяем, что это конкретный адрес, а не регион/город/страна
+
+    // Ensure it is a specific address, not just a region or city.
     const types = result.types || [];
-    const isVagueLocation = types.some(type => 
-      ['country', 'administrative_area_level_1', 'administrative_area_level_2', 'locality'].includes(type)
-    ) && !types.includes('street_address') && !types.includes('premise');
+    const isVagueLocation =
+      types.some((type) =>
+        [
+          "country",
+          "administrative_area_level_1",
+          "administrative_area_level_2",
+          "locality",
+        ].includes(type)
+      ) &&
+      !types.includes("street_address") &&
+      !types.includes("premise");
 
     if (isVagueLocation) {
-      return { 
-        valid: false, 
-        error: "Please provide a complete street address, not just a city or region." 
+      return {
+        valid: false,
+        error: "Please provide a complete street address, not just a city.",
       };
     }
 
-    // Проверяем наличие номера дома
-    const hasStreetNumber = result.address_components?.some(
-      component => component.types?.includes('street_number')
+    // Ensure a house number is present.
+    const hasStreetNumber = result.address_components?.some((component) =>
+      component.types?.includes("street_number")
     );
 
     if (!hasStreetNumber) {
-      return { 
-        valid: false, 
-        error: "Please include a street number in your address." 
+      return {
+        valid: false,
+        error: "Please include a street number in your address.",
       };
     }
 
-    // Проверяем наличие улицы
-    const hasRoute = result.address_components?.some(
-      component => component.types?.includes('route')
+    // Ensure a street name is present.
+    const hasRoute = result.address_components?.some((component) =>
+      component.types?.includes("route")
     );
 
     if (!hasRoute) {
-      return { 
-        valid: false, 
-        error: "Please include a street name in your address." 
+      return {
+        valid: false,
+        error: "Please include a street name in your address.",
       };
     }
 
@@ -154,7 +174,7 @@ export async function getDeliveryQuote(
   rawAddress: string
 ): Promise<DeliveryQuote> {
   const address = rawAddress.trim();
-  
+
   if (!address) {
     return { ok: false, error: "Delivery address is required." };
   }
@@ -164,25 +184,25 @@ export async function getDeliveryQuote(
     return { ok: false, error: "Delivery is not configured." };
   }
 
-  // Шаг 1: Базовая валидация формата
+  // Step 1: Basic format validation.
   const formatValidation = validateAddressFormat(address);
   if (!formatValidation.valid) {
     return { ok: false, error: formatValidation.error! };
   }
 
-  // Шаг 2: Валидация через Geocoding API
+  // Step 2: Geocoding validation.
   const geocodeValidation = await validateAndGeocodeAddress(address, apiKey);
   if (!geocodeValidation.valid) {
     return { ok: false, error: geocodeValidation.error! };
   }
 
   const baseAddress = getBaseAddress();
-  
-  // Шаг 3: Расчет расстояния
+
+  // Step 3: Calculate distance.
   try {
     const params = new URLSearchParams({
       origins: baseAddress,
-      destinations: geocodeValidation.formattedAddress!, // Используем валидированный адрес
+      destinations: geocodeValidation.formattedAddress!,
       units: "imperial",
       key: apiKey,
     });
@@ -221,7 +241,7 @@ export async function getDeliveryQuote(
 
     const miles = Math.round((meters / 1609.344) * 100) / 100;
     const feeCents = getDeliveryFeeCents(miles);
-    
+
     if (feeCents === null) {
       const maxMiles = DELIVERY_TIERS[DELIVERY_TIERS.length - 1].maxMiles;
       return {
