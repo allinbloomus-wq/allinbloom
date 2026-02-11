@@ -44,6 +44,7 @@ export default function AuthPanel() {
       if (!google?.accounts?.id) return;
       google.accounts.id.initialize({
         client_id: googleClientId,
+        use_fedcm_for_prompt: false,
         callback: async (response: { credential?: string }) => {
           if (!response?.credential) {
             setStatus("Unable to sign in with Google.");
@@ -230,7 +231,13 @@ export default function AuthPanel() {
                 setStatus("Google sign-in is not ready yet.");
                 return;
               }
-              google.accounts.id.prompt();
+              google.accounts.id.prompt((notification: any) => {
+                if (notification?.isNotDisplayed?.()) {
+                  setStatus(
+                    "Google sign-in is unavailable in this browser. Use email code or try another browser."
+                  );
+                }
+              });
             }}
             className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-stone-200 bg-white/80 px-4 py-3 text-xs uppercase tracking-[0.3em] text-stone-600"
           >
