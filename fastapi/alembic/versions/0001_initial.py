@@ -7,6 +7,7 @@ Create Date: 2026-02-10 00:00:00.000000
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 
 revision = "0001_initial"
@@ -16,10 +17,33 @@ depends_on = None
 
 
 def upgrade():
-    role_enum = sa.Enum("ADMIN", "CUSTOMER", name="Role")
-    flower_enum = sa.Enum("ROSE", "TULIP", "LILY", "PEONY", "ORCHID", "MIXED", name="FlowerType")
-    style_enum = sa.Enum("ROMANTIC", "MODERN", "GARDEN", "MINIMAL", name="BouquetStyle")
-    order_status_enum = sa.Enum("PENDING", "PAID", "FAILED", "CANCELED", name="OrderStatus")
+    role_enum = postgresql.ENUM("ADMIN", "CUSTOMER", name="Role", create_type=False)
+    flower_enum = postgresql.ENUM(
+        "ROSE",
+        "TULIP",
+        "LILY",
+        "PEONY",
+        "ORCHID",
+        "MIXED",
+        name="FlowerType",
+        create_type=False,
+    )
+    style_enum = postgresql.ENUM(
+        "ROMANTIC",
+        "MODERN",
+        "GARDEN",
+        "MINIMAL",
+        name="BouquetStyle",
+        create_type=False,
+    )
+    order_status_enum = postgresql.ENUM(
+        "PENDING",
+        "PAID",
+        "FAILED",
+        "CANCELED",
+        name="OrderStatus",
+        create_type=False,
+    )
 
     role_enum.create(op.get_bind(), checkfirst=True)
     flower_enum.create(op.get_bind(), checkfirst=True)
