@@ -1,21 +1,9 @@
 "use client";
 
-import type { Bouquet } from "@prisma/client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BouquetCard from "@/components/bouquet-card";
+import type { CatalogItem } from "@/lib/api-types";
 import type { CatalogSearchParams } from "@/lib/data/bouquets";
-import type { DiscountInfo } from "@/lib/pricing";
-
-type BouquetPricing = {
-  originalPriceCents: number;
-  finalPriceCents: number;
-  discount: DiscountInfo | null;
-};
-
-type CatalogItem = {
-  bouquet: Bouquet;
-  pricing: BouquetPricing;
-};
 
 type CatalogGridProps = {
   initialItems: CatalogItem[];

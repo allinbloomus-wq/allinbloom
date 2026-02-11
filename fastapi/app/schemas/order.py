@@ -41,3 +41,24 @@ class OrderCountOut(SchemaBase):
 class OrdersByDayOut(SchemaBase):
     day_key: str
     orders: list[OrderOut]
+
+
+class StripeAddressOut(SchemaBase):
+    line1: Optional[str] = None
+    line2: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    postal_code: Optional[str] = None
+    country: Optional[str] = None
+
+
+class StripeShippingOut(SchemaBase):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[StripeAddressOut] = None
+
+
+class StripeSessionOut(SchemaBase):
+    payment_status: Optional[str] = None
+    status: Optional[str] = None
+    shipping: Optional[StripeShippingOut] = None

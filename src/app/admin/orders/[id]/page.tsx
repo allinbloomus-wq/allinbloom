@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
-import Stripe from "stripe";
-import { getOrderById } from "@/lib/data/orders";
+import { getOrderById, getOrderStripeSession } from "@/lib/data/orders";
 import { formatDateTime, formatMoney, formatOrderStatus } from "@/lib/format";
 
 export default async function AdminOrderDetailPage({
@@ -9,27 +8,20 @@ export default async function AdminOrderDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const order = await getOrderById(id);
+  const [order, stripeSession] = await Promise.all([
+    getOrderById(id),
+    getOrderStripeSession(id),
+  ]);
 
   if (!order) {
     notFound();
   }
 
-  const stripeSecret = process.env.STRIPE_SECRET_KEY;
-  let stripeSession:
-    | Stripe.Checkout.Session
-    | null
-    | undefined = undefined;
-
-  if (stripeSecret && order.stripeSessionId) {
-    const stripe = new Stripe(stripeSecret);
-    stripeSession = await stripe.checkout.sessions.retrieve(
-      order.stripeSessionId
-    );
-  }
-
-  const shipping = stripeSession?.shipping_details;
+  const shipping = stripeSession?.shipping;
   const address = shipping?.address;
+  const hasStripeSession = Boolean(
+    stripeSession?.paymentStatus || stripeSession?.status || shipping
+  );
 
   return (
     <div className="space-y-6">
@@ -73,10 +65,10 @@ export default async function AdminOrderDetailPage({
               <p>Created: {formatDateTime(order.createdAt)}</p>
               {order.email ? <p>Email: {order.email}</p> : null}
               {order.phone ? <p>Phone: {order.phone}</p> : null}
-              {stripeSession ? (
+              {hasStripeSession ? (
                 <p>
-                  Stripe payment: {stripeSession.payment_status} (
-                  {stripeSession.status})
+                  Stripe payment: {stripeSession?.paymentStatus || "unknown"} (
+                  {stripeSession?.status || "unknown"})
                 </p>
               ) : (
                 <p>Stripe session: not linked yet.</p>
@@ -98,7 +90,7 @@ export default async function AdminOrderDetailPage({
                       <p>{address.line1}</p>
                       {address.line2 ? <p>{address.line2}</p> : null}
                       <p>
-                        {address.city}, {address.state} {address.postal_code}
+                        {address.city}, {address.state} {address.postalCode}
                       </p>
                       <p>{address.country}</p>
                     </>

@@ -1,4 +1,4 @@
-import type { Bouquet, StoreSettings } from "@prisma/client";
+import type { Bouquet, StoreSettings } from "@/lib/api-types";
 
 export type DiscountInfo = {
   percent: number;

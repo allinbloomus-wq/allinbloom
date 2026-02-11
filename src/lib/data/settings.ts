@@ -1,4 +1,4 @@
-import type { StoreSettings } from "@prisma/client";
+import type { StoreSettings } from "@/lib/api-types";
 import { apiFetch } from "@/lib/api-server";
 
 export async function getStoreSettings(): Promise<StoreSettings> {
@@ -10,7 +10,7 @@ export async function getStoreSettings(): Promise<StoreSettings> {
 }
 
 export async function updateStoreSettings(
-  data: Partial<Omit<StoreSettings, "id" | "updatedAt">>
+  data: Partial<Omit<StoreSettings, "id">>
 ) {
   const response = await apiFetch(
     "/api/settings",

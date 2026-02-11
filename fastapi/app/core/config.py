@@ -11,8 +11,10 @@ class Settings(BaseSettings):
     database_url: str = Field(default="", alias="DATABASE_URL")
 
     auth_secret: str = Field(default="", alias="AUTH_SECRET")
-    nextauth_secret: str = Field(default="", alias="NEXTAUTH_SECRET")
     access_token_expire_minutes: int = Field(default=60 * 24 * 7)
+    refresh_token_expire_days: int = Field(default=30, alias="REFRESH_TOKEN_EXPIRE_DAYS")
+    refresh_token_cookie_name: str = Field(default="aib_refresh", alias="REFRESH_TOKEN_COOKIE_NAME")
+    refresh_token_cookie_samesite: str = Field(default="lax", alias="REFRESH_TOKEN_COOKIE_SAMESITE")
 
     admin_email: str = Field(default="allinbloom.us@gmail.com", alias="ADMIN_EMAIL")
     resend_api_key: str | None = Field(default=None, alias="RESEND_API_KEY")
@@ -36,8 +38,6 @@ class Settings(BaseSettings):
     )
 
     site_url: str = Field(default="http://localhost:3000", alias="SITE_URL")
-    nextauth_url: str = Field(default="", alias="NEXTAUTH_URL")
-    next_public_site_url: str = Field(default="", alias="NEXT_PUBLIC_SITE_URL")
 
     google_maps_api_key: str | None = Field(
         default=None, alias="GOOGLE_MAPS_API_KEY"
@@ -61,10 +61,10 @@ class Settings(BaseSettings):
         return value
 
     def resolved_auth_secret(self) -> str:
-        return self.auth_secret or self.nextauth_secret or ""
+        return self.auth_secret
 
     def resolved_site_url(self) -> str:
-        value = self.site_url or self.next_public_site_url or self.nextauth_url
+        value = self.site_url
         return (value or "http://localhost:3000").rstrip("/")
 
 

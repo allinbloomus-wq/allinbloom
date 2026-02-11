@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, HTTPException, Response, status
 from fastapi.responses import JSONResponse
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
@@ -11,7 +11,13 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
 from app.core.config import settings
-from app.core.security import create_access_token, generate_otp, verify_otp
+from app.core.security import (
+    create_access_token,
+    create_refresh_token,
+    decode_refresh_token,
+    generate_otp,
+    verify_otp,
+)
 from app.models.user import User
 from app.models.verification_code import VerificationCode
 from app.schemas.auth import GoogleSignInIn, RequestCodeIn, VerifyCodeIn
@@ -19,6 +25,36 @@ from app.schemas.user import TokenOut, UserOut
 from app.services.email import send_otp_email
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+
+def _cookie_secure() -> bool:
+    return settings.environment.lower() in {"production", "prod"}
+
+
+def _cookie_max_age() -> int:
+    return max(1, settings.refresh_token_expire_days * 24 * 60 * 60)
+
+
+def _set_refresh_cookie(response: Response, token: str) -> None:
+    response.set_cookie(
+        key=settings.refresh_token_cookie_name,
+        value=token,
+        httponly=True,
+        secure=_cookie_secure(),
+        samesite=settings.refresh_token_cookie_samesite,
+        path="/",
+        max_age=_cookie_max_age(),
+    )
+
+
+def _clear_refresh_cookie(response: Response) -> None:
+    response.delete_cookie(
+        key=settings.refresh_token_cookie_name,
+        path="/",
+        secure=_cookie_secure(),
+        httponly=True,
+        samesite=settings.refresh_token_cookie_samesite,
+    )
 
 
 @router.post("/request-code")
@@ -101,7 +137,11 @@ async def request_code(
 
 
 @router.post("/verify-code", response_model=TokenOut)
-def verify_code(payload: VerifyCodeIn, db: Session = Depends(get_db)):
+def verify_code(
+    payload: VerifyCodeIn,
+    response: Response,
+    db: Session = Depends(get_db),
+):
     email = payload.email.strip().lower()
     code = payload.code.strip()
 
@@ -138,11 +178,17 @@ def verify_code(payload: VerifyCodeIn, db: Session = Depends(get_db)):
     token = create_access_token(
         {"sub": user.id, "email": user.email, "role": user.role.value, "name": user.name or ""}
     )
+    refresh_token = create_refresh_token({"sub": user.id, "email": user.email})
+    _set_refresh_cookie(response, refresh_token)
     return TokenOut(access_token=token, user=UserOut.model_validate(user))
 
 
 @router.post("/google", response_model=TokenOut)
-def google_sign_in(payload: GoogleSignInIn, db: Session = Depends(get_db)):
+def google_sign_in(
+    payload: GoogleSignInIn,
+    response: Response,
+    db: Session = Depends(get_db),
+):
     if not settings.google_client_id:
         raise HTTPException(status_code=400, detail="Google login is not configured.")
 
@@ -175,4 +221,48 @@ def google_sign_in(payload: GoogleSignInIn, db: Session = Depends(get_db)):
     token = create_access_token(
         {"sub": user.id, "email": user.email, "role": user.role.value, "name": user.name or ""}
     )
+    refresh_token = create_refresh_token({"sub": user.id, "email": user.email})
+    _set_refresh_cookie(response, refresh_token)
     return TokenOut(access_token=token, user=UserOut.model_validate(user))
+
+
+@router.post("/refresh", response_model=TokenOut)
+def refresh_access_token(
+    response: Response,
+    refresh_cookie: str | None = Cookie(default=None, alias=settings.refresh_token_cookie_name),
+    db: Session = Depends(get_db),
+):
+    if not refresh_cookie:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+
+    try:
+        payload = decode_refresh_token(refresh_cookie)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+
+    user_id = payload.get("sub")
+    email = payload.get("email")
+    stmt = None
+    if user_id:
+        stmt = select(User).where(User.id == str(user_id))
+    elif email:
+        stmt = select(User).where(User.email == str(email))
+    if not stmt:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+
+    user = db.execute(stmt).scalars().first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+
+    access_token = create_access_token(
+        {"sub": user.id, "email": user.email, "role": user.role.value, "name": user.name or ""}
+    )
+    new_refresh_token = create_refresh_token({"sub": user.id, "email": user.email})
+    _set_refresh_cookie(response, new_refresh_token)
+    return TokenOut(access_token=access_token, user=UserOut.model_validate(user))
+
+
+@router.post("/logout")
+def logout(response: Response):
+    _clear_refresh_cookie(response)
+    return {"ok": True}

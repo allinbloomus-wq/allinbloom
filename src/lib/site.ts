@@ -23,9 +23,7 @@ export const SITE_INSTAGRAM =
   "https://www.instagram.com/all_in_bloom_studio";
 
 const RAW_SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ||
-  process.env.NEXTAUTH_URL ||
-  "https://allinbloom.us";
+  process.env.NEXT_PUBLIC_SITE_URL || "https://allinbloom.us";
 
 export const SITE_ORIGIN = RAW_SITE_URL.startsWith("http")
   ? RAW_SITE_URL

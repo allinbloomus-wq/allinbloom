@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { Order, OrderItem } from "@prisma/client";
 import AdminOrderRow from "@/components/admin-order-row";
 import { formatDate } from "@/lib/format";
 import {
@@ -10,16 +9,11 @@ import {
   getDayKey,
 } from "@/lib/admin-orders";
 import { clientFetch } from "@/lib/api-client";
-
-type AdminOrder = Omit<Order, "createdAt"> & {
-  createdAt: string;
-  items: OrderItem[];
-  isRead: boolean;
-};
+import type { Order } from "@/lib/api-types";
 
 type AdminOrdersDay = {
   dayKey: string;
-  orders: AdminOrder[];
+  orders: Order[];
 };
 
 type AdminOrdersListProps = {

@@ -1,4 +1,4 @@
-import type { Bouquet } from "@prisma/client";
+import type { Bouquet, CatalogResponse } from "@/lib/api-types";
 import { BOUQUET_STYLES, FLOWER_TYPES } from "@/lib/constants";
 import { apiFetch } from "@/lib/api-server";
 
@@ -35,9 +35,7 @@ const normalizeEnum = <T extends readonly string[]>(
 export async function getFeaturedBouquets(): Promise<Bouquet[]> {
   const response = await apiFetch("/api/catalog?filter=featured&take=6");
   if (!response.ok) return [];
-  const data = (await response.json()) as {
-    items?: Array<{ bouquet: Bouquet }>;
-  };
+  const data = (await response.json()) as CatalogResponse;
   return (data.items || []).map((item) => item.bouquet);
 }
 
@@ -76,8 +74,6 @@ export async function getBouquets(
 
   const response = await apiFetch(`/api/catalog?${params.toString()}`);
   if (!response.ok) return [];
-  const data = (await response.json()) as {
-    items?: Array<{ bouquet: Bouquet }>;
-  };
+  const data = (await response.json()) as CatalogResponse;
   return (data.items || []).map((item) => item.bouquet);
 }

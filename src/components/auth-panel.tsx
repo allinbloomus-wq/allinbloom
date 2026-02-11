@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { setAuthSession } from "@/lib/auth-client";
+import { clientFetch } from "@/lib/api-client";
 
 export default function AuthPanel() {
   const [email, setEmail] = useState("");
@@ -49,7 +50,7 @@ export default function AuthPanel() {
             return;
           }
           setStatus("Signing in...");
-          const verify = await fetch("/api/auth/google", {
+          const verify = await clientFetch("/api/auth/google", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ idToken: response.credential }),
@@ -75,7 +76,7 @@ export default function AuthPanel() {
 
   const requestCode = async () => {
     setStatus("Sending code...");
-    const response = await fetch("/api/auth/request-code", {
+    const response = await clientFetch("/api/auth/request-code", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email }),
@@ -105,7 +106,7 @@ export default function AuthPanel() {
     }
     setStatus("Verifying...");
 
-    const response = await fetch("/api/auth/verify-code", {
+    const response = await clientFetch("/api/auth/verify-code", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

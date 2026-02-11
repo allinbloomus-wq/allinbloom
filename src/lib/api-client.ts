@@ -17,5 +17,6 @@ export const clientFetch = async (
   return fetch(path, {
     ...options,
     headers,
+    credentials: options.credentials ?? "include",
   });
 };

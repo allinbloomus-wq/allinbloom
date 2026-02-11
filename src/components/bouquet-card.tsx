@@ -1,16 +1,9 @@
 "use client";
 
-import type { Bouquet } from "@prisma/client";
 import { formatLabel, formatMoney } from "@/lib/format";
-import type { DiscountInfo } from "@/lib/pricing";
 import AddToCartControls from "@/components/add-to-cart-controls";
 import BouquetImageLightbox from "@/components/bouquet-image-lightbox";
-
-type BouquetPricing = {
-  originalPriceCents: number;
-  finalPriceCents: number;
-  discount: DiscountInfo | null;
-};
+import type { Bouquet, BouquetPricing } from "@/lib/api-types";
 
 export default function BouquetCard({
   bouquet,

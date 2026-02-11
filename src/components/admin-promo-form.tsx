@@ -1,4 +1,4 @@
-import type { PromoSlide } from "@prisma/client";
+import type { PromoSlide } from "@/lib/api-types";
 import AdminImageUpload from "@/components/admin-image-upload";
 
 type AdminPromoFormProps = {

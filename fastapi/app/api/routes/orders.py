@@ -1,12 +1,22 @@
 from __future__ import annotations
 
+import stripe
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_db, get_current_user, require_admin
+from app.core.config import settings
 from app.models.order import Order
-from app.schemas.order import OrderCountOut, OrderOut, OrderToggleOut, OrdersByDayOut
+from app.schemas.order import (
+    OrderCountOut,
+    OrderOut,
+    OrderToggleOut,
+    OrdersByDayOut,
+    StripeAddressOut,
+    StripeSessionOut,
+    StripeShippingOut,
+)
 from app.services.orders import (
     expire_pending_orders,
     get_admin_orders,
@@ -75,3 +85,46 @@ def toggle_read(
     db.commit()
     db.refresh(order)
     return OrderToggleOut(is_read=bool(order.is_read))
+
+
+@router.get("/admin/orders/{order_id}/stripe-session", response_model=StripeSessionOut)
+def get_order_stripe_session(
+    order_id: str,
+    db: Session = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    order = db.get(Order, order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    if not settings.stripe_secret_key or not order.stripe_session_id:
+        return StripeSessionOut()
+
+    stripe.api_key = settings.stripe_secret_key
+    try:
+        session = stripe.checkout.Session.retrieve(order.stripe_session_id)
+    except Exception:
+        raise HTTPException(status_code=502, detail="Unable to load Stripe session.")
+
+    shipping = getattr(session, "shipping_details", None)
+    address = getattr(shipping, "address", None) if shipping else None
+    return StripeSessionOut(
+        payment_status=getattr(session, "payment_status", None),
+        status=getattr(session, "status", None),
+        shipping=StripeShippingOut(
+            name=getattr(shipping, "name", None),
+            phone=getattr(shipping, "phone", None),
+            address=StripeAddressOut(
+                line1=getattr(address, "line1", None),
+                line2=getattr(address, "line2", None),
+                city=getattr(address, "city", None),
+                state=getattr(address, "state", None),
+                postal_code=getattr(address, "postal_code", None),
+                country=getattr(address, "country", None),
+            )
+            if address
+            else None,
+        )
+        if shipping
+        else None,
+    )

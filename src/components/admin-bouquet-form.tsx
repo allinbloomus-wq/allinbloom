@@ -1,4 +1,4 @@
-import type { Bouquet } from "@prisma/client";
+import type { Bouquet } from "@/lib/api-types";
 import { BOUQUET_STYLES, FLOWER_TYPES } from "@/lib/constants";
 import { formatLabel } from "@/lib/format";
 import AdminImageUpload from "@/components/admin-image-upload";

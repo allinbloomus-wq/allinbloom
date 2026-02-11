@@ -1,18 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import type { Order, OrderItem } from "@prisma/client";
 import Link from "next/link";
 import { formatDateTime, formatMoney, formatOrderStatus } from "@/lib/format";
 import { ADMIN_ORDERS_BADGE_EVENT } from "@/lib/admin-orders";
 import { clientFetch } from "@/lib/api-client";
+import type { Order } from "@/lib/api-types";
 
 type AdminOrderRowProps = {
-  order: Omit<Order, "createdAt"> & {
-    createdAt: string;
-    items: OrderItem[];
-    isRead: boolean;
-  };
+  order: Order;
 };
 
 export default function AdminOrderRow({ order }: AdminOrderRowProps) {

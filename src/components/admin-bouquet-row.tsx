@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { Bouquet } from "@prisma/client";
+import type { Bouquet } from "@/lib/api-types";
 import { formatLabel, formatMoney } from "@/lib/format";
 import { deleteBouquet } from "@/app/admin/actions";
 import ImageWithFallback from "@/components/image-with-fallback";

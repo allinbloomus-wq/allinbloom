@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { PromoSlide } from "@prisma/client";
+import type { PromoSlide } from "@/lib/api-types";
 import { deletePromoSlide } from "@/app/admin/promotions/actions";
 import ImageWithFallback from "@/components/image-with-fallback";
 

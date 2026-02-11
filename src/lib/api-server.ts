@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { AUTH_TOKEN_COOKIE } from "@/lib/auth-cookies";
 
 const API_BASE =
-  process.env.API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "";
+  process.env.API_BASE_URL || "";
 
 export const apiUrl = (path: string) => {
   if (!API_BASE) return path;
