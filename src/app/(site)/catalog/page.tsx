@@ -11,8 +11,9 @@ import { headers } from "next/headers";
 const MOBILE_UA =
   /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i;
 
-const getInitialPageSize = () => {
-  const ua = headers().get("user-agent") || "";
+const getInitialPageSize = async () => {
+  const headerStore = await headers();
+  const ua = headerStore.get("user-agent") || "";
   return MOBILE_UA.test(ua) ? 6 : 12;
 };
 
@@ -51,7 +52,7 @@ export default async function CatalogPage({
   searchParams: Promise<CatalogSearchParams>;
 }) {
   const params = await searchParams;
-  const pageSize = getInitialPageSize();
+  const pageSize = await getInitialPageSize();
   const rawBouquets = await getBouquets(params, { take: pageSize + 1 });
   const hasMore = rawBouquets.length > pageSize;
   const bouquets = hasMore ? rawBouquets.slice(0, pageSize) : rawBouquets;
