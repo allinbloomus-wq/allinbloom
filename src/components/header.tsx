@@ -4,7 +4,7 @@ import CartBadge from "@/components/cart-badge";
 import AdminOrdersBadge from "@/components/admin-orders-badge";
 
 export default async function Header() {
-  const { user } = getAuthSession();
+  const { user } = await getAuthSession();
   const isAdmin = user?.role === "ADMIN";
   const isSignedIn = Boolean(user);
 

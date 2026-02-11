@@ -9,8 +9,8 @@ export const apiUrl = (path: string) => {
   return `${API_BASE}${path}`;
 };
 
-export const getServerAuthToken = () => {
-  const store = cookies();
+export const getServerAuthToken = async () => {
+  const store = await cookies();
   return store.get(AUTH_TOKEN_COOKIE)?.value || null;
 };
 
@@ -21,7 +21,7 @@ export const apiFetch = async (
 ) => {
   const headers = new Headers(options.headers);
   if (auth) {
-    const token = getServerAuthToken();
+    const token = await getServerAuthToken();
     if (token) {
       headers.set("Authorization", `Bearer ${token}`);
     }

@@ -21,23 +21,23 @@ const parseUserCookie = (value: string | undefined) => {
   }
 };
 
-export const getAuthSession = () => {
-  const store = cookies();
+export const getAuthSession = async () => {
+  const store = await cookies();
   const token = store.get(AUTH_TOKEN_COOKIE)?.value || null;
   const user = parseUserCookie(store.get(AUTH_USER_COOKIE)?.value);
   return { token, user };
 };
 
-export const requireAuth = () => {
-  const { user, token } = getAuthSession();
+export const requireAuth = async () => {
+  const { user, token } = await getAuthSession();
   if (!user || !token) {
     redirect("/auth");
   }
   return { user, token };
 };
 
-export const requireAdmin = () => {
-  const { user, token } = getAuthSession();
+export const requireAdmin = async () => {
+  const { user, token } = await getAuthSession();
   if (!user || !token || user.role !== "ADMIN") {
     redirect("/auth");
   }

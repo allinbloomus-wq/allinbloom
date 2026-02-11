@@ -23,7 +23,7 @@ const parsePromoForm = (formData: FormData) => {
 };
 
 export async function createPromoSlide(formData: FormData) {
-  requireAdmin();
+  await requireAdmin();
   const data = parsePromoForm(formData);
   const response = await apiFetch(
     "/api/promotions",
@@ -43,7 +43,7 @@ export async function createPromoSlide(formData: FormData) {
 }
 
 export async function updatePromoSlide(formData: FormData) {
-  requireAdmin();
+  await requireAdmin();
   const id = String(formData.get("id") || "");
   const data = parsePromoForm(formData);
   const response = await apiFetch(
@@ -64,7 +64,7 @@ export async function updatePromoSlide(formData: FormData) {
 }
 
 export async function deletePromoSlide(formData: FormData) {
-  requireAdmin();
+  await requireAdmin();
   const id = String(formData.get("id") || "");
   const response = await apiFetch(`/api/promotions/${id}`, { method: "DELETE" }, true);
   if (!response.ok) {

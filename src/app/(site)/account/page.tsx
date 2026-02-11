@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AccountPage() {
-  const { user } = requireAuth();
+  const { user } = await requireAuth();
   if (!user) {
     redirect("/auth");
   }

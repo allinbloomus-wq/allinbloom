@@ -7,7 +7,7 @@ import { requireAdmin } from "@/lib/auth-session";
 import { apiFetch } from "@/lib/api-server";
 
 export async function createBouquet(formData: FormData) {
-  requireAdmin();
+  await requireAdmin();
   const data = parseBouquetForm(formData);
   const response = await apiFetch(
     "/api/bouquets",
@@ -26,7 +26,7 @@ export async function createBouquet(formData: FormData) {
 }
 
 export async function updateBouquet(formData: FormData) {
-  requireAdmin();
+  await requireAdmin();
   const id = String(formData.get("id") || "");
   const data = parseBouquetForm(formData);
   const response = await apiFetch(
@@ -46,7 +46,7 @@ export async function updateBouquet(formData: FormData) {
 }
 
 export async function deleteBouquet(formData: FormData) {
-  requireAdmin();
+  await requireAdmin();
   const id = String(formData.get("id") || "");
   const response = await apiFetch(`/api/bouquets/${id}`, { method: "DELETE" }, true);
   if (!response.ok) {

@@ -13,7 +13,7 @@ const parsePriceCents = (value: FormDataEntryValue | null) => {
 };
 
 export async function updateDiscountSettings(formData: FormData) {
-  requireAdmin();
+  await requireAdmin();
 
   const globalPercent = clampPercent(
     Number(formData.get("globalDiscountPercent") || 0)

@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 };
 
 export default async function CartPage() {
-  const { user } = getAuthSession();
+  const { user } = await getAuthSession();
   const settings = await getStoreSettings();
   const email = user?.email || null;
   const orderCount = email ? await countOrdersByEmail(email) : 0;
