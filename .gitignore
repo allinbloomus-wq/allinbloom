@@ -4,10 +4,18 @@ node_modules/
 out/
 .npm/
 .pnpm-store/
+*.tsbuildinfo
+next-env.d.ts
+.turbo/
+.vercel/
+build/
+dist/
 
 # Python / FastAPI
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
@@ -15,25 +23,50 @@ __pycache__/
 .coverage.*
 htmlcov/
 *.egg-info/
+.eggs/
+*.egg
+.tox/
+.hypothesis/
+.dmypy.json
+dmypy.json
+.pytype/
+.pyre/
+celerybeat-schedule
+celerybeat.pid
+*.sage.py
+pip-log.txt
+pip-delete-this-directory.txt
+.pdm.toml
+.pdm-python
+.pdm-build/
 
 # Virtual environments
 .venv/
 venv/
 env/
+ENV/
+env.bak/
+venv.bak/
 fastapi/.venv/
+venv*/
+.python-version
 
 # Environment files
 .env
 .env.*
 !.env.example
+!.env.sample
 fastapi/.env
 fastapi/.env.*
 !fastapi/.env.example
+.envrc
 
 # Local databases and temp files
 *.sqlite
 *.sqlite3
 *.db
+*.db-shm
+*.db-wal
 
 # Logs
 *.log
@@ -41,11 +74,77 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+lerna-debug.log*
 
 # IDE
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+*.sublime-project
 
 # OS
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+Desktop.ini
+
+# Testing
+coverage/
+.nyc_output/
+*.cover
+.cache
+nosetests.xml
+coverage.xml
+*.coveragerc
+
+# Package manager lock files (опционально, если работаете в команде)
+# yarn.lock
+# package-lock.json
+# pnpm-lock.yaml
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*~.nib
+.fuse_hidden*
+
+# Upload folders (если есть загрузки файлов)
+uploads/
+media/
+static/collected/
+
+# Documentation builds
+docs/_build/
+site/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# MacOS
+.AppleDouble
+.LSOverride
+Icon
+
+# Windows
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
