@@ -27,13 +27,18 @@ export default async function AccountPage() {
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
-      <div>
-        <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
-          Account
-        </p>
-        <h1 className="text-4xl font-semibold text-stone-900 sm:text-5xl">
-          Welcome back
-        </h1>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
+            Account
+          </p>
+          <h1 className="text-4xl font-semibold text-stone-900 sm:text-5xl">
+            Welcome back
+          </h1>
+        </div>
+        <div className="w-full sm:w-auto sm:min-w-[180px]">
+          <SignOutButton />
+        </div>
       </div>
       <div className="glass rounded-[28px] border border-white/80 p-6 text-sm text-stone-600">
         <p>Name: {currentUser?.name || user.name || "-"}</p>
@@ -43,6 +48,17 @@ export default async function AccountPage() {
           <p>Role: {user.role}</p>
         ) : null}
       </div>
+      {user.role === "ADMIN" ? (
+        <div className="glass rounded-[28px] border border-white/80 p-6 text-sm text-stone-600">
+          <p>You have admin access.</p>
+          <a
+            href="/admin"
+            className="mt-3 inline-block rounded-full border border-stone-300 bg-white/80 px-4 py-2 text-xs uppercase tracking-[0.3em] text-stone-600"
+          >
+            Open admin panel
+          </a>
+        </div>
+      ) : null}
       <div className="glass rounded-[28px] border border-white/80 p-6 text-sm text-stone-600">
         <h2 className="text-lg font-semibold text-stone-900">
           Order history
@@ -77,20 +93,6 @@ export default async function AccountPage() {
             <p>No orders yet.</p>
           )}
         </div>
-      </div>
-      {user.role === "ADMIN" ? (
-        <div className="glass rounded-[28px] border border-white/80 p-6 text-sm text-stone-600">
-          <p>You have admin access.</p>
-          <a
-            href="/admin"
-            className="mt-3 inline-block rounded-full border border-stone-300 bg-white/80 px-4 py-2 text-xs uppercase tracking-[0.3em] text-stone-600"
-          >
-            Open admin panel
-          </a>
-        </div>
-      ) : null}
-      <div className="max-w-xs">
-        <SignOutButton />
       </div>
     </div>
   );

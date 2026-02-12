@@ -85,10 +85,54 @@ export default async function HomePage() {
       />
       <section className="grid gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-center animate-rise">
         <div className="space-y-6">
+          <div className="relative lg:hidden">
+            <div className="pointer-events-none absolute -inset-x-3 -top-6 h-[340px] rounded-[40px] bg-[radial-gradient(circle_at_20%_20%,rgba(243,217,207,0.85),transparent_58%),radial-gradient(circle_at_85%_15%,rgba(108,20,10,0.22),transparent_45%)] blur-2xl" />
+            <div className="relative overflow-hidden rounded-[34px] border border-white/80 bg-[linear-gradient(140deg,rgba(255,255,255,0.9),rgba(248,233,227,0.78))] p-3 shadow-[0_26px_70px_rgba(108,20,10,0.22)]">
+              <div className="relative overflow-hidden rounded-[26px] border border-white/70">
+                <Image
+                  src="/images/hero-bouquet.png"
+                  alt="Elegant floral bouquet"
+                  width={760}
+                  height={940}
+                  className="h-[420px] w-full object-cover object-center"
+                  priority
+                />
+                <div className="absolute inset-0 bg-[linear-gradient(175deg,rgba(22,10,7,0.06),rgba(22,10,7,0.7))]" />
+                <div className="absolute left-4 top-4 rounded-full border border-white/50 bg-white/20 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-white backdrop-blur">
+                  Same-day delivery
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+                  <p className="text-[11px] uppercase tracking-[0.3em] text-white/75">
+                    Floral atelier
+                  </p>
+                  <p className="mt-1 text-2xl font-semibold leading-tight text-balance">
+                    Modern bouquets for your softest moments
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {[
+                  { label: "Stems", value: "125+" },
+                  { label: "Rating", value: "4.9" },
+                  { label: "Delivery", value: "2-4h" },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-2xl border border-white/80 bg-white/75 px-2 py-2 text-center"
+                  >
+                    <p className="text-sm font-semibold text-stone-900">{item.value}</p>
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-stone-500">
+                      {item.label}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
           <div className="inline-flex items-center gap-2 rounded-full bg-white/70 px-4 py-2 text-xs uppercase tracking-[0.24em] text-stone-700 shadow-sm">
             Chicago delivery in 2-4 hours
           </div>
-          <h1 className="text-4xl font-semibold text-stone-900 sm:text-5xl lg:text-6xl">
+          <h1 className="text-3xl font-semibold text-stone-900 text-balance sm:text-5xl lg:text-6xl">
             All in Bloom Floral Studio
           </h1>
           <p className="max-w-xl text-balance text-lg text-stone-700">
@@ -96,31 +140,16 @@ export default async function HomePage() {
             gifting. Curated by artisan florists, designed for every elegant
             moment in your life.
           </p>
-          <div className="relative animate-float lg:hidden">
-            <div className="glass absolute right-6 top-6 z-10 hidden h-14 w-36 rounded-full border border-white/80 text-xs font-semibold uppercase tracking-[0.3em] text-stone-700 sm:flex items-center justify-center">
-              New arrivals
-            </div>
-            <div className="glass overflow-hidden rounded-[32px] border border-white/80 p-4">
-              <Image
-                src="/images/hero-bouquet.png"
-                alt="Elegant floral bouquet"
-                width={520}
-                height={640}
-                className="h-auto w-full rounded-[26px] object-cover"
-                priority
-              />
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
             <Link
               href="/catalog"
-              className="rounded-full bg-[color:var(--brand)] px-6 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-white transition hover:bg-[color:var(--brand-dark)]"
+              className="rounded-full bg-[color:var(--brand)] px-6 py-3 text-center text-sm font-semibold uppercase tracking-[0.2em] text-white transition hover:bg-[color:var(--brand-dark)]"
             >
               Shop bouquets
             </Link>
             <Link
               href="/catalog?filter=featured"
-              className="rounded-full border border-[color:var(--brand)]/30 bg-white/70 px-6 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-[color:var(--brand)] transition hover:border-[color:var(--brand)]/60"
+              className="rounded-full border border-[color:var(--brand)]/30 bg-white/70 px-6 py-3 text-center text-sm font-semibold uppercase tracking-[0.2em] text-[color:var(--brand)] transition hover:border-[color:var(--brand)]/60"
             >
               Explore signature sets
             </Link>
@@ -129,7 +158,7 @@ export default async function HomePage() {
             href="https://www.instagram.com/all_in_bloom_studio"
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-3 rounded-full bg-[color:var(--brand)] px-6 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-white shadow-[0_12px_28px_rgba(108,20,10,0.28)] transition hover:-translate-y-0.5 hover:bg-[color:var(--brand-dark)]"
+            className="inline-flex w-full items-center justify-center gap-3 rounded-full bg-[color:var(--brand)] px-6 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-white shadow-[0_12px_28px_rgba(108,20,10,0.28)] transition hover:-translate-y-0.5 hover:bg-[color:var(--brand-dark)] sm:w-auto"
           >
             Instagram
             <svg
@@ -143,7 +172,7 @@ export default async function HomePage() {
               />
             </svg>
           </a>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="hidden gap-4 sm:grid-cols-3 lg:grid">
             {[
               { label: "Seasonal stems", value: "125+" },
               { label: "Happy clients", value: "4.9/5" },
