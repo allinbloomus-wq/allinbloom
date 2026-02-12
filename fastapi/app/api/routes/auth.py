@@ -258,7 +258,7 @@ def refresh_access_token(
         stmt = select(User).where(User.id == str(user_id))
     elif email:
         stmt = select(User).where(User.email == str(email))
-    if not stmt:
+    if stmt is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
 
     user = db.execute(stmt).scalars().first()
