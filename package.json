@@ -2,10 +2,10 @@
   "name": "flowers",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
+   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p ${PORT:-3000} -H 0.0.0.0",
     "lint": "eslint"
   },
   "dependencies": {
