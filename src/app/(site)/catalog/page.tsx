@@ -75,7 +75,7 @@ export default async function CatalogPage({
   ].join("|");
 
   return (
-    <div className="flex flex-col gap-10">
+    <div className="flex flex-col gap-7 sm:gap-10">
       <div className="space-y-3">
         <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
           {isFeatured ? "Signature edit" : "Catalog"}

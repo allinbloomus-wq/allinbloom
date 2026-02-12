@@ -76,7 +76,7 @@ export default async function HomePage() {
   };
 
   return (
-    <div className="flex flex-col gap-20">
+    <div className="flex flex-col gap-14 sm:gap-20">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -161,16 +161,14 @@ export default async function HomePage() {
             className="inline-flex w-full items-center justify-center gap-3 rounded-full bg-[color:var(--brand)] px-6 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-white shadow-[0_12px_28px_rgba(108,20,10,0.28)] transition hover:-translate-y-0.5 hover:bg-[color:var(--brand-dark)] sm:w-auto"
           >
             Instagram
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              className="h-4 w-4 text-white/90"
-            >
-              <path
-                fill="currentColor"
-                d="M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4Zm0 2a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H7Zm10 1.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8Zm0 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z"
-              />
-            </svg>
+            <Image
+              src="/instagram.png"
+              alt=""
+              aria-hidden
+              width={16}
+              height={16}
+              className="h-4 w-4 object-contain"
+            />
           </a>
           <div className="hidden gap-4 sm:grid-cols-3 lg:grid">
             {[

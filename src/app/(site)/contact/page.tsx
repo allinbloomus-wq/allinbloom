@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import ContactForm from "@/components/contact-form";
 import { SITE_DESCRIPTION } from "@/lib/site";
 
@@ -18,7 +19,7 @@ export const metadata: Metadata = {
 
 export default function ContactPage() {
   return (
-    <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+    <div className="grid gap-8 sm:gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
       <div className="space-y-4">
         <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
           Contact
@@ -41,16 +42,14 @@ export default function ContactPage() {
             className="inline-flex items-center gap-3 rounded-full bg-[color:var(--brand)] px-6 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-white shadow-[0_12px_28px_rgba(108,20,10,0.28)] transition hover:-translate-y-0.5 hover:bg-[color:var(--brand-dark)]"
           >
             Instagram
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              className="h-4 w-4 text-white/90"
-            >
-              <path
-                fill="currentColor"
-                d="M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4Zm0 2a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H7Zm10 1.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8Zm0 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z"
-              />
-            </svg>
+            <Image
+              src="/instagram.png"
+              alt=""
+              aria-hidden
+              width={16}
+              height={16}
+              className="h-4 w-4 object-contain"
+            />
           </a>
         </div>
       </div>

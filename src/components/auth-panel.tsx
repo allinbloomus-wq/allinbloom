@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { setAuthSession } from "@/lib/auth-client";
 import { clientFetch } from "@/lib/api-client";
 
@@ -266,28 +267,14 @@ export default function AuthPanel() {
             }}
             className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-stone-200 bg-white/80 px-4 py-3 text-xs uppercase tracking-[0.3em] text-stone-600"
           >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              className="h-4 w-4"
-            >
-              <path
-                fill="#EA4335"
-                d="M12 10.2v3.9h5.4c-.2 1.4-1.6 4.1-5.4 4.1-3.2 0-5.8-2.7-5.8-6s2.6-6 5.8-6c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.6 3.6 14.5 2.7 12 2.7 7.7 2.7 4.2 6.2 4.2 10.5S7.7 18.3 12 18.3c5 0 6.9-3.5 6.9-5.3 0-.4-.1-.7-.1-.9H12z"
-              />
-              <path
-                fill="#34A853"
-                d="M6.4 14.4l-2.8 2.1C5.1 19.5 8.3 21.3 12 21.3c2.8 0 5.1-1 6.8-2.8l-3.3-2.7c-.9.6-2.1 1-3.5 1-2.8 0-5.1-1.8-5.9-4.4z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M3.4 8.5c-.2.6-.3 1.3-.3 2s.1 1.4.3 2l3.1-2.4-3.1-2.4z"
-              />
-              <path
-                fill="#4285F4"
-                d="M12 5.5c1.7 0 3.1.6 4.1 1.7l3.1-3.1C17.3 2.4 14.9 1.3 12 1.3 8.3 1.3 5.1 3.1 3.6 6.5l2.8 2.1C7 6.9 9.3 5.5 12 5.5z"
-              />
-            </svg>
+            <Image
+              src="/google.webp"
+              alt=""
+              aria-hidden
+              width={16}
+              height={16}
+              className="h-4 w-4 object-contain"
+            />
             Continue with Google
           </button>
         </>

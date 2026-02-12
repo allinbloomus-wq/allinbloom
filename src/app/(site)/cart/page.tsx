@@ -20,7 +20,7 @@ export default async function CartPage() {
   const isFirstOrderEligible = Boolean(email && orderCount === 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
         <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
           Cart
