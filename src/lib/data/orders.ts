@@ -20,7 +20,8 @@ export async function getOrderById(id: string): Promise<Order | null> {
   return response.json() as Promise<Order>;
 }
 
-export async function getOrdersByEmail(_email: string): Promise<Order[]> {
+export async function getOrdersByEmail(email: string): Promise<Order[]> {
+  if (!email) return [];
   const response = await apiFetch("/api/orders/me", {}, true);
   if (!response.ok) return [];
   return response.json() as Promise<Order[]>;

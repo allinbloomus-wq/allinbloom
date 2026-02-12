@@ -24,12 +24,8 @@ const useCatalogPageSize = () => {
       setPageSize(query.matches ? DESKTOP_PAGE_SIZE : MOBILE_PAGE_SIZE);
     };
     update();
-    if ("addEventListener" in query) {
-      query.addEventListener("change", update);
-      return () => query.removeEventListener("change", update);
-    }
-    query.addListener(update);
-    return () => query.removeListener(update);
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
   }, []);
 
   return pageSize;
@@ -106,7 +102,7 @@ export default function CatalogGrid({
       setItems((prev) => [...prev, ...data.items]);
       setCursor(data.nextCursor);
       setHasMore(Boolean(data.nextCursor));
-    } catch (err) {
+    } catch {
       setError("Unable to load more bouquets right now.");
     } finally {
       setIsLoading(false);

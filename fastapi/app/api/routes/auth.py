@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
 from fastapi.responses import JSONResponse
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
@@ -28,7 +28,7 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
 def _cookie_secure() -> bool:
-    return settings.environment.lower() in {"production", "prod"}
+    return settings.is_production()
 
 
 def _cookie_max_age() -> int:
@@ -41,7 +41,7 @@ def _set_refresh_cookie(response: Response, token: str) -> None:
         value=token,
         httponly=True,
         secure=_cookie_secure(),
-        samesite=settings.refresh_token_cookie_samesite,
+        samesite=settings.resolved_refresh_cookie_samesite(),
         path="/",
         max_age=_cookie_max_age(),
     )
@@ -53,14 +53,13 @@ def _clear_refresh_cookie(response: Response) -> None:
         path="/",
         secure=_cookie_secure(),
         httponly=True,
-        samesite=settings.refresh_token_cookie_samesite,
+        samesite=settings.resolved_refresh_cookie_samesite(),
     )
 
 
 @router.post("/request-code")
 async def request_code(
     payload: RequestCodeIn,
-    background: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
     email = payload.email.strip().lower()
@@ -132,7 +131,16 @@ async def request_code(
     )
     db.commit()
 
-    background.add_task(send_otp_email, email, otp["code"])
+    try:
+        await send_otp_email(email, str(otp["code"]))
+    except Exception:
+        # The code should not remain valid if delivery failed.
+        db.execute(delete(VerificationCode).where(VerificationCode.email == email))
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Unable to send verification code. Please try again later.",
+        )
     return {"ok": True}
 
 
@@ -157,6 +165,9 @@ def verify_code(
     if not record or record.expires_at < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Invalid or expired code.")
     if not verify_otp(code, record.salt, record.code_hash):
+        # Invalidate the active code after a failed attempt to limit brute-force attempts.
+        db.execute(delete(VerificationCode).where(VerificationCode.email == email))
+        db.commit()
         raise HTTPException(status_code=400, detail="Invalid or expired code.")
 
     user = db.execute(select(User).where(User.email == email)).scalars().first()

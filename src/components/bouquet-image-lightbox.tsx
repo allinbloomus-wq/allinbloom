@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import ImageWithFallback from "@/components/image-with-fallback";
-import BouquetPlaceholder from "@/components/bouquet-placeholder";
 
 type BouquetImageLightboxProps = {
   src: string;
@@ -17,21 +16,22 @@ export default function BouquetImageLightbox({
   className,
 }: BouquetImageLightboxProps) {
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const [headerOffset, setHeaderOffset] = useState(0);
   const [scale, setScale] = useState(1);
-  const [lightboxError, setLightboxError] = useState(false);
   const pointersRef = useRef(new Map<number, { x: number; y: number }>());
   const startDistanceRef = useRef<number | null>(null);
   const startScaleRef = useRef(1);
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const imageContainerRef = useRef<HTMLDivElement | null>(null);
+  const portalRoot =
+    typeof document !== "undefined" ? document.getElementById("lightbox-root") : null;
 
-  useEffect(() => {
-    setMounted(true);
-    setPortalRoot(document.getElementById("lightbox-root"));
-  }, []);
+  const close = () => {
+    setOpen(false);
+    setScale(1);
+    pointersRef.current.clear();
+    startDistanceRef.current = null;
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -73,14 +73,6 @@ export default function BouquetImageLightbox({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open]);
 
-  const close = () => {
-    setOpen(false);
-    setScale(1);
-    pointersRef.current.clear();
-    startDistanceRef.current = null;
-    setLightboxError(false);
-  };
-
   const handleOpenClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     // Avoid opening multiple lightboxes.
     if (document.body.dataset.lightboxOpen === "true") {
@@ -91,7 +83,6 @@ export default function BouquetImageLightbox({
 
     setScale(1);
     setOpen(true);
-    setLightboxError(false);
   };
 
   const handleOverlayClick = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -119,7 +110,7 @@ export default function BouquetImageLightbox({
     if (target.setPointerCapture) {
       try {
         target.setPointerCapture(event.pointerId);
-      } catch (e) {
+      } catch {
         // Ignore setPointerCapture errors.
       }
     }
@@ -181,7 +172,7 @@ export default function BouquetImageLightbox({
           className="aspect-square w-full object-cover"
         />
       </button>
-      {open && mounted && portalRoot
+      {open && portalRoot
         ? createPortal(
             <div
               className="fixed bg-black/70 flex items-center justify-center p-4"
@@ -218,24 +209,14 @@ export default function BouquetImageLightbox({
                 >
                   Close
                 </button>
-                {lightboxError ? (
-                  <div className="flex h-[70vh] w-[70vw] max-w-[90vw] items-center justify-center rounded-3xl border border-white/30 bg-white/80 text-[color:var(--brand)] opacity-40">
-                    <BouquetPlaceholder className="h-24 w-24" />
-                  </div>
-                ) : (
-                  <img
-                    src={src}
-                    alt={alt}
-                    className="max-h-[85vh] max-w-[90vw] block"
-                    style={{
-                      objectFit: "contain",
-                      height: "auto",
-                      width: "auto",
-                    }}
-                    draggable={false}
-                    onError={() => setLightboxError(true)}
-                  />
-                )}
+                <ImageWithFallback
+                  src={src}
+                  alt={alt}
+                  width={1600}
+                  height={1600}
+                  className="max-h-[85vh] max-w-[90vw] block h-auto w-auto object-contain"
+                  draggable={false}
+                />
               </div>
             </div>,
             portalRoot

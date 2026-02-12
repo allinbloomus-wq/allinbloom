@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { AUTH_TOKEN_COOKIE, AUTH_USER_COOKIE } from "@/lib/auth-cookies";
+import { apiFetch } from "@/lib/api-server";
 
 export type AuthUser = {
   id: string;
@@ -28,18 +29,40 @@ export const getAuthSession = async () => {
   return { token, user };
 };
 
+const fetchCurrentUser = async () => {
+  const response = await apiFetch("/api/users/me", {}, true);
+  if (!response.ok) return null;
+  return (await response.json().catch(() => null)) as AuthUser | null;
+};
+
 export const requireAuth = async () => {
   const { user, token } = await getAuthSession();
-  if (!user || !token) {
+  if (!token) {
     redirect("/auth");
   }
-  return { user, token };
+  const authToken = token;
+
+  if (user) {
+    return { user, token: authToken };
+  }
+
+  const currentUser = await fetchCurrentUser();
+  if (!currentUser) {
+    redirect("/auth");
+  }
+  return { user: currentUser, token: authToken };
 };
 
 export const requireAdmin = async () => {
-  const { user, token } = await getAuthSession();
-  if (!user || !token || user.role !== "ADMIN") {
+  const { token } = await getAuthSession();
+  if (!token) {
     redirect("/auth");
   }
-  return { user, token };
+  const authToken = token;
+
+  const currentUser = await fetchCurrentUser();
+  if (!currentUser || currentUser.role !== "ADMIN") {
+    redirect("/auth");
+  }
+  return { user: currentUser, token: authToken };
 };

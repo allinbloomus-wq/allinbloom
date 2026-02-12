@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from hmac import compare_digest
 from hashlib import sha256
 from secrets import randbelow, token_hex
 from typing import Any
@@ -69,4 +70,4 @@ def generate_otp() -> dict[str, str | datetime]:
 
 def verify_otp(code: str, salt: str, code_hash: str) -> bool:
     candidate = sha256(f"{code}{salt}".encode()).hexdigest()
-    return candidate == code_hash
+    return compare_digest(candidate, code_hash)

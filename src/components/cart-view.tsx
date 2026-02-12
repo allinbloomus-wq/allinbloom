@@ -12,6 +12,34 @@ type DiscountInfo = {
   note: string;
 };
 
+type GooglePlaceResult = {
+  formatted_address?: string;
+};
+
+type GoogleAutocompleteInstance = {
+  addListener: (eventName: "place_changed", handler: () => void) => void;
+  getPlace: () => GooglePlaceResult | undefined;
+};
+
+type GoogleMapsPlacesNamespace = {
+  Autocomplete: new (
+    input: HTMLInputElement,
+    options: {
+      types: string[];
+      componentRestrictions: { country: string };
+      fields: string[];
+    }
+  ) => GoogleAutocompleteInstance;
+};
+
+type GoogleMapsWindow = Window & {
+  google?: {
+    maps?: {
+      places?: GoogleMapsPlacesNamespace;
+    };
+  };
+};
+
 type CartViewProps = {
   isAuthenticated: boolean;
   globalDiscount: DiscountInfo | null;
@@ -38,7 +66,7 @@ export default function CartView({
   const [address, setAddress] = useState("");
   const [phoneLocal, setPhoneLocal] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const autocompleteRef = useRef<any>(null);
+  const autocompleteRef = useRef<GoogleAutocompleteInstance | null>(null);
   const [quote, setQuote] = useState<{
     feeCents: number;
     miles: number;
@@ -68,7 +96,7 @@ export default function CartView({
 
     const loadGoogleMaps = () =>
       new Promise<void>((resolve, reject) => {
-        if ((window as any).google?.maps?.places) {
+        if ((window as GoogleMapsWindow).google?.maps?.places) {
           resolve();
           return;
         }
@@ -91,7 +119,7 @@ export default function CartView({
     loadGoogleMaps()
       .then(() => {
         if (!inputRef.current) return;
-        const googleMaps = (window as any).google;
+        const googleMaps = (window as GoogleMapsWindow).google;
         if (!googleMaps?.maps?.places) return;
         autocompleteRef.current = new googleMaps.maps.places.Autocomplete(
           inputRef.current,

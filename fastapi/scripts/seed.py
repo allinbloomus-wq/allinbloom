@@ -132,7 +132,7 @@ promo_slides = [
 
 
 def main():
-    admin_email = os.environ.get("ADMIN_EMAIL") or "admin@allinbloom.com"
+    admin_email = os.environ.get("ADMIN_EMAIL") or "allinbloom.us@gmail.com"
 
     db = SessionLocal()
     try:

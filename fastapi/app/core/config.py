@@ -61,7 +61,28 @@ class Settings(BaseSettings):
         return value
 
     def resolved_auth_secret(self) -> str:
-        return self.auth_secret
+        value = (self.auth_secret or "").strip()
+        if value:
+            return value
+        if self.is_development():
+            # Local/dev fallback to avoid auth hard-fail without .env.
+            return "dev-insecure-auth-secret-change-me"
+        return ""
+
+    def environment_name(self) -> str:
+        return (self.environment or "").strip().lower()
+
+    def is_development(self) -> bool:
+        return self.environment_name() in {"development", "dev", "local", "test"}
+
+    def is_production(self) -> bool:
+        return self.environment_name() in {"production", "prod"}
+
+    def resolved_refresh_cookie_samesite(self) -> str:
+        value = (self.refresh_token_cookie_samesite or "lax").strip().lower()
+        if value in {"lax", "strict", "none"}:
+            return value
+        return "lax"
 
     def resolved_site_url(self) -> str:
         value = self.site_url

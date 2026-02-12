@@ -4,6 +4,31 @@ import { useEffect, useState } from "react";
 import { setAuthSession } from "@/lib/auth-client";
 import { clientFetch } from "@/lib/api-client";
 
+type GoogleCredentialResponse = {
+  credential?: string;
+};
+
+type GooglePromptMomentNotification = {
+  isNotDisplayed?: () => boolean;
+};
+
+type GoogleAccountsId = {
+  initialize: (config: {
+    client_id: string;
+    use_fedcm_for_prompt?: boolean;
+    callback: (response: GoogleCredentialResponse) => void;
+  }) => void;
+  prompt: (callback?: (notification: GooglePromptMomentNotification) => void) => void;
+};
+
+type GoogleWindow = Window & {
+  google?: {
+    accounts?: {
+      id?: GoogleAccountsId;
+    };
+  };
+};
+
 export default function AuthPanel() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
@@ -40,12 +65,12 @@ export default function AuthPanel() {
     script.async = true;
     script.defer = true;
     script.onload = () => {
-      const google = (window as any).google;
+      const google = (window as GoogleWindow).google;
       if (!google?.accounts?.id) return;
       google.accounts.id.initialize({
         client_id: googleClientId,
         use_fedcm_for_prompt: false,
-        callback: async (response: { credential?: string }) => {
+        callback: async (response: GoogleCredentialResponse) => {
           if (!response?.credential) {
             setStatus("Unable to sign in with Google.");
             return;
@@ -226,12 +251,12 @@ export default function AuthPanel() {
           <button
             type="button"
             onClick={() => {
-              const google = (window as any).google;
+              const google = (window as GoogleWindow).google;
               if (!google?.accounts?.id) {
                 setStatus("Google sign-in is not ready yet.");
                 return;
               }
-              google.accounts.id.prompt((notification: any) => {
+              google.accounts.id.prompt((notification: GooglePromptMomentNotification) => {
                 if (notification?.isNotDisplayed?.()) {
                   setStatus(
                     "Google sign-in is unavailable in this browser. Use email code or try another browser."

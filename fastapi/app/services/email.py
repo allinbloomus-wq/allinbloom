@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Iterable
 
 import httpx
@@ -8,6 +9,11 @@ from app.core.config import settings
 
 
 RESEND_ENDPOINT = "https://api.resend.com/emails"
+logger = logging.getLogger(__name__)
+
+
+class EmailDeliveryError(RuntimeError):
+    pass
 
 
 def _escape(value: str) -> str:
@@ -26,6 +32,23 @@ def _format_money(value: int) -> str:
 
 def _resolve_reply_to(candidate: str | None = None) -> str:
     return candidate or settings.email_reply_to or settings.admin_email
+
+
+def _extract_resend_error(response: httpx.Response) -> str:
+    try:
+        payload = response.json()
+    except ValueError:
+        payload = None
+
+    if isinstance(payload, dict):
+        message = payload.get("message")
+        if isinstance(message, str) and message.strip():
+            return message.strip()
+
+    text = (response.text or "").strip()
+    if text:
+        return text
+    return f"HTTP {response.status_code}"
 
 
 def _format_fee(value: str | int | None) -> str:
@@ -49,21 +72,34 @@ async def send_email(to: Iterable[str], subject: str, text: str, html: str, repl
         "html": html,
         "reply_to": reply_to,
     }
-    async with httpx.AsyncClient(timeout=10) as client:
+    async with httpx.AsyncClient(timeout=5) as client:
         response = await client.post(
             RESEND_ENDPOINT,
             json=payload,
             headers={"Authorization": f"Bearer {settings.resend_api_key}"},
         )
     if response.status_code >= 400:
-        raise RuntimeError(f"Resend error: {response.text}")
+        raise EmailDeliveryError(_extract_resend_error(response))
 
 
 async def send_otp_email(email: str, code: str) -> None:
     subject = "Your All in Bloom Floral Studio verification code"
     text = f"Your one-time code is {code}. It expires in 10 minutes."
     html = f"<p>Your one-time code is <strong>{_escape(code)}</strong>. It expires in 10 minutes.</p>"
-    await send_email([email], subject, text, html, _resolve_reply_to())
+    is_dev = settings.is_development()
+
+    if not settings.resend_api_key:
+        if is_dev:
+            logger.warning("OTP fallback (RESEND_API_KEY is empty): email=%s code=%s", email, code)
+        return
+
+    try:
+        await send_email([email], subject, text, html, _resolve_reply_to())
+    except Exception as exc:
+        if is_dev:
+            logger.warning("OTP fallback (email provider failed): email=%s code=%s error=%s", email, code, exc)
+            return
+        raise EmailDeliveryError(str(exc)) from exc
 
 
 async def send_admin_order_email(params: dict) -> None:

@@ -48,6 +48,12 @@ app.include_router(upload_router)
 app.include_router(users_router)
 
 
+@app.on_event("startup")
+def validate_runtime_config() -> None:
+    if not settings.resolved_auth_secret():
+        raise RuntimeError("AUTH_SECRET must be configured for non-development environments.")
+
+
 @app.get("/health")
 def health():
     return {"ok": True}
