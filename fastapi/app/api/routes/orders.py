@@ -39,6 +39,7 @@ def get_order(order_id: str, db: Session = Depends(get_db), _admin=Depends(requi
     expire_pending_orders(db)
     order = (
         db.execute(select(Order).where(Order.id == order_id).options(joinedload(Order.items)))
+        .unique()
         .scalars()
         .first()
     )

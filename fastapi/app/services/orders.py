@@ -90,6 +90,7 @@ def get_admin_orders(db: Session) -> list[Order]:
     expire_pending_orders(db)
     orders = (
         db.execute(select(Order).options(joinedload(Order.items)).order_by(Order.created_at.desc()))
+        .unique()
         .scalars()
         .all()
     )
@@ -114,6 +115,7 @@ def get_admin_orders_by_day(db: Session, day_key: str) -> list[Order]:
             .options(joinedload(Order.items))
             .order_by(Order.created_at.desc())
         )
+        .unique()
         .scalars()
         .all()
     )
@@ -135,6 +137,7 @@ def get_orders_by_email(db: Session, email: str) -> list[Order]:
             .options(joinedload(Order.items))
             .order_by(Order.created_at.desc())
         )
+        .unique()
         .scalars()
         .all()
     )

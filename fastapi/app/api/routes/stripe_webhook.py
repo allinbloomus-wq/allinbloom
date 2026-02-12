@@ -41,6 +41,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                 db.execute(
                     select(Order).where(Order.id == order_id).options(joinedload(Order.items))
                 )
+                .unique()
                 .scalars()
                 .first()
             )

@@ -53,6 +53,8 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
   const directionRef = useRef(1);
   const viewportRef = useRef<HTMLDivElement>(null);
   const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dragStartY = useRef<number | null>(null);
+  const horizontalDragRef = useRef(false);
   const [perView, setPerView] = useState(1);
 
   useEffect(() => {
@@ -114,29 +116,36 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
     pauseAutoscroll();
   };
 
-  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+  const beginDrag = (x: number, y: number | null = null) => {
     if (items.length < 2) return;
-    if (event.currentTarget.setPointerCapture) {
-      try {
-        event.currentTarget.setPointerCapture(event.pointerId);
-      } catch {
-        // Ignore unsupported pointer capture (notably on some mobile browsers).
-      }
-    }
-    dragStartX.current = event.clientX;
+    dragStartX.current = x;
+    dragStartY.current = y;
+    horizontalDragRef.current = false;
     setIsDragging(true);
     setDragOffset(0);
   };
 
-  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!isDragging || dragStartX.current === null) return;
-    const delta = event.clientX - dragStartX.current;
-    setDragOffset(delta);
+  const updateDrag = (x: number, y: number | null = null) => {
+    if (!isDragging || dragStartX.current === null) return false;
+    const deltaX = x - dragStartX.current;
+    const deltaY = y !== null && dragStartY.current !== null ? y - dragStartY.current : 0;
+
+    if (y !== null && !horizontalDragRef.current) {
+      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 4) {
+        horizontalDragRef.current = true;
+      }
+      if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 4) {
+        return false;
+      }
+    }
+
+    setDragOffset(deltaX);
+    return horizontalDragRef.current || y === null;
   };
 
-  const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+  const finishDrag = (x: number) => {
     if (!isDragging || dragStartX.current === null) return;
-    const delta = event.clientX - dragStartX.current;
+    const delta = x - dragStartX.current;
     const width = viewportRef.current?.offsetWidth ?? 1;
     const threshold = Math.min(120, width * 0.2);
 
@@ -156,7 +165,52 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
     setIsDragging(false);
     setDragOffset(0);
     dragStartX.current = null;
+    dragStartY.current = null;
+    horizontalDragRef.current = false;
     pauseAutoscroll();
+  };
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (items.length < 2) return;
+    if (event.currentTarget.setPointerCapture) {
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        // Ignore unsupported pointer capture (notably on some mobile browsers).
+      }
+    }
+    beginDrag(event.clientX, event.clientY);
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    updateDrag(event.clientX, event.clientY);
+  };
+
+  const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    finishDrag(event.clientX);
+  };
+
+  const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    if (!touch) return;
+    beginDrag(touch.clientX, touch.clientY);
+  };
+
+  const handleTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    if (!touch) return;
+    const consumed = updateDrag(touch.clientX, touch.clientY);
+    if (consumed) {
+      event.preventDefault();
+    }
+  };
+
+  const handleTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
+    const touch = event.changedTouches[0];
+    if (!touch) return;
+    finishDrag(touch.clientX);
   };
 
   return (
@@ -189,6 +243,10 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
           onPointerLeave={handlePointerUp}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchEnd}
         >
           {items.map((slide) => (
             <div
