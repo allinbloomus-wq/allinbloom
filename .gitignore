@@ -1,14 +1,50 @@
-/node_modules
-/.next
-/.env
-/.env.*
+# Node / Next.js
+node_modules/
+.next/
+out/
+.npm/
+.pnpm-store/
+
+# Python / FastAPI
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+env/
+fastapi/.venv/
+
+# Environment files
+.env
+.env.*
 !.env.example
+fastapi/.env
+fastapi/.env.*
+!fastapi/.env.example
+
+# Local databases and temp files
+*.sqlite
+*.sqlite3
+*.db
 
 # Logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+# IDE
+.vscode/
+.idea/
 
 # OS
 .DS_Store
