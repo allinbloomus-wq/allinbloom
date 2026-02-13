@@ -139,6 +139,16 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
 
     // Определяем направление свайпа только после значительного движения
     if (!horizontalDragRef.current && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
+      // Если вертикальное движение слишком большое, это точно вертикальный скролл
+      if (Math.abs(deltaY) > 15) {
+        setIsDragging(false);
+        setDragOffset(0);
+        dragStartX.current = null;
+        dragStartY.current = null;
+        horizontalDragRef.current = false;
+        return false;
+      }
+      
       // Если горизонтальное движение больше вертикального, это горизонтальный свайп
       horizontalDragRef.current = Math.abs(deltaX) > Math.abs(deltaY);
       
@@ -153,8 +163,18 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
       }
     }
 
-    // Обновляем offset только для горизонтального свайпа
+    // Если уже определили горизонтальный свайп, проверяем не ушёл ли палец слишком высоко/низко
     if (horizontalDragRef.current) {
+      // Если во время горизонтального свайпа вертикальное отклонение стало слишком большим - отменяем
+      if (Math.abs(deltaY) > 30) {
+        setIsDragging(false);
+        setDragOffset(0);
+        dragStartX.current = null;
+        dragStartY.current = null;
+        horizontalDragRef.current = false;
+        return false;
+      }
+      
       setDragOffset(deltaX);
       return true;
     }
