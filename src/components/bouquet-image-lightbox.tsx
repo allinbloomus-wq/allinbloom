@@ -18,9 +18,12 @@ export default function BouquetImageLightbox({
   const [open, setOpen] = useState(false);
   const [headerOffset, setHeaderOffset] = useState(0);
   const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
   const pointersRef = useRef(new Map<number, { x: number; y: number }>());
   const startDistanceRef = useRef<number | null>(null);
   const startScaleRef = useRef(1);
+  const startPositionRef = useRef({ x: 0, y: 0 });
+  const lastSinglePointerRef = useRef<{ x: number; y: number } | null>(null);
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const imageContainerRef = useRef<HTMLDivElement | null>(null);
   const portalRoot =
@@ -29,8 +32,10 @@ export default function BouquetImageLightbox({
   const close = () => {
     setOpen(false);
     setScale(1);
+    setPosition({ x: 0, y: 0 });
     pointersRef.current.clear();
     startDistanceRef.current = null;
+    lastSinglePointerRef.current = null;
   };
 
   useEffect(() => {
@@ -73,6 +78,13 @@ export default function BouquetImageLightbox({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open]);
 
+  // Reset position when scale returns to 1
+  useEffect(() => {
+    if (scale === 1) {
+      setPosition({ x: 0, y: 0 });
+    }
+  }, [scale]);
+
   const handleOpenClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     // Avoid opening multiple lightboxes.
     if (document.body.dataset.lightboxOpen === "true") {
@@ -82,12 +94,14 @@ export default function BouquetImageLightbox({
     }
 
     setScale(1);
+    setPosition({ x: 0, y: 0 });
     setOpen(true);
   };
 
   const handleOverlayClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    // Only close when clicking outside the image container.
+    // Only close when clicking outside the image container and not zoomed.
     if (
+      scale === 1 &&
       imageContainerRef.current &&
       !imageContainerRef.current.contains(event.target as Node)
     ) {
@@ -126,6 +140,15 @@ export default function BouquetImageLightbox({
       const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
       startDistanceRef.current = dist;
       startScaleRef.current = scale;
+      startPositionRef.current = { ...position };
+      lastSinglePointerRef.current = null;
+    } else if (pointersRef.current.size === 1 && scale > 1) {
+      // Start panning when zoomed in with single pointer
+      lastSinglePointerRef.current = {
+        x: event.clientX,
+        y: event.clientY,
+      };
+      startPositionRef.current = { ...position };
     }
   };
 
@@ -146,6 +169,19 @@ export default function BouquetImageLightbox({
         Math.max(1, startScaleRef.current * (dist / startDistanceRef.current))
       );
       setScale(nextScale);
+    } else if (
+      pointersRef.current.size === 1 &&
+      scale > 1 &&
+      lastSinglePointerRef.current
+    ) {
+      // Pan when zoomed in with single pointer
+      const deltaX = event.clientX - lastSinglePointerRef.current.x;
+      const deltaY = event.clientY - lastSinglePointerRef.current.y;
+
+      setPosition({
+        x: startPositionRef.current.x + deltaX,
+        y: startPositionRef.current.y + deltaY,
+      });
     }
   };
 
@@ -153,6 +189,9 @@ export default function BouquetImageLightbox({
     pointersRef.current.delete(event.pointerId);
     if (pointersRef.current.size < 2) {
       startDistanceRef.current = null;
+    }
+    if (pointersRef.current.size === 0) {
+      lastSinglePointerRef.current = null;
     }
   };
 
@@ -195,7 +234,7 @@ export default function BouquetImageLightbox({
                 onPointerUp={handlePointerUp}
                 onPointerCancel={handlePointerUp}
                 style={{
-                  transform: `scale(${scale})`,
+                  transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
                   transformOrigin: "center",
                   transition: scale === 1 ? "transform 0.2s ease-out" : "none",
                 }}
