@@ -139,42 +139,26 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
 
     // Определяем направление свайпа только после значительного движения
     if (!horizontalDragRef.current && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
-      // Если вертикальное движение слишком большое, это точно вертикальный скролл
-      if (Math.abs(deltaY) > 15) {
+      // Вычисляем угол движения
+      // Если |deltaY| / |deltaX| > 1, значит угол больше 45°, это вертикальный жест
+      const isVertical = Math.abs(deltaY) > Math.abs(deltaX);
+      
+      if (isVertical) {
+        // Это вертикальный скролл, отменяем перехват
         setIsDragging(false);
         setDragOffset(0);
         dragStartX.current = null;
         dragStartY.current = null;
         horizontalDragRef.current = false;
         return false;
-      }
-      
-      // Если горизонтальное движение больше вертикального, это горизонтальный свайп
-      horizontalDragRef.current = Math.abs(deltaX) > Math.abs(deltaY);
-      
-      // Если это вертикальный свайп, сразу отменяем всё
-      if (!horizontalDragRef.current) {
-        setIsDragging(false);
-        setDragOffset(0);
-        dragStartX.current = null;
-        dragStartY.current = null;
-        horizontalDragRef.current = false;
-        return false;
+      } else {
+        // Это горизонтальный свайп (включая диагональные до 45°)
+        horizontalDragRef.current = true;
       }
     }
 
-    // Если уже определили горизонтальный свайп, проверяем не ушёл ли палец слишком высоко/низко
+    // Если уже определили горизонтальный свайп, продолжаем его независимо от вертикального смещения
     if (horizontalDragRef.current) {
-      // Если во время горизонтального свайпа вертикальное отклонение стало слишком большим - отменяем
-      if (Math.abs(deltaY) > 30) {
-        setIsDragging(false);
-        setDragOffset(0);
-        dragStartX.current = null;
-        dragStartY.current = null;
-        horizontalDragRef.current = false;
-        return false;
-      }
-      
       setDragOffset(deltaX);
       return true;
     }
