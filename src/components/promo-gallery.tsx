@@ -138,16 +138,17 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
     const deltaY = y - dragStartY.current;
 
     // Определяем направление свайпа только один раз в начале жеста
-    if (!horizontalDragRef.current && (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5)) {
+    if (!horizontalDragRef.current && (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3)) {
       // Если горизонтальное движение больше вертикального, это горизонтальный свайп
       horizontalDragRef.current = Math.abs(deltaX) > Math.abs(deltaY);
       
-      // Если это вертикальный свайп, отменяем драг
+      // Если это вертикальный свайп, сразу отменяем всё
       if (!horizontalDragRef.current) {
         setIsDragging(false);
         setDragOffset(0);
         dragStartX.current = null;
         dragStartY.current = null;
+        horizontalDragRef.current = false;
         return false;
       }
     }
@@ -162,31 +163,36 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
   };
 
   const finishDrag = (x: number) => {
-    if (!isDragging || dragStartX.current === null) return;
+    if (dragStartX.current === null) return;
     
-    const delta = x - dragStartX.current;
-    const width = viewportRef.current?.offsetWidth ?? 1;
-    const threshold = Math.min(120, width * 0.2);
+    // Если это был горизонтальный свайп, меняем слайд
+    if (isDragging && horizontalDragRef.current) {
+      const delta = x - dragStartX.current;
+      const width = viewportRef.current?.offsetWidth ?? 1;
+      const threshold = Math.min(120, width * 0.2);
 
-    setIndex((prev) => {
-      const maxIndex = Math.max(0, items.length - perView);
-      if (delta > threshold) {
-        directionRef.current = -1;
-        return Math.max(prev - 1, 0);
-      }
-      if (delta < -threshold) {
-        directionRef.current = 1;
-        return Math.min(prev + 1, maxIndex);
-      }
-      return prev;
-    });
+      setIndex((prev) => {
+        const maxIndex = Math.max(0, items.length - perView);
+        if (delta > threshold) {
+          directionRef.current = -1;
+          return Math.max(prev - 1, 0);
+        }
+        if (delta < -threshold) {
+          directionRef.current = 1;
+          return Math.min(prev + 1, maxIndex);
+        }
+        return prev;
+      });
+      
+      pauseAutoscroll();
+    }
 
+    // Всегда сбрасываем состояние
     setIsDragging(false);
     setDragOffset(0);
     dragStartX.current = null;
     dragStartY.current = null;
     horizontalDragRef.current = false;
-    pauseAutoscroll();
   };
 
   // Touch события - используем только их на мобильных устройствах
