@@ -56,6 +56,12 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
   const dragStartY = useRef<number | null>(null);
   const horizontalDragRef = useRef(false);
   const [perView, setPerView] = useState(1);
+  const hasTouchSupport = useRef(false);
+
+  useEffect(() => {
+    // Определяем поддержку touch событий
+    hasTouchSupport.current = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  }, []);
 
   useEffect(() => {
     const updatePerView = () => {
@@ -116,7 +122,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
     pauseAutoscroll();
   };
 
-  const beginDrag = (x: number, y: number | null = null) => {
+  const beginDrag = (x: number, y: number) => {
     if (items.length < 2) return;
     dragStartX.current = x;
     dragStartY.current = y;
@@ -125,26 +131,39 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
     setDragOffset(0);
   };
 
-  const updateDrag = (x: number, y: number | null = null) => {
-    if (!isDragging || dragStartX.current === null) return false;
+  const updateDrag = (x: number, y: number): boolean => {
+    if (!isDragging || dragStartX.current === null || dragStartY.current === null) return false;
+    
     const deltaX = x - dragStartX.current;
-    const deltaY = y !== null && dragStartY.current !== null ? y - dragStartY.current : 0;
+    const deltaY = y - dragStartY.current;
 
-    if (y !== null && !horizontalDragRef.current) {
-      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 4) {
-        horizontalDragRef.current = true;
-      }
-      if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 4) {
+    // Определяем направление свайпа только один раз в начале жеста
+    if (!horizontalDragRef.current && (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5)) {
+      // Если горизонтальное движение больше вертикального, это горизонтальный свайп
+      horizontalDragRef.current = Math.abs(deltaX) > Math.abs(deltaY);
+      
+      // Если это вертикальный свайп, отменяем драг
+      if (!horizontalDragRef.current) {
+        setIsDragging(false);
+        setDragOffset(0);
+        dragStartX.current = null;
+        dragStartY.current = null;
         return false;
       }
     }
 
-    setDragOffset(deltaX);
-    return horizontalDragRef.current || y === null;
+    // Обновляем offset только для горизонтального свайпа
+    if (horizontalDragRef.current) {
+      setDragOffset(deltaX);
+      return true;
+    }
+
+    return false;
   };
 
   const finishDrag = (x: number) => {
     if (!isDragging || dragStartX.current === null) return;
+    
     const delta = x - dragStartX.current;
     const width = viewportRef.current?.offsetWidth ?? 1;
     const threshold = Math.min(120, width * 0.2);
@@ -170,28 +189,9 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
     pauseAutoscroll();
   };
 
-  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (items.length < 2) return;
-    if (event.currentTarget.setPointerCapture) {
-      try {
-        event.currentTarget.setPointerCapture(event.pointerId);
-      } catch {
-        // Ignore unsupported pointer capture (notably on some mobile browsers).
-      }
-    }
-    beginDrag(event.clientX, event.clientY);
-  };
-
-  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    updateDrag(event.clientX, event.clientY);
-  };
-
-  const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
-    finishDrag(event.clientX);
-  };
-
+  // Touch события - используем только их на мобильных устройствах
   const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
-    if (event.touches.length !== 1) return;
+    if (event.touches.length !== 1 || items.length < 2) return;
     const touch = event.touches[0];
     if (!touch) return;
     beginDrag(touch.clientX, touch.clientY);
@@ -201,8 +201,11 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
     if (event.touches.length !== 1) return;
     const touch = event.touches[0];
     if (!touch) return;
+    
     const consumed = updateDrag(touch.clientX, touch.clientY);
-    if (consumed) {
+    
+    // Предотвращаем скролл страницы только если это горизонтальный свайп
+    if (consumed && horizontalDragRef.current) {
       event.preventDefault();
     }
   };
@@ -211,6 +214,32 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
     const touch = event.changedTouches[0];
     if (!touch) return;
     finishDrag(touch.clientX);
+  };
+
+  // Pointer события - только для десктопа
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    // Игнорируем pointer события на устройствах с touch
+    if (hasTouchSupport.current || event.pointerType === 'touch') return;
+    if (items.length < 2) return;
+    
+    if (event.currentTarget.setPointerCapture) {
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        // Ignore
+      }
+    }
+    beginDrag(event.clientX, event.clientY);
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (hasTouchSupport.current || event.pointerType === 'touch') return;
+    updateDrag(event.clientX, event.clientY);
+  };
+
+  const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (hasTouchSupport.current || event.pointerType === 'touch') return;
+    finishDrag(event.clientX);
   };
 
   return (
@@ -234,9 +263,10 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
         className="relative mt-6 select-none overflow-hidden rounded-[28px] border border-white/80 px-0"
       >
         <div
-          className={`flex gap-0 touch-pan-y ${isDragging ? "" : "transition-transform duration-700 ease-out"} will-change-transform lg:gap-4`}
+          className={`flex gap-0 ${isDragging ? "" : "transition-transform duration-700 ease-out"} will-change-transform lg:gap-4`}
           style={{
             transform: `translateX(calc(-${index * (100 / perView)}% + ${dragOffset}px))`,
+            touchAction: 'pan-y pinch-zoom', // Важно: разрешаем вертикальный скролл
           }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -251,17 +281,19 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
           {items.map((slide) => (
             <div
               key={slide.id}
-              className="w-full flex-shrink-0 touch-pan-y cursor-grab active:cursor-grabbing lg:w-1/3"
+              className="w-full flex-shrink-0 cursor-grab active:cursor-grabbing lg:w-1/3"
+              style={{ touchAction: 'none' }} // Блокируем touch действия на слайдах
             >
               <div className="relative w-full overflow-hidden rounded-[24px] border border-white/80 aspect-[9/16] sm:aspect-[9/16] lg:aspect-[9/16]">
                 <ImageWithFallback
                   src={slide.image}
                   alt={slide.title || "Promo slide"}
                   fill
-                  className="object-cover"
+                  className="object-cover pointer-events-none" // Важно: отключаем события на изображении
                   sizes="(max-width: 768px) 100vw, 900px"
+                  draggable={false} // Отключаем нативный драг изображения
                 />
-                <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/10 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/10 to-transparent pointer-events-none" />
                 {(slide.title || slide.subtitle || slide.link) && (
                   <div className="absolute left-6 top-6 max-w-md text-white">
                     {slide.title && (
@@ -283,6 +315,12 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
                       <Link
                         href={slide.link}
                         className="mt-4 inline-flex rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs uppercase tracking-[0.3em] text-white backdrop-blur"
+                        onClick={(e) => {
+                          // Предотвращаем переход по ссылке если был драг
+                          if (isDragging || Math.abs(dragOffset) > 10) {
+                            e.preventDefault();
+                          }
+                        }}
                       >
                         View details
                       </Link>
