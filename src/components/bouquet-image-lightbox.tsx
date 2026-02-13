@@ -59,6 +59,11 @@ export default function BouquetImageLightbox({
   useEffect(() => {
     if (!open) return;
     const updateOffset = () => {
+      if (document.documentElement.dataset.telegramWebview === "true") {
+        setHeaderOffset(0);
+        return;
+      }
+
       const header = document.querySelector("header");
       if (!header) {
         setHeaderOffset(0);

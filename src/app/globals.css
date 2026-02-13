@@ -274,10 +274,10 @@ html[data-telegram-webview="true"] .site-header {
 }
 
 html[data-telegram-webview="true"] .lightbox-overlay {
-  top: calc(var(--tg-vv-top, 0px) - 1px) !important;
-  left: calc(var(--tg-vv-left, 0px) - 1px) !important;
-  width: calc(var(--tg-vv-width, 100vw) + 2px) !important;
-  height: calc(var(--tg-vv-height, 100dvh) + 2px) !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: calc(var(--tg-vv-left, 0px) + var(--tg-vv-width, 100vw) + 2px) !important;
+  height: calc(var(--tg-vv-top, 0px) + var(--tg-vv-height, 100dvh) + 2px) !important;
   right: auto !important;
   bottom: auto !important;
 }
