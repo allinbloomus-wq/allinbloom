@@ -11,7 +11,6 @@
   --cream: #fffaf8;
   --accent: #f3d9cf;
   --shadow: 0 22px 60px rgba(108, 20, 10, 0.18);
-  --telegram-offset-top: 0px;
 }
 
 @layer base {
@@ -270,7 +269,8 @@
 }
 
 html[data-telegram-webview="true"] .site-header {
-  top: calc(var(--telegram-offset-top) * -1);
+  position: static;
+  top: auto;
 }
 
 @media (prefers-reduced-motion: reduce) {

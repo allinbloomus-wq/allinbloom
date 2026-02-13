@@ -15,13 +15,8 @@ export default function TelegramWebviewFix() {
 
     root.dataset.telegramWebview = "true";
 
-    const viewportOffsetTop = window.visualViewport?.offsetTop ?? 0;
-    const offset = Math.max(0, Math.round(viewportOffsetTop));
-    root.style.setProperty("--telegram-offset-top", `${offset}px`);
-
     return () => {
       delete root.dataset.telegramWebview;
-      root.style.removeProperty("--telegram-offset-top");
     };
   }, []);
 
