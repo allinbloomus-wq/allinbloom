@@ -277,6 +277,10 @@ html[data-telegram-webview="true"] body[data-lightbox-open="true"] {
   background: #000 !important;
 }
 
+body[data-lightbox-open="true"][data-lightbox-telegram="true"] .site-header {
+  visibility: hidden !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;

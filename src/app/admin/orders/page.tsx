@@ -26,7 +26,7 @@ export default async function AdminOrdersPage() {
         <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
           Admin studio
         </p>
-        <h1 className="text-3xl font-semibold text-stone-900">
+        <h1 className="text-2xl font-semibold text-stone-900 sm:text-3xl">
           Customer orders
         </h1>
       </div>

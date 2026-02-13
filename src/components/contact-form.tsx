@@ -36,14 +36,14 @@ export default function ContactForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="glass space-y-4 rounded-[28px] border border-white/80 p-6"
+      className="glass max-w-full space-y-4 rounded-[28px] border border-white/80 p-5 sm:p-6"
     >
       <label className="flex flex-col gap-2 text-sm text-stone-700">
         Name
         <input
           name="name"
           required
-          className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800"
+          className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
         />
       </label>
       <label className="flex flex-col gap-2 text-sm text-stone-700">
@@ -52,7 +52,7 @@ export default function ContactForm() {
           name="email"
           type="email"
           required
-          className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800"
+          className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
         />
       </label>
       <label className="flex flex-col gap-2 text-sm text-stone-700">
@@ -61,7 +61,7 @@ export default function ContactForm() {
           name="message"
           rows={5}
           required
-          className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800"
+          className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
         />
       </label>
       <button

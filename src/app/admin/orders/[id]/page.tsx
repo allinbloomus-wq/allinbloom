@@ -29,23 +29,23 @@ export default async function AdminOrderDetailPage({
         <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
           Order details
         </p>
-        <h1 className="text-3xl font-semibold text-stone-900">
+        <h1 className="text-2xl font-semibold text-stone-900 sm:text-3xl">
           Order {order.id.slice(0, 8)}
         </h1>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="glass rounded-[28px] border border-white/80 p-6">
+        <div className="glass rounded-[28px] border border-white/80 p-4 sm:p-6">
           <h2 className="text-lg font-semibold text-stone-900">
             Items in order
           </h2>
           <div className="mt-4 space-y-2 text-sm text-stone-600">
             {order.items.map((item) => (
-              <div key={item.id} className="flex justify-between">
-                <span>
+              <div key={item.id} className="flex items-start justify-between gap-3">
+                <span className="min-w-0 break-words">
                   {item.quantity} x {item.name}
                 </span>
-                <span>{formatMoney(item.priceCents)}</span>
+                <span className="shrink-0">{formatMoney(item.priceCents)}</span>
               </div>
             ))}
           </div>
@@ -56,14 +56,14 @@ export default async function AdminOrderDetailPage({
         </div>
 
         <div className="space-y-4">
-          <div className="glass rounded-[28px] border border-white/80 p-6 text-sm text-stone-600">
+          <div className="glass rounded-[28px] border border-white/80 p-4 text-sm text-stone-600 sm:p-6">
             <h2 className="text-lg font-semibold text-stone-900">
               Order summary
             </h2>
             <div className="mt-3 space-y-2">
               <p>Status: {formatOrderStatus(order.status)}</p>
               <p>Created: {formatDateTime(order.createdAt)}</p>
-              {order.email ? <p>Email: {order.email}</p> : null}
+              {order.email ? <p className="break-all">Email: {order.email}</p> : null}
               {order.phone ? <p>Phone: {order.phone}</p> : null}
               {hasStripeSession ? (
                 <p>
@@ -76,7 +76,7 @@ export default async function AdminOrderDetailPage({
             </div>
           </div>
 
-          <div className="glass rounded-[28px] border border-white/80 p-6 text-sm text-stone-600">
+          <div className="glass rounded-[28px] border border-white/80 p-4 text-sm text-stone-600 sm:p-6">
             <h2 className="text-lg font-semibold text-stone-900">
               Delivery address
             </h2>

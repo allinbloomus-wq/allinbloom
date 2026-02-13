@@ -67,7 +67,7 @@ export default function AdminImageUpload({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         <div className="h-32 w-32 overflow-hidden rounded-[22px] border border-white/80 bg-white">
           <ImageWithFallback
             src={imageUrl}
@@ -77,7 +77,7 @@ export default function AdminImageUpload({
             className="h-full w-full object-cover"
           />
         </div>
-        <div className="space-y-2 text-xs text-stone-600">
+        <div className="min-w-0 space-y-2 text-xs text-stone-600">
           <p>Recommended size: {recommendedSize}.</p>
           <p>Uploads go to Cloudinary and save the URL.</p>
         </div>
@@ -89,7 +89,7 @@ export default function AdminImageUpload({
           value={imageUrl}
           onChange={(event) => setImageUrl(event.target.value)}
           required
-          className={`rounded-2xl bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none ${
+          className={`w-full min-w-0 rounded-2xl bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none ${
             isInvalid
               ? "border border-rose-300 focus:border-rose-500"
               : "border border-stone-200 focus:border-stone-400"
@@ -103,7 +103,7 @@ export default function AdminImageUpload({
           accept="image/*"
           onChange={handleFileChange}
           disabled={uploading}
-          className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-2 text-sm text-stone-700"
+          className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-2 text-sm text-stone-700"
         />
       </label>
       {status ? (

@@ -167,7 +167,7 @@ export default function AuthPanel() {
   };
 
   return (
-    <div className="glass w-full max-w-md space-y-4 rounded-[32px] border border-white/80 p-6 text-sm">
+    <div className="glass w-full max-w-md space-y-4 rounded-[32px] border border-white/80 p-5 text-sm sm:p-6">
       <div className="space-y-2 text-center">
         <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
           Secure sign in
@@ -194,7 +194,7 @@ export default function AuthPanel() {
             }}
             type="email"
             placeholder="you@example.com"
-            className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800"
+            className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
           />
         </label>
         <button
@@ -211,7 +211,7 @@ export default function AuthPanel() {
         </button>
       </div>
       {codeSent ? (
-        <form onSubmit={verifyCode} className="space-y-3">
+        <form onSubmit={verifyCode} className="min-w-0 space-y-3">
           {needsName ? (
             <label className="flex flex-col gap-2 text-sm text-stone-700">
               Full name
@@ -220,7 +220,7 @@ export default function AuthPanel() {
                 onChange={(event) => setName(event.target.value)}
                 type="text"
                 placeholder="Jane Doe"
-                className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800"
+                className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
               />
             </label>
           ) : null}
@@ -230,7 +230,7 @@ export default function AuthPanel() {
               value={code}
               onChange={(event) => setCode(event.target.value)}
               placeholder="6-digit code"
-              className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800"
+              className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
             />
           </label>
           <button

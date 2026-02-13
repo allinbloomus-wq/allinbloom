@@ -3,7 +3,7 @@ import Link from "next/link";
 export default function Footer() {
   return (
     <footer className="border-t border-white/60 bg-white/70">
-      <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-12 sm:px-6 lg:px-8 md:grid-cols-[1.2fr_1fr_1fr]">
+      <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-10 sm:px-6 sm:py-12 lg:px-8 md:grid-cols-[1.2fr_1fr_1fr]">
         <div className="space-y-3">
           <p className="font-[family-name:var(--font-serif)] text-xl font-semibold tracking-[-0.02em] text-[color:var(--brand)]">
             All in Bloom Floral Studio
@@ -33,13 +33,13 @@ export default function Footer() {
           </p>
           <p>Chicago studio</p>
           <p>Same-day delivery across Chicago</p>
-          <p>allinbloom.us@gmail.com</p>
+          <p className="break-all">allinbloom.us@gmail.com</p>
         </div>
       </div>
-      <div className="border-t border-white/60 py-4 text-center text-xs uppercase tracking-[0.3em] text-stone-500">
+      <div className="border-t border-white/60 py-4 text-center text-[10px] uppercase tracking-[0.2em] text-stone-500 sm:text-xs sm:tracking-[0.3em]">
         <div className="flex flex-col items-center gap-1">
           <p>
-            © {new Date().getFullYear()} All in Bloom Floral Studio. All rights
+            (c) {new Date().getFullYear()} All in Bloom Floral Studio. All rights
             reserved.
           </p>
           <a

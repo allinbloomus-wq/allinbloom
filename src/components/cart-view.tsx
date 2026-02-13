@@ -264,7 +264,7 @@ export default function CartView({
             key={item.id}
             className="glass flex flex-col gap-4 rounded-[28px] border border-white/80 p-4 sm:flex-row sm:items-center sm:justify-between"
           >
-            <div className="flex items-center gap-4">
+            <div className="flex min-w-0 items-center gap-4">
               <div className="h-20 w-20 overflow-hidden rounded-2xl border border-white/80 bg-white">
                 <ImageWithFallback
                   src={item.image}
@@ -274,12 +274,12 @@ export default function CartView({
                   className="h-full w-full object-cover"
                 />
               </div>
-              <div>
-                <p className="text-sm font-semibold text-stone-900">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-stone-900">
                   {item.name}
                 </p>
                 {item.meta?.note ? (
-                  <p className="text-xs text-stone-500">{item.meta.note}</p>
+                  <p className="break-words text-xs text-stone-500">{item.meta.note}</p>
                 ) : null}
                 {item.discount ? (
                   <div className="space-y-1">
@@ -290,7 +290,7 @@ export default function CartView({
                       {formatMoney(item.discountedPrice)}
                     </p>
                     <p className="text-xs text-stone-500">
-                      -{item.discount.percent}% · {item.discount.note}
+                      -{item.discount.percent}% - {item.discount.note}
                     </p>
                   </div>
                 ) : (
@@ -300,7 +300,7 @@ export default function CartView({
                 )}
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto sm:justify-end">
               <div className="flex items-center gap-2 rounded-full border border-stone-200 bg-white/80 px-3 py-2 text-xs uppercase tracking-[0.3em] text-stone-600">
                 <button
                   type="button"
@@ -329,7 +329,7 @@ export default function CartView({
           </div>
         ))}
       </div>
-      <div className="glass h-fit space-y-4 rounded-[28px] border border-white/80 p-6">
+      <div className="glass h-fit space-y-4 rounded-[28px] border border-white/80 p-5 sm:p-6">
         <h2 className="text-xl font-semibold text-stone-900">Order summary</h2>
         <div className="space-y-3">
           <label className="flex flex-col gap-2 text-sm text-stone-700">
@@ -348,7 +348,7 @@ export default function CartView({
                   : "Street, city, state, ZIP"
               }
               disabled={deliveryLocked}
-              className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-stone-400"
+              className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400 disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-stone-400"
             />
           </label>
           <label className="flex flex-col gap-2 text-sm text-stone-700">
@@ -369,7 +369,7 @@ export default function CartView({
               maxLength={15}
               pattern="^\\+1 \\d{3} \\d{3} \\d{4}$"
               disabled={deliveryLocked}
-              className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-stone-400"
+              className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400 disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-stone-400"
             />
           </label>
           {phoneLocal.length > 0 && !phoneValid ? (
@@ -456,3 +456,4 @@ export default function CartView({
     </div>
   );
 }
+

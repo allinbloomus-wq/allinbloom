@@ -6,22 +6,25 @@ type AdminPromoFormProps = {
   action: (formData: FormData) => Promise<void>;
 };
 
+const fieldClass =
+  "w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400";
+
 export default function AdminPromoForm({ slide, action }: AdminPromoFormProps) {
   return (
     <form
       action={action}
-      className="glass space-y-6 rounded-[28px] border border-white/80 p-6"
+      className="glass max-w-full space-y-6 rounded-[28px] border border-white/80 p-4 sm:p-6"
     >
       {slide ? <input type="hidden" name="id" value={slide.id} /> : null}
 
       <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <label className="flex flex-col gap-2 text-sm text-stone-700">
             Title (optional)
             <input
               name="title"
               defaultValue={slide?.title || ""}
-              className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+              className={fieldClass}
             />
           </label>
           <label className="flex flex-col gap-2 text-sm text-stone-700">
@@ -29,7 +32,7 @@ export default function AdminPromoForm({ slide, action }: AdminPromoFormProps) {
             <input
               name="subtitle"
               defaultValue={slide?.subtitle || ""}
-              className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+              className={fieldClass}
             />
           </label>
           <label className="flex flex-col gap-2 text-sm text-stone-700">
@@ -38,7 +41,7 @@ export default function AdminPromoForm({ slide, action }: AdminPromoFormProps) {
               name="link"
               defaultValue={slide?.link || ""}
               placeholder="/catalog?filter=featured"
-              className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+              className={fieldClass}
             />
           </label>
           <label className="flex flex-col gap-2 text-sm text-stone-700">
@@ -47,7 +50,7 @@ export default function AdminPromoForm({ slide, action }: AdminPromoFormProps) {
               name="position"
               type="number"
               defaultValue={slide?.position ?? 0}
-              className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+              className={fieldClass}
             />
           </label>
           <label className="flex items-center gap-2 text-sm text-stone-700">
@@ -59,7 +62,7 @@ export default function AdminPromoForm({ slide, action }: AdminPromoFormProps) {
             Active in gallery
           </label>
         </div>
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <AdminImageUpload
             defaultValue={slide?.image || "/images/promo-1.webp"}
             recommendedSize="900x1600"
@@ -69,7 +72,7 @@ export default function AdminPromoForm({ slide, action }: AdminPromoFormProps) {
       <div className="flex flex-wrap gap-3">
         <button
           type="submit"
-          className="rounded-full bg-[color:var(--brand)] px-6 py-3 text-xs uppercase tracking-[0.3em] text-white transition hover:bg-[color:var(--brand-dark)]"
+          className="w-full rounded-full bg-[color:var(--brand)] px-6 py-3 text-xs uppercase tracking-[0.3em] text-white transition hover:bg-[color:var(--brand-dark)] sm:w-auto"
         >
           Save slide
         </button>

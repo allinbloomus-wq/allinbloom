@@ -45,7 +45,7 @@ export default function FloristChoiceForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-4 rounded-[28px] border border-white/80 bg-white/80 p-6 shadow-sm"
+      className="max-w-full space-y-4 rounded-[28px] border border-white/80 bg-white/80 p-5 shadow-sm sm:p-6"
     >
       <div className="space-y-2">
         <label className="text-xs uppercase tracking-[0.3em] text-stone-500">
@@ -66,7 +66,7 @@ export default function FloristChoiceForm() {
         <select
           value={palette}
           onChange={(event) => setPalette(event.target.value)}
-          className="select-field rounded-2xl border border-stone-200 bg-white px-4 py-2 text-sm text-stone-800"
+          className="select-field w-full min-w-0 rounded-2xl border border-stone-200 bg-white px-4 py-2 text-sm text-stone-800 outline-none focus:border-stone-400"
         >
           {paletteOptions.map((option) => (
             <option key={option} value={option}>
@@ -80,7 +80,7 @@ export default function FloristChoiceForm() {
         <select
           value={style}
           onChange={(event) => setStyle(event.target.value)}
-          className="select-field rounded-2xl border border-stone-200 bg-white px-4 py-2 text-sm text-stone-800"
+          className="select-field w-full min-w-0 rounded-2xl border border-stone-200 bg-white px-4 py-2 text-sm text-stone-800 outline-none focus:border-stone-400"
         >
           {styleOptions.map((option) => (
             <option key={option} value={option}>
@@ -104,7 +104,7 @@ export default function FloristChoiceForm() {
           value={note}
           onChange={(event) => setNote(event.target.value)}
           rows={3}
-          className="rounded-2xl border border-stone-200 bg-white px-4 py-2 text-sm text-stone-800"
+          className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white px-4 py-2 text-sm text-stone-800 outline-none focus:border-stone-400"
         />
       </label>
       <button

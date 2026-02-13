@@ -147,7 +147,7 @@ export default function CatalogGrid({
           />
         ))}
       </div>
-      <div className="flex flex-col items-center gap-2 text-xs uppercase tracking-[0.3em] text-stone-500">
+      <div className="flex flex-col items-center gap-2 text-xs uppercase tracking-[0.22em] text-stone-500 sm:tracking-[0.3em]">
         {hasMore ? (
           <>
             <span>{isLoading ? "Loading more bouquets" : "Scroll for more"}</span>

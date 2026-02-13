@@ -16,12 +16,12 @@ export default function PromoCard({
 
   return (
     <div
-      className={`rounded-[28px] border border-white/80 bg-gradient-to-br ${toneClasses} p-6 shadow-sm`}
+      className={`rounded-[28px] border border-white/80 bg-gradient-to-br ${toneClasses} p-5 shadow-sm sm:p-6`}
     >
       <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
         Exclusive
       </p>
-      <h3 className="mt-2 text-2xl font-semibold">{title}</h3>
+      <h3 className="mt-2 text-xl font-semibold sm:text-2xl">{title}</h3>
       <p className="mt-2 text-sm leading-relaxed text-stone-600">
         {description}
       </p>

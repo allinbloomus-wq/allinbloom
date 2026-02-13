@@ -5,8 +5,8 @@ import ImageWithFallback from "@/components/image-with-fallback";
 
 export default function AdminPromoRow({ slide }: { slide: PromoSlide }) {
   return (
-    <div className="flex flex-col gap-4 rounded-[24px] border border-white/80 bg-white/70 p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex items-center gap-4">
+    <div className="flex max-w-full flex-col gap-4 rounded-[24px] border border-white/80 bg-white/70 p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex min-w-0 items-center gap-4">
         <div className="h-16 w-24 overflow-hidden rounded-2xl border border-white/80 bg-white">
           <ImageWithFallback
             src={slide.image}
@@ -16,11 +16,11 @@ export default function AdminPromoRow({ slide }: { slide: PromoSlide }) {
             className="h-full w-full object-cover"
           />
         </div>
-        <div>
-          <p className="text-sm font-semibold text-stone-900">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-stone-900">
             {slide.title || "Untitled slide"}
           </p>
-          <p className="text-xs text-stone-500">
+          <p className="break-words text-xs text-stone-500">
             Position: {slide.position}
           </p>
         </div>
@@ -37,18 +37,18 @@ export default function AdminPromoRow({ slide }: { slide: PromoSlide }) {
           </span>
         ) : null}
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
         <Link
           href={`/admin/promotions/${slide.id}/edit`}
-          className="rounded-full border border-stone-300 bg-white/80 px-4 py-2 text-xs uppercase tracking-[0.3em] text-stone-600"
+          className="w-full rounded-full border border-stone-300 bg-white/80 px-4 py-2 text-center text-xs uppercase tracking-[0.3em] text-stone-600 sm:w-auto"
         >
           Edit
         </Link>
-        <form action={deletePromoSlide}>
+        <form action={deletePromoSlide} className="w-full sm:w-auto">
           <input type="hidden" name="id" value={slide.id} />
           <button
             type="submit"
-            className="rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-xs uppercase tracking-[0.3em] text-rose-700"
+            className="w-full rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-xs uppercase tracking-[0.3em] text-rose-700 sm:w-auto"
           >
             Delete
           </button>

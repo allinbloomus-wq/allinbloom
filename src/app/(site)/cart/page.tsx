@@ -25,7 +25,7 @@ export default async function CartPage() {
         <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
           Cart
         </p>
-        <h1 className="text-4xl font-semibold text-stone-900 sm:text-5xl">
+        <h1 className="text-3xl font-semibold text-stone-900 sm:text-5xl">
           Your bouquet selections
         </h1>
       </div>

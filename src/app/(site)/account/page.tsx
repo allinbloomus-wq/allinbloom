@@ -32,7 +32,7 @@ export default async function AccountPage() {
           <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
             Account
           </p>
-          <h1 className="text-4xl font-semibold text-stone-900 sm:text-5xl">
+          <h1 className="text-3xl font-semibold text-stone-900 sm:text-5xl">
             Welcome back
           </h1>
         </div>
@@ -40,26 +40,26 @@ export default async function AccountPage() {
           <SignOutButton />
         </div>
       </div>
-      <div className="glass rounded-[28px] border border-white/80 p-6 text-sm text-stone-600">
+      <div className="glass rounded-[28px] border border-white/80 p-5 text-sm text-stone-600 sm:p-6">
         <p>Name: {currentUser?.name || user.name || "-"}</p>
-        <p>Email: {currentUser?.email || user.email}</p>
+        <p className="break-all">Email: {currentUser?.email || user.email}</p>
         {currentUser?.phone ? <p>Phone: {currentUser.phone}</p> : null}
         {user.role === "ADMIN" ? (
           <p>Role: {user.role}</p>
         ) : null}
       </div>
       {user.role === "ADMIN" ? (
-        <div className="glass rounded-[28px] border border-white/80 p-6 text-sm text-stone-600">
+        <div className="glass rounded-[28px] border border-white/80 p-5 text-sm text-stone-600 sm:p-6">
           <p>You have admin access.</p>
           <a
             href="/admin"
-            className="mt-3 inline-block rounded-full border border-stone-300 bg-white/80 px-4 py-2 text-xs uppercase tracking-[0.3em] text-stone-600"
+            className="mt-3 inline-block w-full rounded-full border border-stone-300 bg-white/80 px-4 py-2 text-center text-xs uppercase tracking-[0.3em] text-stone-600 sm:w-auto"
           >
             Open admin panel
           </a>
         </div>
       ) : null}
-      <div className="glass rounded-[28px] border border-white/80 p-6 text-sm text-stone-600">
+      <div className="glass rounded-[28px] border border-white/80 p-5 text-sm text-stone-600 sm:p-6">
         <h2 className="text-lg font-semibold text-stone-900">
           Order history
         </h2>
@@ -82,7 +82,7 @@ export default async function AccountPage() {
                 </p>
                 <div className="mt-2 space-y-1 text-xs text-stone-600">
                   {order.items.map((item) => (
-                    <div key={item.id}>
+                    <div key={item.id} className="break-words">
                       {item.quantity} x {item.name}
                     </div>
                   ))}

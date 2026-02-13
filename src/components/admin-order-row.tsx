@@ -42,23 +42,23 @@ export default function AdminOrderRow({ order }: AdminOrderRowProps) {
   return (
     <div className="rounded-[24px] border border-white/80 bg-white/70 p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <p className="text-xs uppercase tracking-[0.2em] text-stone-500">
             Order {order.id.slice(0, 8)}
           </p>
-          <p className="text-sm font-semibold text-stone-900">
+          <p className="break-words text-sm font-semibold text-stone-900">
             {formatMoney(order.totalCents)} - {statusLabel}
           </p>
           <p className="text-xs text-stone-500">
             {formatDateTime(order.createdAt)}
           </p>
           {order.email ? (
-            <p className="text-xs text-stone-500">{order.email}</p>
+            <p className="break-all text-xs text-stone-500">{order.email}</p>
           ) : null}
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
           <div
-            className={`rounded-full px-4 py-2 text-xs uppercase tracking-[0.3em] ${
+            className={`rounded-full px-4 py-2 text-xs uppercase tracking-[0.3em] whitespace-nowrap ${
               isPaid
                 ? "border border-emerald-200 bg-emerald-100 text-emerald-700"
                 : "border border-rose-200 bg-rose-100 text-rose-700"
@@ -70,7 +70,7 @@ export default function AdminOrderRow({ order }: AdminOrderRowProps) {
             type="button"
             onClick={toggleRead}
             disabled={isLoading}
-            className={`rounded-full border px-4 py-2 text-xs uppercase tracking-[0.3em] transition ${
+            className={`rounded-full border px-4 py-2 text-xs uppercase tracking-[0.3em] transition whitespace-nowrap ${
               isRead
                 ? "border-emerald-200 bg-emerald-100 text-emerald-700"
                 : "border-stone-200 bg-white/80 text-stone-600"
@@ -78,12 +78,12 @@ export default function AdminOrderRow({ order }: AdminOrderRowProps) {
           >
             {isRead ? "Read" : "Unread"}
           </button>
-          <div className="rounded-full border border-stone-200 bg-white/80 px-4 py-2 text-xs uppercase tracking-[0.3em] text-stone-600">
+          <div className="rounded-full border border-stone-200 bg-white/80 px-4 py-2 text-xs uppercase tracking-[0.3em] text-stone-600 whitespace-nowrap">
             {order.items.length} items
           </div>
           <Link
             href={`/admin/orders/${order.id}`}
-            className="rounded-full border border-stone-300 bg-white/80 px-4 py-2 text-xs uppercase tracking-[0.3em] text-stone-600"
+            className="w-full rounded-full border border-stone-300 bg-white/80 px-4 py-2 text-center text-xs uppercase tracking-[0.3em] text-stone-600 sm:w-auto"
           >
             Details
           </Link>
@@ -91,11 +91,11 @@ export default function AdminOrderRow({ order }: AdminOrderRowProps) {
       </div>
       <div className="mt-4 grid gap-2 text-sm text-stone-600">
         {order.items.map((item) => (
-          <div key={item.id} className="flex justify-between">
-            <span>
+          <div key={item.id} className="flex items-start justify-between gap-3">
+            <span className="min-w-0 break-words">
               {item.quantity} x {item.name}
             </span>
-            <span>{formatMoney(item.priceCents)}</span>
+            <span className="shrink-0">{formatMoney(item.priceCents)}</span>
           </div>
         ))}
       </div>

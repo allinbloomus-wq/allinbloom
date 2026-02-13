@@ -12,18 +12,18 @@ export default async function AdminPromotionsPage() {
           <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
             Admin studio
           </p>
-          <h1 className="text-3xl font-semibold text-stone-900">
+          <h1 className="text-2xl font-semibold text-stone-900 sm:text-3xl">
             Promotions gallery
           </h1>
         </div>
         <Link
           href="/admin/promotions/new"
-          className="rounded-full bg-[color:var(--brand)] px-5 py-2 text-xs uppercase tracking-[0.3em] text-white transition hover:bg-[color:var(--brand-dark)]"
+          className="w-full rounded-full bg-[color:var(--brand)] px-5 py-2 text-center text-xs uppercase tracking-[0.3em] text-white transition hover:bg-[color:var(--brand-dark)] sm:w-auto"
         >
           Add slide
         </Link>
       </div>
-      <div className="glass rounded-[28px] border border-white/80 p-6">
+      <div className="glass rounded-[28px] border border-white/80 p-4 sm:p-6">
         <div className="grid gap-4">
           {slides.length ? (
             slides.map((slide) => (

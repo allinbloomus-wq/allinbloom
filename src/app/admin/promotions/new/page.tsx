@@ -10,13 +10,13 @@ export default function NewPromoSlidePage() {
           <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
             New slide
           </p>
-          <h1 className="text-3xl font-semibold text-stone-900">
+          <h1 className="text-2xl font-semibold text-stone-900 sm:text-3xl">
             Add promotion
           </h1>
         </div>
         <Link
           href="/admin/promotions"
-          className="rounded-full border border-stone-300 bg-white/80 px-4 py-2 text-xs uppercase tracking-[0.3em] text-stone-600"
+          className="w-full rounded-full border border-stone-300 bg-white/80 px-4 py-2 text-center text-xs uppercase tracking-[0.3em] text-stone-600 sm:w-auto"
         >
           Back to gallery
         </Link>

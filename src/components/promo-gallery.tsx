@@ -258,12 +258,12 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
 
   return (
     <div className="rounded-[28px] border-0 bg-transparent p-0 shadow-none sm:glass sm:rounded-[36px] sm:border sm:border-white/80 sm:p-6">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-3 sm:gap-4">
         <div>
           <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
             Studio offers
           </p>
-          <h2 className="text-3xl font-semibold text-stone-900 sm:text-4xl">
+          <h2 className="text-2xl font-semibold text-stone-900 sm:text-4xl">
             Seasonal promotions
           </h2>
         </div>
@@ -303,26 +303,26 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
                   />
                   <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/10 to-transparent pointer-events-none" />
                   {(slide.title || slide.subtitle || slide.link) && (
-                    <div className="pointer-events-none absolute left-6 top-6 max-w-md text-white">
+                    <div className="pointer-events-none absolute left-4 right-4 top-4 text-white sm:left-6 sm:right-auto sm:top-6 sm:max-w-md">
                       {slide.title && (
                         <>
                           <p className="text-xs uppercase tracking-[0.3em] text-white/70">
                             Promotion
                           </p>
-                          <h3 className="mt-2 text-2xl font-semibold sm:text-3xl">
+                          <h3 className="mt-2 text-xl font-semibold sm:text-3xl">
                             {slide.title}
                           </h3>
                         </>
                       )}
                       {slide.subtitle && (
-                        <p className="mt-2 text-sm text-white/80">
+                        <p className="mt-2 text-xs text-white/80 sm:text-sm">
                           {slide.subtitle}
                         </p>
                       )}
                       {slide.link && (
                         <Link
                           href={slide.link}
-                          className="pointer-events-auto mt-4 inline-flex rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs uppercase tracking-[0.3em] text-white backdrop-blur"
+                          className="pointer-events-auto mt-3 inline-flex rounded-full border border-white/60 bg-white/10 px-3 py-1.5 text-[10px] uppercase tracking-[0.24em] text-white backdrop-blur sm:mt-4 sm:px-4 sm:py-2 sm:text-xs sm:tracking-[0.3em]"
                           onClick={(event) => {
                             if (blockLinkClickRef.current) {
                               event.preventDefault();

@@ -9,7 +9,7 @@ export default function CartBadge() {
   return (
     <Link
       href="/cart"
-      className="relative rounded-full border border-stone-200 bg-white/80 px-4 py-2 text-xs uppercase tracking-[0.3em] text-stone-600"
+      className="relative rounded-full border border-stone-200 bg-white/80 px-3 py-2 text-[11px] uppercase tracking-[0.22em] text-stone-600 sm:px-4 sm:text-xs sm:tracking-[0.3em]"
     >
       Cart
       {itemCount > 0 ? (

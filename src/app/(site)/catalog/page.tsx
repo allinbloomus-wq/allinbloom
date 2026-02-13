@@ -80,7 +80,7 @@ export default async function CatalogPage({
         <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
           {isFeatured ? "Signature edit" : "Catalog"}
         </p>
-        <h1 className="text-4xl font-semibold text-stone-900 sm:text-5xl">
+        <h1 className="text-3xl font-semibold text-stone-900 sm:text-5xl">
           {isFeatured ? "Signature sets" : "Bouquets for every mood"}
         </h1>
         <p className="max-w-2xl text-balance text-sm leading-relaxed text-stone-600">

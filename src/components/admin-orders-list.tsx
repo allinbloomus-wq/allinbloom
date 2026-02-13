@@ -100,7 +100,7 @@ export default function AdminOrdersList({
           type="button"
           onClick={loadOlderOrders}
           disabled={isLoading}
-          className="rounded-full border border-stone-300 bg-white/80 px-4 py-2 text-xs uppercase tracking-[0.3em] text-stone-600 transition hover:border-stone-400 disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-full border border-stone-300 bg-white/80 px-4 py-2 text-xs uppercase tracking-[0.3em] text-stone-600 transition hover:border-stone-400 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
         >
           {isLoading ? "Loading..." : "Load older orders"}
         </button>

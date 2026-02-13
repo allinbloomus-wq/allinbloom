@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import ImageWithFallback from "@/components/image-with-fallback";
+import { lockLightboxScroll } from "@/lib/lightbox-scroll-lock";
 
 type BouquetImageLightboxProps = {
   src: string;
@@ -117,15 +118,7 @@ export default function BouquetImageLightbox({
 
   useEffect(() => {
     if (!open) return;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    document.body.dataset.lightboxOpen = "true";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      delete document.body.dataset.lightboxOpen;
-    };
+    return lockLightboxScroll({ isTelegram: detectTelegramWebview() });
   }, [open]);
 
   useEffect(() => {
@@ -260,6 +253,8 @@ export default function BouquetImageLightbox({
     }
   };
 
+  const isTelegramLightbox = open && detectTelegramWebview();
+
   return (
     <>
       <button
@@ -279,7 +274,9 @@ export default function BouquetImageLightbox({
       {open && portalRoot
         ? createPortal(
             <div
-              className="lightbox-overlay fixed bg-black/70 flex items-center justify-center p-4"
+              className={`lightbox-overlay fixed flex items-center justify-center p-4 ${
+                isTelegramLightbox ? "bg-black" : "bg-black/70"
+              }`}
               style={
                 telegramViewport
                   ? {

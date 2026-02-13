@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import ImageWithFallback from "@/components/image-with-fallback";
+import { lockLightboxScroll } from "@/lib/lightbox-scroll-lock";
 
 export type GalleryLightboxItem = {
   src: string;
@@ -164,14 +165,7 @@ export default function GalleryImageLightbox({
 
   useEffect(() => {
     if (!open) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    document.body.dataset.lightboxOpen = "true";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      delete document.body.dataset.lightboxOpen;
-    };
+    return lockLightboxScroll({ isTelegram: detectTelegramWebview() });
   }, [open]);
 
   useEffect(() => {
@@ -254,6 +248,8 @@ export default function GalleryImageLightbox({
     }
   };
 
+  const isTelegramLightbox = open && detectTelegramWebview();
+
   return (
     <>
       <button
@@ -275,7 +271,9 @@ export default function GalleryImageLightbox({
         ? createPortal(
             <div
               ref={overlayRef}
-              className="lightbox-overlay fixed bg-black/75 flex items-center justify-center p-4"
+              className={`lightbox-overlay fixed flex items-center justify-center p-4 ${
+                isTelegramLightbox ? "bg-black" : "bg-black/75"
+              }`}
               style={
                 telegramViewport
                   ? {

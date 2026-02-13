@@ -13,7 +13,7 @@ type AdminBouquetFormProps = {
 };
 
 const fieldClass = (isInvalid: boolean) =>
-  `rounded-2xl bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none ${
+  `w-full min-w-0 rounded-2xl bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none ${
     isInvalid
       ? "border border-rose-300 focus:border-rose-500"
       : "border border-stone-200 focus:border-stone-400"
@@ -32,7 +32,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-full bg-[color:var(--brand)] px-6 py-3 text-xs uppercase tracking-[0.3em] text-white transition hover:bg-[color:var(--brand-dark)] disabled:cursor-not-allowed disabled:opacity-60"
+      className="w-full rounded-full bg-[color:var(--brand)] px-6 py-3 text-xs uppercase tracking-[0.3em] text-white transition hover:bg-[color:var(--brand-dark)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
     >
       {pending ? "Saving..." : "Save bouquet"}
     </button>
@@ -102,12 +102,12 @@ export default function AdminBouquetForm({
     <form
       action={action}
       onSubmit={onSubmit}
-      className="glass space-y-6 rounded-[28px] border border-white/80 p-6"
+      className="glass max-w-full space-y-6 rounded-[28px] border border-white/80 p-4 sm:p-6"
     >
       {bouquet ? <input type="hidden" name="id" value={bouquet.id} /> : null}
 
       <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <label className="flex flex-col gap-2 text-sm text-stone-700">
             Name
             <input
@@ -172,7 +172,7 @@ export default function AdminBouquetForm({
             />
           </label>
         </div>
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <AdminImageUpload
             defaultValue={bouquet?.image || "/images/bouquet-0.webp"}
             recommendedSize="1000x1000"

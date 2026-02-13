@@ -24,7 +24,7 @@ export default function ContactPage() {
         <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
           Contact
         </p>
-        <h1 className="text-4xl font-semibold text-stone-900 sm:text-5xl">
+        <h1 className="text-3xl font-semibold text-stone-900 sm:text-5xl">
           We are here for your floral moments
         </h1>
         <p className="text-sm leading-relaxed text-stone-600">
@@ -39,7 +39,7 @@ export default function ContactPage() {
             href="https://www.instagram.com/all_in_bloom_studio"
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-3 rounded-full bg-[color:var(--brand)] px-6 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-white shadow-[0_12px_28px_rgba(108,20,10,0.28)] transition hover:-translate-y-0.5 hover:bg-[color:var(--brand-dark)]"
+            className="inline-flex w-full items-center justify-center gap-3 rounded-full bg-[color:var(--brand)] px-6 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-white shadow-[0_12px_28px_rgba(108,20,10,0.28)] transition hover:-translate-y-0.5 hover:bg-[color:var(--brand-dark)] sm:w-auto"
           >
             Instagram
             <Image

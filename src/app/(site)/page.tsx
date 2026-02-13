@@ -218,18 +218,18 @@ export default async function HomePage() {
       </section>
 
       <section className="space-y-6 animate-rise [animation-delay:200ms]">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
               Signature bouquets
             </p>
-            <h2 className="text-3xl font-semibold text-stone-900 sm:text-4xl">
+            <h2 className="text-2xl font-semibold text-stone-900 sm:text-4xl">
               Our curated favorites
             </h2>
           </div>
           <Link
             href="/catalog?filter=featured"
-            className="rounded-full border border-stone-300 bg-white/80 px-5 py-2 text-xs uppercase tracking-[0.3em] text-stone-600 transition hover:border-stone-400 shrink-0 whitespace-nowrap"
+            className="w-full rounded-full border border-stone-300 bg-white/80 px-5 py-2 text-center text-xs uppercase tracking-[0.3em] text-stone-600 transition hover:border-stone-400 sm:w-auto sm:shrink-0 sm:whitespace-nowrap"
           >
             View all
           </Link>

@@ -82,7 +82,7 @@ function FilterDropdown({
   }, [isOpen, onClose]);
 
   return (
-    <div ref={rootRef} className="relative flex flex-col gap-2 text-sm text-stone-700">
+    <div ref={rootRef} className="relative flex min-w-0 flex-col gap-2 text-sm text-stone-700">
       <span>{label}</span>
       <button
         type="button"
@@ -216,7 +216,7 @@ function CatalogFiltersForm({ initialValues }: CatalogFiltersFormProps) {
   };
 
   return (
-    <div className="glass rounded-[28px] border border-white/80 p-6">
+    <div className="glass max-w-full rounded-[28px] border border-white/80 p-4 sm:p-6">
       <form
         ref={formRef}
         onSubmit={applyFilters}
@@ -271,7 +271,7 @@ function CatalogFiltersForm({ initialValues }: CatalogFiltersFormProps) {
             onChange={(event) => setFormValues((current) => ({ ...current, min: event.target.value }))}
             min={PRICE_LIMITS.min}
             placeholder="45"
-            className="rounded-2xl border border-stone-200 bg-white/80 px-3 py-2 outline-none focus:border-[color:var(--brand)]"
+            className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-3 py-2 outline-none focus:border-[color:var(--brand)]"
           />
         </label>
         <label className="flex flex-col gap-2 text-sm text-stone-700">
@@ -283,7 +283,7 @@ function CatalogFiltersForm({ initialValues }: CatalogFiltersFormProps) {
             onChange={(event) => setFormValues((current) => ({ ...current, max: event.target.value }))}
             max={PRICE_LIMITS.max}
             placeholder="200"
-            className="rounded-2xl border border-stone-200 bg-white/80 px-3 py-2 outline-none focus:border-[color:var(--brand)]"
+            className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-3 py-2 outline-none focus:border-[color:var(--brand)]"
           />
         </label>
       </form>
@@ -291,7 +291,7 @@ function CatalogFiltersForm({ initialValues }: CatalogFiltersFormProps) {
         <button
           type="button"
           onClick={() => formRef.current?.requestSubmit()}
-          className="rounded-full bg-[color:var(--brand)] px-6 py-2 text-xs uppercase tracking-[0.3em] text-white transition hover:bg-[color:var(--brand-dark)]"
+          className="w-full rounded-full bg-[color:var(--brand)] px-6 py-2 text-xs uppercase tracking-[0.3em] text-white transition hover:bg-[color:var(--brand-dark)] sm:w-auto"
         >
           Apply filters
         </button>
@@ -299,7 +299,7 @@ function CatalogFiltersForm({ initialValues }: CatalogFiltersFormProps) {
           <button
             type="button"
             onClick={() => router.push("/catalog")}
-            className="rounded-full border border-stone-200 bg-white/80 px-5 py-2 text-xs uppercase tracking-[0.3em] text-stone-600"
+            className="w-full rounded-full border border-stone-200 bg-white/80 px-5 py-2 text-xs uppercase tracking-[0.3em] text-stone-600 sm:w-auto"
           >
             Clear
           </button>
