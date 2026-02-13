@@ -9,7 +9,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 const URL_TOAST_MESSAGES: Record<string, string> = {
   "bouquet-added": "Bouquet added successfully.",
@@ -25,11 +24,9 @@ const ToastContext = createContext<ToastContextValue | null>(null);
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [message, setMessage] = useState<string | null>(null);
+  const [locationKey, setLocationKey] = useState("");
   const timeoutRef = useRef<number | null>(null);
   const handledUrlToastRef = useRef<string | null>(null);
-  const pathname = usePathname();
-  const router = useRouter();
-  const searchParams = useSearchParams();
 
   const showToast = useCallback((nextMessage: string) => {
     if (timeoutRef.current !== null) {
@@ -51,13 +48,45 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const toastKey = searchParams.get("toast");
+    const notifyLocationChange = () => {
+      setLocationKey(`${window.location.pathname}${window.location.search}`);
+    };
+
+    notifyLocationChange();
+
+    const originalPushState = window.history.pushState.bind(window.history);
+    const originalReplaceState = window.history.replaceState.bind(window.history);
+
+    window.history.pushState = ((data, unused, url) => {
+      originalPushState(data, unused, url);
+      notifyLocationChange();
+    }) as History["pushState"];
+
+    window.history.replaceState = ((data, unused, url) => {
+      originalReplaceState(data, unused, url);
+      notifyLocationChange();
+    }) as History["replaceState"];
+
+    window.addEventListener("popstate", notifyLocationChange);
+
+    return () => {
+      window.history.pushState = originalPushState;
+      window.history.replaceState = originalReplaceState;
+      window.removeEventListener("popstate", notifyLocationChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!locationKey) return;
+
+    const currentUrl = new URL(window.location.href);
+    const toastKey = currentUrl.searchParams.get("toast");
     if (!toastKey) {
       handledUrlToastRef.current = null;
       return;
     }
 
-    const urlMarker = `${pathname}?${searchParams.toString()}`;
+    const urlMarker = `${currentUrl.pathname}?${currentUrl.searchParams.toString()}`;
     if (handledUrlToastRef.current === urlMarker) {
       return;
     }
@@ -72,13 +101,15 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       showToast(mappedMessage);
     }, 0);
 
-    const nextParams = new URLSearchParams(searchParams.toString());
-    nextParams.delete("toast");
-    const query = nextParams.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    currentUrl.searchParams.delete("toast");
+    const nextQuery = currentUrl.searchParams.toString();
+    const nextRelativeUrl = `${currentUrl.pathname}${
+      nextQuery ? `?${nextQuery}` : ""
+    }${currentUrl.hash}`;
+    window.history.replaceState(window.history.state, "", nextRelativeUrl);
 
     return () => window.clearTimeout(timerId);
-  }, [pathname, router, searchParams, showToast]);
+  }, [locationKey, showToast]);
 
   const value = useMemo(() => ({ showToast }), [showToast]);
 
