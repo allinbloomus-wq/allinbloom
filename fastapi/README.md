@@ -35,3 +35,17 @@
 
 ## Integration
 Next.js frontend should proxy `/api/*` traffic to this service.
+
+## Critical error logging
+Backend includes structured critical logging for:
+- payment
+- messaging
+- personal data input validation
+- auth
+- admin access control
+- cart/checkout validation
+
+Configure via env:
+- `LOG_LEVEL` (default `INFO`)
+- `BETTERSTACK_SOURCE_TOKEN` (empty disables Better Stack shipping)
+- `BETTERSTACK_INGEST_URL` (default `https://in.logs.betterstack.com`, or your source ingesting host)

@@ -1,12 +1,15 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+import logging
+
+from fastapi import APIRouter, Depends, HTTPException, Request
 import stripe
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
 from app.core.config import settings
+from app.core.critical_logging import log_critical_event
 from app.models.bouquet import Bouquet
 from app.models.order import Order
 from app.models.order_item import OrderItem
@@ -21,10 +24,18 @@ router = APIRouter(prefix="/api/checkout", tags=["checkout"])
 @router.post("", response_model=CheckoutResponse)
 async def start_checkout(
     payload: CheckoutRequest,
+    request: Request,
     user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     if not settings.stripe_secret_key:
+        log_critical_event(
+            domain="payment",
+            event="stripe_not_configured",
+            message="Checkout requested while Stripe is not configured.",
+            request=request,
+            context={"user_id": user.id},
+        )
         raise HTTPException(status_code=400, detail="Stripe is not configured.")
 
     items = payload.items
@@ -34,15 +45,46 @@ async def start_checkout(
     normalized_phone = f"+{digits}" if len(digits) == 11 and digits.startswith("1") else ""
 
     if not items:
+        log_critical_event(
+            domain="cart",
+            event="checkout_empty_cart",
+            message="Checkout request contains no items.",
+            request=request,
+            context={"user_id": user.id},
+            level=logging.WARNING,
+        )
         raise HTTPException(status_code=400, detail="No items provided.")
     if not address:
+        log_critical_event(
+            domain="personal_data",
+            event="checkout_missing_address",
+            message="Checkout request has empty delivery address.",
+            request=request,
+            context={"user_id": user.id},
+            level=logging.WARNING,
+        )
         raise HTTPException(status_code=400, detail="Delivery address is required.")
     if not normalized_phone:
+        log_critical_event(
+            domain="personal_data",
+            event="checkout_invalid_phone",
+            message="Checkout request has invalid phone format.",
+            request=request,
+            context={"user_id": user.id, "phone_length": len(raw_phone)},
+            level=logging.WARNING,
+        )
         raise HTTPException(status_code=400, detail="Use phone format +1 312 555 0123.")
 
     settings_row = get_store_settings(db)
     delivery = await get_delivery_quote(address)
     if not delivery.ok:
+        log_critical_event(
+            domain="payment",
+            event="delivery_quote_failed",
+            message="Delivery quote failed during checkout.",
+            request=request,
+            context={"user_id": user.id, "item_count": len(items)},
+        )
         raise HTTPException(status_code=400, detail=delivery.error or "Unable to calculate delivery.")
 
     bouquet_ids = [item.id for item in items if not item.is_custom]
@@ -61,8 +103,24 @@ async def start_checkout(
             price_cents = int(item.price_cents or 0)
             quantity = max(1, item.quantity)
             if not item.name or not item.image:
+                log_critical_event(
+                    domain="cart",
+                    event="invalid_custom_item_payload",
+                    message="Custom cart item is missing required fields.",
+                    request=request,
+                    context={"user_id": user.id, "item_id": item.id},
+                    level=logging.WARNING,
+                )
                 raise HTTPException(status_code=400, detail="Some items are unavailable.")
             if price_cents < 6500 or price_cents > 18000:
+                log_critical_event(
+                    domain="cart",
+                    event="invalid_custom_item_price",
+                    message="Custom cart item price is out of expected range.",
+                    request=request,
+                    context={"user_id": user.id, "item_id": item.id, "price_cents": price_cents},
+                    level=logging.WARNING,
+                )
                 raise HTTPException(status_code=400, detail="Some items are unavailable.")
             normalized_items.append(
                 {
@@ -77,6 +135,14 @@ async def start_checkout(
 
         bouquet = bouquet_map.get(item.id)
         if not bouquet:
+            log_critical_event(
+                domain="cart",
+                event="checkout_item_not_found",
+                message="Checkout item does not exist or is inactive.",
+                request=request,
+                context={"user_id": user.id, "item_id": item.id},
+                level=logging.WARNING,
+            )
             raise HTTPException(status_code=400, detail="Some items are unavailable.")
         discount = get_bouquet_discount(bouquet, settings_row)
         if discount:
@@ -178,27 +244,45 @@ async def start_checkout(
             }
         )
 
-    session = stripe.checkout.Session.create(
-        mode="payment",
-        line_items=line_items,
-        success_url=f"{origin}/checkout/success",
-        cancel_url=f"{origin}/cart",
-        shipping_address_collection={"allowed_countries": ["US"]},
-        payment_method_types=["card"],
-        customer_email=user.email or None,
-        metadata={
-            "orderId": order.id,
-            "deliveryAddress": address,
-            "deliveryMiles": f"{delivery.miles:.1f}" if delivery.miles is not None else "",
-            "deliveryFeeCents": str(delivery.fee_cents or 0),
-            "firstOrderDiscountPercent": str(first_order_discount_percent),
-            "phone": normalized_phone,
-        },
-    )
+    try:
+        session = stripe.checkout.Session.create(
+            mode="payment",
+            line_items=line_items,
+            success_url=f"{origin}/checkout/success",
+            cancel_url=f"{origin}/cart",
+            shipping_address_collection={"allowed_countries": ["US"]},
+            payment_method_types=["card"],
+            customer_email=user.email or None,
+            metadata={
+                "orderId": order.id,
+                "deliveryAddress": address,
+                "deliveryMiles": f"{delivery.miles:.1f}" if delivery.miles is not None else "",
+                "deliveryFeeCents": str(delivery.fee_cents or 0),
+                "firstOrderDiscountPercent": str(first_order_discount_percent),
+                "phone": normalized_phone,
+            },
+        )
+    except Exception as exc:
+        log_critical_event(
+            domain="payment",
+            event="stripe_checkout_session_failed",
+            message="Stripe checkout session creation failed.",
+            request=request,
+            context={"order_id": order.id, "user_id": user.id, "item_count": len(discounted_items)},
+            exc=exc,
+        )
+        raise HTTPException(status_code=502, detail="Unable to start checkout.")
 
     order.stripe_session_id = session.id
     db.commit()
 
     if not session.url:
+        log_critical_event(
+            domain="payment",
+            event="stripe_session_missing_url",
+            message="Stripe session was created without redirect URL.",
+            request=request,
+            context={"order_id": order.id, "user_id": user.id},
+        )
         raise HTTPException(status_code=500, detail="Unable to start checkout.")
     return CheckoutResponse(url=session.url)

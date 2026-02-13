@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+import logging
 
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
@@ -11,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
 from app.core.config import settings
+from app.core.critical_logging import log_critical_event
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -60,6 +62,7 @@ def _clear_refresh_cookie(response: Response) -> None:
 @router.post("/request-code")
 async def request_code(
     payload: RequestCodeIn,
+    request: Request,
     db: Session = Depends(get_db),
 ):
     email = payload.email.strip().lower()
@@ -77,6 +80,14 @@ async def request_code(
         .all()
     )
     if len(recent_count) >= 5:
+        log_critical_event(
+            domain="auth",
+            event="otp_rate_limit_reached",
+            message="OTP request rate limit reached.",
+            request=request,
+            context={"email": email},
+            level=logging.WARNING,
+        )
         oldest = (
             db.execute(
                 select(VerificationCode)
@@ -110,6 +121,14 @@ async def request_code(
         .first()
     )
     if last_code and (now - last_code.created_at).total_seconds() < 20:
+        log_critical_event(
+            domain="auth",
+            event="otp_request_too_fast",
+            message="OTP requested too frequently.",
+            request=request,
+            context={"email": email},
+            level=logging.WARNING,
+        )
         retry_after = max(1, int(20 - (now - last_code.created_at).total_seconds()))
         return JSONResponse(
             status_code=429,
@@ -133,10 +152,18 @@ async def request_code(
 
     try:
         await send_otp_email(email, str(otp["code"]))
-    except Exception:
+    except Exception as exc:
         # The code should not remain valid if delivery failed.
         db.execute(delete(VerificationCode).where(VerificationCode.email == email))
         db.commit()
+        log_critical_event(
+            domain="auth",
+            event="otp_delivery_failed",
+            message="Failed to deliver OTP email.",
+            request=request,
+            context={"email": email},
+            exc=exc,
+        )
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Unable to send verification code. Please try again later.",
@@ -147,6 +174,7 @@ async def request_code(
 @router.post("/verify-code", response_model=TokenOut)
 def verify_code(
     payload: VerifyCodeIn,
+    request: Request,
     response: Response,
     db: Session = Depends(get_db),
 ):
@@ -163,11 +191,27 @@ def verify_code(
         .first()
     )
     if not record or record.expires_at < datetime.now(timezone.utc):
+        log_critical_event(
+            domain="auth",
+            event="otp_invalid_or_expired",
+            message="OTP verification failed: invalid or expired code.",
+            request=request,
+            context={"email": email},
+            level=logging.WARNING,
+        )
         raise HTTPException(status_code=400, detail="Invalid or expired code.")
     if not verify_otp(code, record.salt, record.code_hash):
         # Invalidate the active code after a failed attempt to limit brute-force attempts.
         db.execute(delete(VerificationCode).where(VerificationCode.email == email))
         db.commit()
+        log_critical_event(
+            domain="auth",
+            event="otp_verification_failed",
+            message="OTP verification failed: hash mismatch.",
+            request=request,
+            context={"email": email},
+            level=logging.WARNING,
+        )
         raise HTTPException(status_code=400, detail="Invalid or expired code.")
 
     user = db.execute(select(User).where(User.email == email)).scalars().first()
@@ -197,10 +241,17 @@ def verify_code(
 @router.post("/google", response_model=TokenOut)
 def google_sign_in(
     payload: GoogleSignInIn,
+    request: Request,
     response: Response,
     db: Session = Depends(get_db),
 ):
     if not settings.google_client_id:
+        log_critical_event(
+            domain="auth",
+            event="google_auth_not_configured",
+            message="Google sign-in requested but integration is not configured.",
+            request=request,
+        )
         raise HTTPException(status_code=400, detail="Google login is not configured.")
 
     try:
@@ -210,10 +261,24 @@ def google_sign_in(
             settings.google_client_id,
         )
     except Exception:
+        log_critical_event(
+            domain="auth",
+            event="google_token_validation_failed",
+            message="Google ID token validation failed.",
+            request=request,
+            level=logging.WARNING,
+        )
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token.")
 
     email = str(info.get("email") or "").lower().strip()
     if not email:
+        log_critical_event(
+            domain="auth",
+            event="google_profile_missing_email",
+            message="Google token did not include user email.",
+            request=request,
+            level=logging.WARNING,
+        )
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token.")
 
     user = db.execute(select(User).where(User.email == email)).scalars().first()
@@ -239,16 +304,31 @@ def google_sign_in(
 
 @router.post("/refresh", response_model=TokenOut)
 def refresh_access_token(
+    request: Request,
     response: Response,
     refresh_cookie: str | None = Cookie(default=None, alias=settings.refresh_token_cookie_name),
     db: Session = Depends(get_db),
 ):
     if not refresh_cookie:
+        log_critical_event(
+            domain="auth",
+            event="refresh_cookie_missing",
+            message="Refresh token cookie is missing.",
+            request=request,
+            level=logging.WARNING,
+        )
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
 
     try:
         payload = decode_refresh_token(refresh_cookie)
     except Exception:
+        log_critical_event(
+            domain="auth",
+            event="refresh_token_invalid",
+            message="Refresh token failed validation.",
+            request=request,
+            level=logging.WARNING,
+        )
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
 
     user_id = payload.get("sub")
@@ -259,10 +339,24 @@ def refresh_access_token(
     elif email:
         stmt = select(User).where(User.email == str(email))
     if stmt is None:
+        log_critical_event(
+            domain="auth",
+            event="refresh_token_without_identity",
+            message="Refresh token payload does not include user identity.",
+            request=request,
+            level=logging.WARNING,
+        )
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
 
     user = db.execute(stmt).scalars().first()
     if not user:
+        log_critical_event(
+            domain="auth",
+            event="refresh_user_not_found",
+            message="Refresh token resolved to unknown user.",
+            request=request,
+            level=logging.WARNING,
+        )
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
 
     access_token = create_access_token(

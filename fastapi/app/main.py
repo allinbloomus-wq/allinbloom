@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import (
@@ -18,6 +18,9 @@ from app.api.routes import (
     users_router,
 )
 from app.core.config import settings
+from app.core.critical_logging import infer_domain_from_path, log_critical_event, setup_critical_logging
+
+setup_critical_logging()
 
 app = FastAPI(title="All in Bloom FastAPI")
 
@@ -46,6 +49,22 @@ app.include_router(settings_router)
 app.include_router(stripe_webhook_router)
 app.include_router(upload_router)
 app.include_router(users_router)
+
+
+@app.middleware("http")
+async def log_unhandled_exceptions(request: Request, call_next):
+    try:
+        return await call_next(request)
+    except Exception as exc:
+        log_critical_event(
+            domain=infer_domain_from_path(request.url.path),
+            event="unhandled_exception",
+            message="Unhandled server exception.",
+            request=request,
+            context={"path": request.url.path},
+            exc=exc,
+        )
+        raise
 
 
 @app.on_event("startup")

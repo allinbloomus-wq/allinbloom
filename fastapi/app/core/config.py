@@ -9,6 +9,12 @@ class Settings(BaseSettings):
 
     environment: str = Field(default="development", alias="ENVIRONMENT")
     database_url: str = Field(default="", alias="DATABASE_URL")
+    log_level: str = Field(default="INFO", alias="LOG_LEVEL")
+    betterstack_source_token: str | None = Field(default=None, alias="BETTERSTACK_SOURCE_TOKEN")
+    betterstack_ingest_url: str = Field(
+        default="https://in.logs.betterstack.com",
+        alias="BETTERSTACK_INGEST_URL",
+    )
 
     auth_secret: str = Field(default="", alias="AUTH_SECRET")
     access_token_expire_minutes: int = Field(default=60 * 24 * 7)

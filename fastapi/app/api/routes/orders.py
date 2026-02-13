@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_db, get_current_user, require_admin
 from app.core.config import settings
+from app.core.critical_logging import log_critical_event
 from app.models.order import Order
 from app.schemas.order import (
     OrderCountOut,
@@ -104,7 +105,14 @@ def get_order_stripe_session(
     stripe.api_key = settings.stripe_secret_key
     try:
         session = stripe.checkout.Session.retrieve(order.stripe_session_id)
-    except Exception:
+    except Exception as exc:
+        log_critical_event(
+            domain="payment",
+            event="stripe_session_fetch_failed",
+            message="Admin failed to load Stripe session for order.",
+            context={"order_id": order_id},
+            exc=exc,
+        )
         raise HTTPException(status_code=502, detail="Unable to load Stripe session.")
 
     shipping = getattr(session, "shipping_details", None)
