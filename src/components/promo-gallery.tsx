@@ -21,21 +21,21 @@ const FALLBACK_SLIDES: PromoSlide[] = [
     id: "fallback-1",
     title: "",
     subtitle: "",
-    image: "/images/promo-1.png",
+    image: "/images/promo-1.webp",
     link: "",
   },
   {
     id: "fallback-2",
     title: "",
     subtitle: "",
-    image: "/images/promo-2.png",
+    image: "/images/promo-2.webp",
     link: "",
   },
   {
     id: "fallback-3",
     title: "Gift-ready details",
     subtitle: "Handwritten notes and satin ribbon.",
-    image: "/images/promo-3.png",
+    image: "/images/promo-3.webp",
     link: "/catalog",
   },
 ];
@@ -410,3 +410,4 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
     </div>
   );
 }
+

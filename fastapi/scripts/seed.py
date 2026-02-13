@@ -25,7 +25,7 @@ bouquets = [
         "colors": "blush,ivory,champagne",
         "is_mixed": True,
         "is_featured": True,
-        "image": "/images/bouquet-1.png",
+        "image": "/images/bouquet-1.webp",
     },
     {
         "name": "Velvet Tulip Reverie",
@@ -36,7 +36,7 @@ bouquets = [
         "colors": "ruby,blush,peach",
         "is_mixed": False,
         "is_featured": True,
-        "image": "/images/bouquet-2.png",
+        "image": "/images/bouquet-2.webp",
     },
     {
         "name": "Lily Champagne Cloud",
@@ -47,7 +47,7 @@ bouquets = [
         "colors": "ivory,champagne,sage",
         "is_mixed": True,
         "is_featured": True,
-        "image": "/images/bouquet-3.png",
+        "image": "/images/bouquet-3.webp",
     },
     {
         "name": "Peony Muse",
@@ -58,7 +58,7 @@ bouquets = [
         "colors": "blush,peach,champagne",
         "is_mixed": True,
         "is_featured": False,
-        "image": "/images/bouquet-4.png",
+        "image": "/images/bouquet-4.webp",
     },
     {
         "name": "Sage Orchid Mist",
@@ -69,7 +69,7 @@ bouquets = [
         "colors": "sage,ivory",
         "is_mixed": False,
         "is_featured": False,
-        "image": "/images/bouquet-5.png",
+        "image": "/images/bouquet-5.webp",
     },
     {
         "name": "Sunlit Garden",
@@ -80,7 +80,7 @@ bouquets = [
         "colors": "peach,blush,champagne",
         "is_mixed": True,
         "is_featured": False,
-        "image": "/images/bouquet-6.png",
+        "image": "/images/bouquet-6.webp",
     },
     {
         "name": "Ivory Poem",
@@ -91,7 +91,7 @@ bouquets = [
         "colors": "ivory,sage",
         "is_mixed": False,
         "is_featured": False,
-        "image": "/images/bouquet-7.png",
+        "image": "/images/bouquet-7.webp",
     },
     {
         "name": "Lavender Haze",
@@ -102,7 +102,7 @@ bouquets = [
         "colors": "lavender,blush,ivory",
         "is_mixed": True,
         "is_featured": False,
-        "image": "/images/bouquet-8.png",
+        "image": "/images/bouquet-8.webp",
     },
 ]
 
@@ -110,21 +110,21 @@ promo_slides = [
     {
         "title": "",
         "subtitle": "",
-        "image": "/images/promo-1.png",
+        "image": "/images/promo-1.webp",
         "link": "",
         "position": 1,
     },
     {
         "title": "",
         "subtitle": "",
-        "image": "/images/promo-2.png",
+        "image": "/images/promo-2.webp",
         "link": "",
         "position": 2,
     },
     {
         "title": "Gift-ready wraps",
         "subtitle": "Signature satin ribbon and handwritten note included.",
-        "image": "/images/promo-3.png",
+        "image": "/images/promo-3.webp",
         "link": "/catalog?filter=featured",
         "position": 3,
     },
@@ -155,3 +155,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

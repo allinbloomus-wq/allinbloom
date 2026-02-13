@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     url: "/",
     images: [
       {
-        url: "/images/hero-bouquet.png",
+        url: "/images/hero-bouquet.webp",
         alt: SITE_TAGLINE,
       },
     ],
@@ -43,12 +43,12 @@ export const metadata: Metadata = {
 };
 
 const galleryImages = [
-  "/images/bouquet-1.png",
-  "/images/bouquet-2.png",
-  "/images/bouquet-3.png",
-  "/images/bouquet-4.png",
-  "/images/bouquet-5.png",
-  "/images/bouquet-6.png",
+  "/images/bouquet-1.webp",
+  "/images/bouquet-2.webp",
+  "/images/bouquet-3.webp",
+  "/images/bouquet-4.webp",
+  "/images/bouquet-5.webp",
+  "/images/bouquet-6.webp",
 ];
 
 const atelierGalleryItems = galleryImages.map((src, idx) => ({
@@ -67,7 +67,7 @@ export default async function HomePage() {
     "@type": "Florist",
     name: SITE_NAME,
     url: SITE_ORIGIN,
-    image: `${SITE_ORIGIN}/images/hero-bouquet.png`,
+    image: `${SITE_ORIGIN}/images/hero-bouquet.webp`,
     description: SITE_DESCRIPTION,
     telephone: SITE_PHONE,
     email: SITE_EMAIL,
@@ -98,7 +98,7 @@ export default async function HomePage() {
             <div className="relative overflow-hidden rounded-[34px] border border-white/80 bg-[linear-gradient(140deg,rgba(255,255,255,0.9),rgba(248,233,227,0.78))] p-3 shadow-[0_26px_70px_rgba(108,20,10,0.22)]">
               <div className="relative overflow-hidden rounded-[26px] border border-white/70">
                 <Image
-                  src="/images/hero-bouquet.png"
+                  src="/images/hero-bouquet.webp"
                   alt="Elegant floral bouquet"
                   width={760}
                   height={940}
@@ -205,7 +205,7 @@ export default async function HomePage() {
           </div>
           <div className="glass overflow-hidden rounded-[32px] border border-white/80 p-4">
             <Image
-              src="/images/hero-bouquet.png"
+              src="/images/hero-bouquet.webp"
               alt="Elegant floral bouquet"
               width={520}
               height={640}
@@ -376,4 +376,5 @@ export default async function HomePage() {
     </div>
   );
 }
+
 

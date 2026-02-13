@@ -61,7 +61,7 @@ export default function AdminPromoForm({ slide, action }: AdminPromoFormProps) {
         </div>
         <div className="space-y-4">
           <AdminImageUpload
-            defaultValue={slide?.image || "/images/promo-1.png"}
+            defaultValue={slide?.image || "/images/promo-1.webp"}
             recommendedSize="900x1600"
           />
         </div>
@@ -80,4 +80,5 @@ export default function AdminPromoForm({ slide, action }: AdminPromoFormProps) {
     </form>
   );
 }
+
 

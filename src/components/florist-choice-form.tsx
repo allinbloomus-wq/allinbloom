@@ -29,7 +29,7 @@ export default function FloristChoiceForm() {
       id: `florist-choice-${Date.now()}`,
       name: "Florist Choice Bouquet",
       priceCents: Math.round(price * 100),
-      image: "/images/florist-choice.png",
+      image: "/images/florist-choice.webp",
       quantity: 1,
       meta: {
         colors: [palette],
@@ -116,3 +116,4 @@ export default function FloristChoiceForm() {
     </form>
   );
 }
+

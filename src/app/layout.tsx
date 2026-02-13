@@ -47,7 +47,7 @@ export const metadata: Metadata = {
     locale: "en_US",
     images: [
       {
-        url: "/images/hero-bouquet.png",
+        url: "/images/hero-bouquet.webp",
         alt: SITE_TAGLINE,
       },
     ],
@@ -56,7 +56,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "All in Bloom Floral Studio | Chicago Flower Delivery",
     description: SITE_DESCRIPTION,
-    images: ["/images/hero-bouquet.png"],
+    images: ["/images/hero-bouquet.webp"],
   },
   robots: {
     index: true,
@@ -83,3 +83,4 @@ export default function RootLayout({
     </html>
   );
 }
+
