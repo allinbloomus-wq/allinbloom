@@ -78,13 +78,6 @@ export default function BouquetImageLightbox({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open]);
 
-  // Reset position when scale returns to 1
-  useEffect(() => {
-    if (scale === 1) {
-      setPosition({ x: 0, y: 0 });
-    }
-  }, [scale]);
-
   const handleOpenClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     // Avoid opening multiple lightboxes.
     if (document.body.dataset.lightboxOpen === "true") {
@@ -168,6 +161,11 @@ export default function BouquetImageLightbox({
         3,
         Math.max(1, startScaleRef.current * (dist / startDistanceRef.current))
       );
+
+      if (scale !== 1 && nextScale === 1) {
+        setPosition({ x: 0, y: 0 });
+      }
+
       setScale(nextScale);
     } else if (
       pointersRef.current.size === 1 &&

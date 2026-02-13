@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import ImageWithFallback from "@/components/image-with-fallback";
 
@@ -46,211 +46,215 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
     [slides]
   );
   const [index, setIndex] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState(0);
   const [isAutoPaused, setIsAutoPaused] = useState(false);
-  const dragStartX = useRef<number | null>(null);
-  const directionRef = useRef(1);
-  const viewportRef = useRef<HTMLDivElement>(null);
-  const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const dragStartY = useRef<number | null>(null);
-  const horizontalDragRef = useRef(false);
   const [perView, setPerView] = useState(1);
-  const hasTouchSupport = useRef(false);
+
+  const maxIndex = Math.max(0, items.length - perView);
+  const canSlide = maxIndex > 0;
+  const activeIndex = Math.min(index, maxIndex);
+
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const slideRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const directionRef = useRef(1);
+  const indexRef = useRef(0);
+  const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scrollFrameRef = useRef<number | null>(null);
+  const interactionStartRef = useRef<{ x: number; y: number } | null>(null);
+  const blockLinkClickRef = useRef(false);
+  const resetLinkBlockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    // Определяем поддержку touch событий
-    hasTouchSupport.current = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-  }, []);
+    indexRef.current = index;
+  }, [index]);
+
+  useEffect(() => {
+    slideRefs.current = slideRefs.current.slice(0, items.length);
+  }, [items.length]);
 
   useEffect(() => {
     const updatePerView = () => {
       setPerView(window.innerWidth >= 1024 ? 3 : 1);
     };
+
     updatePerView();
     window.addEventListener("resize", updatePerView);
     return () => window.removeEventListener("resize", updatePerView);
   }, []);
+
+  const scrollToIndex = useCallback((targetIndex: number, behavior: ScrollBehavior) => {
+    const viewport = viewportRef.current;
+    const targetSlide = slideRefs.current[targetIndex];
+
+    if (!viewport || !targetSlide) return;
+
+    viewport.scrollTo({
+      left: targetSlide.offsetLeft,
+      behavior,
+    });
+  }, []);
+
+  const pauseAutoscroll = useCallback(() => {
+    setIsAutoPaused(true);
+
+    if (pauseTimerRef.current) {
+      clearTimeout(pauseTimerRef.current);
+    }
+
+    pauseTimerRef.current = setTimeout(() => {
+      setIsAutoPaused(false);
+    }, 20000);
+  }, []);
+
+  const beginInteraction = useCallback(
+    (x: number, y: number) => {
+      interactionStartRef.current = { x, y };
+      blockLinkClickRef.current = false;
+      pauseAutoscroll();
+    },
+    [pauseAutoscroll]
+  );
+
+  const moveInteraction = useCallback((x: number, y: number) => {
+    const start = interactionStartRef.current;
+    if (!start || blockLinkClickRef.current) return;
+
+    const movedFarEnough =
+      Math.abs(x - start.x) > 8 || Math.abs(y - start.y) > 8;
+
+    if (movedFarEnough) {
+      blockLinkClickRef.current = true;
+    }
+  }, []);
+
+  const endInteraction = useCallback(() => {
+    interactionStartRef.current = null;
+
+    if (!blockLinkClickRef.current) return;
+
+    if (resetLinkBlockTimerRef.current) {
+      clearTimeout(resetLinkBlockTimerRef.current);
+    }
+
+    resetLinkBlockTimerRef.current = setTimeout(() => {
+      blockLinkClickRef.current = false;
+    }, 250);
+  }, []);
+
+  const goToIndex = useCallback(
+    (targetIndex: number) => {
+      const nextIndex = Math.max(0, Math.min(targetIndex, maxIndex));
+      const previousIndex = indexRef.current;
+
+      directionRef.current = nextIndex >= previousIndex ? 1 : -1;
+      indexRef.current = nextIndex;
+      setIndex(nextIndex);
+      scrollToIndex(nextIndex, "smooth");
+      pauseAutoscroll();
+    },
+    [maxIndex, pauseAutoscroll, scrollToIndex]
+  );
+
+  const handleViewportScroll = useCallback(() => {
+    if (scrollFrameRef.current !== null) return;
+
+    scrollFrameRef.current = window.requestAnimationFrame(() => {
+      scrollFrameRef.current = null;
+
+      const viewport = viewportRef.current;
+      if (!viewport) return;
+
+      let nearestIndex = 0;
+      let nearestDistance = Number.POSITIVE_INFINITY;
+
+      for (let currentIndex = 0; currentIndex <= maxIndex; currentIndex += 1) {
+        const slide = slideRefs.current[currentIndex];
+        if (!slide) continue;
+
+        const distance = Math.abs(slide.offsetLeft - viewport.scrollLeft);
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearestIndex = currentIndex;
+        }
+      }
+
+      const previousIndex = indexRef.current;
+      if (nearestIndex !== previousIndex) {
+        directionRef.current = nearestIndex > previousIndex ? 1 : -1;
+        indexRef.current = nearestIndex;
+        setIndex(nearestIndex);
+      }
+    });
+  }, [maxIndex]);
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!event.isPrimary || items.length < 2) return;
+    beginInteraction(event.clientX, event.clientY);
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!event.isPrimary) return;
+    moveInteraction(event.clientX, event.clientY);
+  };
+
+  const handlePointerUp = () => {
+    endInteraction();
+  };
+
+  const handlePrev = () => {
+    if (!canSlide) return;
+    goToIndex(indexRef.current - 1);
+  };
+
+  const handleNext = () => {
+    if (!canSlide) return;
+    goToIndex(indexRef.current + 1);
+  };
+
+  useEffect(() => {
+    const clampedIndex = Math.min(indexRef.current, maxIndex);
+    indexRef.current = clampedIndex;
+    scrollToIndex(clampedIndex, "auto");
+  }, [items.length, maxIndex, perView, scrollToIndex]);
+
+  useEffect(() => {
+    if (!canSlide || isAutoPaused) return;
+
+    const interval = setInterval(() => {
+      setIndex(() => {
+        const currentIndex = Math.min(indexRef.current, maxIndex);
+        const nextRaw = currentIndex + directionRef.current;
+        let nextIndex = nextRaw;
+
+        if (nextRaw > maxIndex) {
+          directionRef.current = -1;
+          nextIndex = Math.max(currentIndex - 1, 0);
+        } else if (nextRaw < 0) {
+          directionRef.current = 1;
+          nextIndex = Math.min(currentIndex + 1, maxIndex);
+        }
+
+        indexRef.current = nextIndex;
+        scrollToIndex(nextIndex, "smooth");
+        return nextIndex;
+      });
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [canSlide, isAutoPaused, maxIndex, scrollToIndex]);
 
   useEffect(() => {
     return () => {
       if (pauseTimerRef.current) {
         clearTimeout(pauseTimerRef.current);
       }
+      if (resetLinkBlockTimerRef.current) {
+        clearTimeout(resetLinkBlockTimerRef.current);
+      }
+      if (scrollFrameRef.current !== null) {
+        window.cancelAnimationFrame(scrollFrameRef.current);
+      }
     };
   }, []);
-
-  useEffect(() => {
-    if (items.length < 2 || isDragging || isAutoPaused) return;
-    const interval = setInterval(() => {
-      setIndex((prev) => {
-        const maxIndex = Math.max(0, items.length - perView);
-        const next = prev + directionRef.current;
-        if (next > maxIndex) {
-          directionRef.current = -1;
-          return Math.max(prev - 1, 0);
-        }
-        if (next < 0) {
-          directionRef.current = 1;
-          return Math.min(prev + 1, maxIndex);
-        }
-        return next;
-      });
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [items.length, isDragging, perView, isAutoPaused]);
-
-  const pauseAutoscroll = () => {
-    setIsAutoPaused(true);
-    if (pauseTimerRef.current) {
-      clearTimeout(pauseTimerRef.current);
-    }
-    pauseTimerRef.current = setTimeout(() => {
-      setIsAutoPaused(false);
-    }, 20000);
-  };
-
-  const handlePrev = () => {
-    directionRef.current = -1;
-    setIndex((prev) => Math.max(prev - 1, 0));
-    pauseAutoscroll();
-  };
-
-  const handleNext = () => {
-    directionRef.current = 1;
-    setIndex((prev) => Math.min(prev + 1, Math.max(0, items.length - perView)));
-    pauseAutoscroll();
-  };
-
-  const beginDrag = (x: number, y: number) => {
-    if (items.length < 2) return;
-    dragStartX.current = x;
-    dragStartY.current = y;
-    horizontalDragRef.current = false;
-    setIsDragging(true);
-    setDragOffset(0);
-  };
-
-  const updateDrag = (x: number, y: number): boolean => {
-    if (!isDragging || dragStartX.current === null || dragStartY.current === null) return false;
-    
-    const deltaX = x - dragStartX.current;
-    const deltaY = y - dragStartY.current;
-
-    // Определяем направление свайпа только после значительного движения
-    if (!horizontalDragRef.current && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
-      // Вычисляем угол движения
-      // Если |deltaY| / |deltaX| > 1, значит угол больше 45°, это вертикальный жест
-      const isVertical = Math.abs(deltaY) > Math.abs(deltaX);
-      
-      if (isVertical) {
-        // Это вертикальный скролл, отменяем перехват
-        setIsDragging(false);
-        setDragOffset(0);
-        dragStartX.current = null;
-        dragStartY.current = null;
-        horizontalDragRef.current = false;
-        return false;
-      } else {
-        // Это горизонтальный свайп (включая диагональные до 45°)
-        horizontalDragRef.current = true;
-      }
-    }
-
-    // Если уже определили горизонтальный свайп, продолжаем его независимо от вертикального смещения
-    if (horizontalDragRef.current) {
-      setDragOffset(deltaX);
-      return true;
-    }
-
-    return false;
-  };
-
-  const finishDrag = (x: number) => {
-    if (dragStartX.current === null) return;
-    
-    // Если это был горизонтальный свайп, меняем слайд
-    if (isDragging && horizontalDragRef.current) {
-      const delta = x - dragStartX.current;
-      const width = viewportRef.current?.offsetWidth ?? 1;
-      const threshold = Math.min(120, width * 0.2);
-
-      setIndex((prev) => {
-        const maxIndex = Math.max(0, items.length - perView);
-        if (delta > threshold) {
-          directionRef.current = -1;
-          return Math.max(prev - 1, 0);
-        }
-        if (delta < -threshold) {
-          directionRef.current = 1;
-          return Math.min(prev + 1, maxIndex);
-        }
-        return prev;
-      });
-      
-      pauseAutoscroll();
-    }
-
-    // Всегда сбрасываем состояние
-    setIsDragging(false);
-    setDragOffset(0);
-    dragStartX.current = null;
-    dragStartY.current = null;
-    horizontalDragRef.current = false;
-  };
-
-  // Touch события - используем только их на мобильных устройствах
-  const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
-    if (event.touches.length !== 1 || items.length < 2) return;
-    const touch = event.touches[0];
-    if (!touch) return;
-    beginDrag(touch.clientX, touch.clientY);
-  };
-
-  const handleTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
-    if (event.touches.length !== 1) return;
-    const touch = event.touches[0];
-    if (!touch) return;
-    
-    const consumed = updateDrag(touch.clientX, touch.clientY);
-    
-    // Предотвращаем скролл ТОЛЬКО если это подтверждённый горизонтальный свайп
-    if (consumed && horizontalDragRef.current && isDragging) {
-      event.preventDefault();
-    }
-  };
-
-  const handleTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
-    const touch = event.changedTouches[0];
-    if (!touch) return;
-    finishDrag(touch.clientX);
-  };
-
-  // Pointer события - только для десктопа
-  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    // Игнорируем pointer события на устройствах с touch
-    if (hasTouchSupport.current || event.pointerType === 'touch') return;
-    if (items.length < 2) return;
-    
-    if (event.currentTarget.setPointerCapture) {
-      try {
-        event.currentTarget.setPointerCapture(event.pointerId);
-      } catch {
-        // Ignore
-      }
-    }
-    beginDrag(event.clientX, event.clientY);
-  };
-
-  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (hasTouchSupport.current || event.pointerType === 'touch') return;
-    updateDrag(event.clientX, event.clientY);
-  };
-
-  const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (hasTouchSupport.current || event.pointerType === 'touch') return;
-    finishDrag(event.clientX);
-  };
 
   return (
     <div className="glass rounded-[36px] border border-white/80 p-6">
@@ -268,80 +272,78 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
         </div>
       </div>
 
-      <div
-        ref={viewportRef}
-        className="relative mt-6 select-none overflow-hidden rounded-[28px] border border-white/80 px-0"
-      >
+      <div className="relative mt-6">
         <div
-          className={`flex gap-0 ${isDragging ? "" : "transition-transform duration-700 ease-out"} will-change-transform lg:gap-4`}
-          style={{
-            transform: `translateX(calc(-${index * (100 / perView)}% + ${dragOffset}px))`,
-          }}
+          ref={viewportRef}
+          className="select-none overflow-x-auto rounded-[28px] border border-white/80 scroll-smooth snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+          onScroll={handleViewportScroll}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
           onPointerLeave={handlePointerUp}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          onTouchCancel={handleTouchEnd}
         >
-          {items.map((slide) => (
-            <div
-              key={slide.id}
-              className="w-full flex-shrink-0 cursor-grab active:cursor-grabbing lg:w-1/3"
-            >
-              <div className="relative w-full overflow-hidden rounded-[24px] border border-white/80 aspect-[9/16] sm:aspect-[9/16] lg:aspect-[9/16]">
-                <ImageWithFallback
-                  src={slide.image}
-                  alt={slide.title || "Promo slide"}
-                  fill
-                  className="object-cover pointer-events-none"
-                  sizes="(max-width: 768px) 100vw, 900px"
-                  draggable={false}
-                />
-                <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/10 to-transparent pointer-events-none" />
-                {(slide.title || slide.subtitle || slide.link) && (
-                  <div className="absolute left-6 top-6 max-w-md text-white">
-                    {slide.title && (
-                      <>
-                        <p className="text-xs uppercase tracking-[0.3em] text-white/70">
-                          Promotion
+          <div className="flex gap-0 lg:gap-4">
+            {items.map((slide, idx) => (
+              <div
+                key={slide.id}
+                ref={(node) => {
+                  slideRefs.current[idx] = node;
+                }}
+                className="w-full flex-shrink-0 snap-start cursor-grab active:cursor-grabbing lg:w-[calc((100%-2rem)/3)]"
+              >
+                <div className="relative w-full overflow-hidden rounded-[24px] border border-white/80 aspect-[9/16] sm:aspect-[9/16] lg:aspect-[9/16]">
+                  <ImageWithFallback
+                    src={slide.image}
+                    alt={slide.title || "Promo slide"}
+                    fill
+                    className="object-cover pointer-events-none"
+                    sizes="(max-width: 768px) 100vw, 900px"
+                    draggable={false}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/10 to-transparent pointer-events-none" />
+                  {(slide.title || slide.subtitle || slide.link) && (
+                    <div className="absolute left-6 top-6 max-w-md text-white">
+                      {slide.title && (
+                        <>
+                          <p className="text-xs uppercase tracking-[0.3em] text-white/70">
+                            Promotion
+                          </p>
+                          <h3 className="mt-2 text-2xl font-semibold sm:text-3xl">
+                            {slide.title}
+                          </h3>
+                        </>
+                      )}
+                      {slide.subtitle && (
+                        <p className="mt-2 text-sm text-white/80">
+                          {slide.subtitle}
                         </p>
-                        <h3 className="mt-2 text-2xl font-semibold sm:text-3xl">
-                          {slide.title}
-                        </h3>
-                      </>
-                    )}
-                    {slide.subtitle && (
-                      <p className="mt-2 text-sm text-white/80">
-                        {slide.subtitle}
-                      </p>
-                    )}
-                    {slide.link && (
-                      <Link
-                        href={slide.link}
-                        className="mt-4 inline-flex rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs uppercase tracking-[0.3em] text-white backdrop-blur"
-                        onClick={(e) => {
-                          // Предотвращаем переход по ссылке если был драг
-                          if (isDragging || Math.abs(dragOffset) > 10) {
-                            e.preventDefault();
-                          }
-                        }}
-                      >
-                        View details
-                      </Link>
-                    )}
-                  </div>
-                )}
+                      )}
+                      {slide.link && (
+                        <Link
+                          href={slide.link}
+                          className="mt-4 inline-flex rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs uppercase tracking-[0.3em] text-white backdrop-blur"
+                          onClick={(event) => {
+                            if (blockLinkClickRef.current) {
+                              event.preventDefault();
+                              return;
+                            }
+                            pauseAutoscroll();
+                          }}
+                        >
+                          View details
+                        </Link>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
-        {items.length > 1 ? (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-between px-3">
+        {canSlide ? (
+          <div className="pointer-events-none absolute inset-0 hidden items-center justify-between px-3 sm:flex">
             <button
               type="button"
               onClick={handlePrev}
@@ -384,18 +386,21 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
         ) : null}
       </div>
 
-      {items.length > 1 ? (
+      {canSlide ? (
+        <p className="mt-3 text-center text-[10px] uppercase tracking-[0.24em] text-stone-500 sm:hidden">
+          Swipe to browse
+        </p>
+      ) : null}
+
+      {canSlide ? (
         <div className="mt-4 flex justify-center gap-2">
-          {items.map((slide, idx) => (
+          {Array.from({ length: maxIndex + 1 }).map((_, idx) => (
             <button
-              key={slide.id}
+              key={`promo-dot-${idx}`}
               type="button"
-              onClick={() => {
-                setIndex(idx);
-                pauseAutoscroll();
-              }}
+              onClick={() => goToIndex(idx)}
               className={`h-2 w-2 rounded-full transition ${
-                idx === index ? "bg-[color:var(--brand)]" : "bg-stone-300"
+                idx === activeIndex ? "bg-[color:var(--brand)]" : "bg-stone-300"
               }`}
               aria-label={`Go to slide ${idx + 1}`}
             />
