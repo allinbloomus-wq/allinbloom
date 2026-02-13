@@ -16,11 +16,11 @@ const parsePriceCents = (value: FormDataEntryValue | null) => {
 export async function updateDiscountSettings(formData: FormData) {
   await requireAdmin();
 
-  const globalPercent = clampPercent(
+  const globalPercentRaw = clampPercent(
     Number(formData.get("globalDiscountPercent") || 0)
   );
   const globalNote = String(formData.get("globalDiscountNote") || "").trim();
-  const categoryPercent = clampPercent(
+  const categoryPercentRaw = clampPercent(
     Number(formData.get("categoryDiscountPercent") || 0)
   );
   const categoryNote = String(
@@ -43,14 +43,6 @@ export async function updateDiscountSettings(formData: FormData) {
   );
   const firstNote = String(formData.get("firstOrderDiscountNote") || "").trim();
 
-  if (globalPercent > 0 && categoryPercent > 0) {
-    throw new Error("Global and category discounts cannot be active together.");
-  }
-
-  if (globalPercent > 0 && !globalNote) {
-    throw new Error("Global discount comment is required.");
-  }
-
   const hasCategoryFilter = Boolean(
     categoryFlowerType ||
       categoryStyle ||
@@ -60,41 +52,51 @@ export async function updateDiscountSettings(formData: FormData) {
       categoryMaxPriceCents !== null
   );
 
-  if (categoryPercent > 0 && !categoryNote) {
-    throw new Error("Category discount comment is required.");
+  // Normalize risky form combinations instead of throwing.
+  const categoryCanApply = categoryPercentRaw > 0 && hasCategoryFilter;
+  const categoryPercent = categoryCanApply ? categoryPercentRaw : 0;
+  let globalPercent = globalPercentRaw;
+
+  // Category has higher precedence when both are set.
+  if (globalPercent > 0 && categoryPercent > 0) {
+    globalPercent = 0;
   }
 
-  if (categoryPercent > 0 && !hasCategoryFilter) {
-    throw new Error("Category discount requires at least one filter.");
-  }
+  const normalizedGlobalNote =
+    globalPercent > 0 ? globalNote || "Storewide discount" : null;
+  const normalizedCategoryNote =
+    categoryPercent > 0 ? categoryNote || "Category discount" : null;
+  const normalizedFirstNote =
+    firstPercent > 0 ? firstNote || "First order discount" : null;
+
+  let normalizedCategoryMinPriceCents =
+    categoryPercent > 0 ? categoryMinPriceCents : null;
+  let normalizedCategoryMaxPriceCents =
+    categoryPercent > 0 ? categoryMaxPriceCents : null;
 
   if (
-    categoryMinPriceCents !== null &&
-    categoryMaxPriceCents !== null &&
-    categoryMinPriceCents > categoryMaxPriceCents
+    normalizedCategoryMinPriceCents !== null &&
+    normalizedCategoryMaxPriceCents !== null &&
+    normalizedCategoryMinPriceCents > normalizedCategoryMaxPriceCents
   ) {
-    throw new Error("Category min price must be less than max price.");
-  }
-
-  if (firstPercent > 0 && !firstNote) {
-    throw new Error("First order discount comment is required.");
+    const swap = normalizedCategoryMinPriceCents;
+    normalizedCategoryMinPriceCents = normalizedCategoryMaxPriceCents;
+    normalizedCategoryMaxPriceCents = swap;
   }
 
   await updateStoreSettings({
     globalDiscountPercent: globalPercent,
-    globalDiscountNote: globalPercent > 0 ? globalNote : null,
+    globalDiscountNote: normalizedGlobalNote,
     categoryDiscountPercent: categoryPercent,
-    categoryDiscountNote: categoryPercent > 0 ? categoryNote : null,
+    categoryDiscountNote: normalizedCategoryNote,
     categoryFlowerType: categoryPercent > 0 ? categoryFlowerType || null : null,
     categoryStyle: categoryPercent > 0 ? categoryStyle || null : null,
     categoryMixed: categoryPercent > 0 ? categoryMixed || null : null,
     categoryColor: categoryPercent > 0 ? categoryColor || null : null,
-    categoryMinPriceCents:
-      categoryPercent > 0 ? categoryMinPriceCents : null,
-    categoryMaxPriceCents:
-      categoryPercent > 0 ? categoryMaxPriceCents : null,
+    categoryMinPriceCents: normalizedCategoryMinPriceCents,
+    categoryMaxPriceCents: normalizedCategoryMaxPriceCents,
     firstOrderDiscountPercent: firstPercent,
-    firstOrderDiscountNote: firstPercent > 0 ? firstNote : null,
+    firstOrderDiscountNote: normalizedFirstNote,
   });
 
   revalidatePath("/admin/discounts");

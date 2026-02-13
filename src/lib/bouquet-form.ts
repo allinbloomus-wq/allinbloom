@@ -36,10 +36,8 @@ export const parseBouquetForm = (formData: FormData): BouquetFormPayload => {
     Math.max(0, Math.round(Number(formData.get("discountPercent") || 0)))
   );
   const discountNote = String(formData.get("discountNote") || "").trim();
-
-  if (discountPercent > 0 && !discountNote) {
-    throw new Error("Discount note is required when a discount is set.");
-  }
+  const normalizedDiscountNote =
+    discountPercent > 0 ? discountNote || "Discount" : null;
 
   return {
     name,
@@ -60,7 +58,7 @@ export const parseBouquetForm = (formData: FormData): BouquetFormPayload => {
     isFeatured: formData.get("isFeatured") === "on",
     isActive: formData.get("isActive") === "on",
     discountPercent,
-    discountNote: discountPercent > 0 ? discountNote : null,
+    discountNote: normalizedDiscountNote,
     image,
   };
 };

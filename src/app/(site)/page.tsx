@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import BouquetCard from "@/components/bouquet-card";
-import BouquetImageLightbox from "@/components/bouquet-image-lightbox";
+import GalleryImageLightbox from "@/components/gallery-image-lightbox";
 import FloristChoiceForm from "@/components/florist-choice-form";
 import PromoCard from "@/components/promo-card";
 import PromoGallery from "@/components/promo-gallery";
@@ -290,18 +290,15 @@ export default async function HomePage() {
                 key={src}
                 className="glass overflow-hidden rounded-[28px] border border-white/80 aspect-square"
               >
-                <BouquetImageLightbox
+                <GalleryImageLightbox
                   src={src}
                   alt="Bouquet gallery preview"
                   className="block h-full w-full"
                   imageClassName="h-full w-full object-cover"
                   previewWidth={400}
                   previewHeight={400}
-                  lightboxWidth={1600}
-                  lightboxHeight={1600}
-                  galleryItems={atelierGalleryItems}
-                  galleryStartIndex={idx}
-                  enableGalleryNavigation
+                  items={atelierGalleryItems}
+                  startIndex={idx}
                 />
               </div>
             ))}

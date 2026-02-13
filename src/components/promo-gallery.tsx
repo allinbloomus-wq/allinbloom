@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import BouquetImageLightbox from "@/components/bouquet-image-lightbox";
+import GalleryImageLightbox from "@/components/gallery-image-lightbox";
 
 type PromoSlide = {
   id: string;
@@ -303,20 +303,17 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
                 className="w-full flex-shrink-0 snap-start cursor-grab active:cursor-grabbing lg:w-[calc((100%-2rem)/3)]"
               >
                 <div className="relative w-full overflow-hidden rounded-[24px] border border-white/40 sm:border-white/80 aspect-[9/16] sm:aspect-[9/16] lg:aspect-[9/16]">
-                  <BouquetImageLightbox
+                  <GalleryImageLightbox
                     src={slide.image}
                     alt={slide.title || "Promo slide"}
                     className="block h-full w-full"
                     imageClassName="h-full w-full object-cover"
                     previewWidth={900}
                     previewHeight={1600}
-                    lightboxWidth={1600}
-                    lightboxHeight={1600}
                     canOpen={() => !blockLinkClickRef.current}
                     onOpen={pauseAutoscroll}
-                    galleryItems={promoLightboxItems}
-                    galleryStartIndex={idx}
-                    enableGalleryNavigation
+                    items={promoLightboxItems}
+                    startIndex={idx}
                   />
                   <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/10 to-transparent pointer-events-none" />
                   {(slide.title || slide.subtitle || slide.link) && (
