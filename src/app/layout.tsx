@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Manrope, Sora } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
-import TelegramWebviewFix from "@/components/telegram-webview-fix";
 import {
   SITE_DESCRIPTION,
   SITE_KEYWORDS,
@@ -79,7 +78,6 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${display.variable} ${sans.variable}`}>
       <body className="antialiased">
-        <TelegramWebviewFix />
         <Providers>{children}</Providers>
       </body>
     </html>
