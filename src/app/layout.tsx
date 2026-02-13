@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Manrope } from "next/font/google";
+import { Manrope, Sora } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
 import {
@@ -10,9 +10,9 @@ import {
   SITE_TAGLINE,
 } from "@/lib/site";
 
-const serif = Cormorant_Garamond({
+const display = Sora({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700", "800"],
   variable: "--font-serif",
   display: "swap",
 });
@@ -76,7 +76,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${serif.variable} ${sans.variable}`}>
+    <html lang="en" className={`${display.variable} ${sans.variable}`}>
       <body className="antialiased">
         <Providers>{children}</Providers>
       </body>

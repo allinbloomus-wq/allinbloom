@@ -15,7 +15,7 @@ export default async function Header() {
           <div className="flex items-center gap-6">
             <Link
               href="/"
-              className="text-lg font-semibold text-[color:var(--brand)]"
+              className="font-[family-name:var(--font-serif)] text-xl font-semibold tracking-[-0.02em] text-[color:var(--brand)]"
             >
               All in Bloom
             </Link>
