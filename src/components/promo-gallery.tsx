@@ -137,8 +137,8 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
     const deltaX = x - dragStartX.current;
     const deltaY = y - dragStartY.current;
 
-    // Определяем направление свайпа только один раз в начале жеста
-    if (!horizontalDragRef.current && (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3)) {
+    // Определяем направление свайпа только после значительного движения
+    if (!horizontalDragRef.current && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
       // Если горизонтальное движение больше вертикального, это горизонтальный свайп
       horizontalDragRef.current = Math.abs(deltaX) > Math.abs(deltaY);
       
@@ -210,8 +210,8 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
     
     const consumed = updateDrag(touch.clientX, touch.clientY);
     
-    // Предотвращаем скролл страницы только если это горизонтальный свайп
-    if (consumed && horizontalDragRef.current) {
+    // Предотвращаем скролл ТОЛЬКО если это подтверждённый горизонтальный свайп
+    if (consumed && horizontalDragRef.current && isDragging) {
       event.preventDefault();
     }
   };
@@ -272,7 +272,6 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
           className={`flex gap-0 ${isDragging ? "" : "transition-transform duration-700 ease-out"} will-change-transform lg:gap-4`}
           style={{
             transform: `translateX(calc(-${index * (100 / perView)}% + ${dragOffset}px))`,
-            touchAction: 'pan-y pinch-zoom', // Важно: разрешаем вертикальный скролл
           }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -288,16 +287,15 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
             <div
               key={slide.id}
               className="w-full flex-shrink-0 cursor-grab active:cursor-grabbing lg:w-1/3"
-              style={{ touchAction: 'none' }} // Блокируем touch действия на слайдах
             >
               <div className="relative w-full overflow-hidden rounded-[24px] border border-white/80 aspect-[9/16] sm:aspect-[9/16] lg:aspect-[9/16]">
                 <ImageWithFallback
                   src={slide.image}
                   alt={slide.title || "Promo slide"}
                   fill
-                  className="object-cover pointer-events-none" // Важно: отключаем события на изображении
+                  className="object-cover pointer-events-none"
                   sizes="(max-width: 768px) 100vw, 900px"
-                  draggable={false} // Отключаем нативный драг изображения
+                  draggable={false}
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/10 to-transparent pointer-events-none" />
                 {(slide.title || slide.subtitle || slide.link) && (
