@@ -45,6 +45,16 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
     () => (slides.length ? slides : FALLBACK_SLIDES),
     [slides]
   );
+  const promoLightboxItems = useMemo(
+    () =>
+      items.map((slide, idx) => ({
+        src: slide.image,
+        alt: slide.title || `Promotion image ${idx + 1}`,
+        lightboxWidth: 1600,
+        lightboxHeight: 1600,
+      })),
+    [items]
+  );
   const [index, setIndex] = useState(0);
   const [isAutoPaused, setIsAutoPaused] = useState(false);
   const [perView, setPerView] = useState(1);
@@ -304,6 +314,8 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
                     lightboxHeight={1600}
                     canOpen={() => !blockLinkClickRef.current}
                     onOpen={pauseAutoscroll}
+                    galleryItems={promoLightboxItems}
+                    galleryStartIndex={idx}
                   />
                   <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/10 to-transparent pointer-events-none" />
                   {(slide.title || slide.subtitle || slide.link) && (

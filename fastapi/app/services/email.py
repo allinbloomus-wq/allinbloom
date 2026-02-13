@@ -124,7 +124,7 @@ async def send_admin_order_email(params: dict) -> None:
         for item in items
     )
 
-    subject = f"New paid order {safe_order}"
+    subject = "New paid order"
     text = "\n".join(
         [
             "Order paid",
@@ -184,7 +184,7 @@ async def send_customer_order_email(params: dict) -> None:
         for item in items
     )
 
-    subject = f"Your order {safe_order} is confirmed"
+    subject = "Your order is confirmed"
     text = "\n".join(
         [
             "Thank you for your order!",

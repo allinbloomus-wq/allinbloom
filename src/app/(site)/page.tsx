@@ -51,6 +51,13 @@ const galleryImages = [
   "/images/bouquet-6.png",
 ];
 
+const atelierGalleryItems = galleryImages.map((src, idx) => ({
+  src,
+  alt: `Atelier gallery image ${idx + 1}`,
+  lightboxWidth: 1600,
+  lightboxHeight: 1600,
+}));
+
 export default async function HomePage() {
   const featured = await getFeaturedBouquets();
   const promoSlides = await getActivePromoSlides();
@@ -97,6 +104,7 @@ export default async function HomePage() {
                   height={940}
                   className="h-[420px] w-full object-cover object-center"
                   priority
+                  fetchPriority="high"
                 />
                 <div className="absolute inset-0 bg-[linear-gradient(175deg,rgba(22,10,7,0.06),rgba(22,10,7,0.7))]" />
                 <div className="absolute left-4 top-4 rounded-full border border-white/50 bg-white/20 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-white backdrop-blur">
@@ -203,6 +211,7 @@ export default async function HomePage() {
               height={640}
               className="h-auto w-full rounded-[26px] object-cover"
               priority
+              fetchPriority="high"
             />
           </div>
         </div>
@@ -266,24 +275,36 @@ export default async function HomePage() {
             />
           </div>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {galleryImages.map((src) => (
-            <div
-              key={src}
-              className="glass overflow-hidden rounded-[28px] border border-white/80 aspect-square"
-            >
-              <BouquetImageLightbox
-                src={src}
-                alt="Bouquet gallery preview"
-                className="block h-full w-full"
-                imageClassName="h-full w-full object-cover"
-                previewWidth={400}
-                previewHeight={400}
-                lightboxWidth={1600}
-                lightboxHeight={1600}
-              />
-            </div>
-          ))}
+        <div className="space-y-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
+              Atelier gallery
+            </p>
+            <h3 className="mt-2 text-2xl font-semibold text-stone-900 sm:text-3xl">
+              Wrapped bouquet moments
+            </h3>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {galleryImages.map((src, idx) => (
+              <div
+                key={src}
+                className="glass overflow-hidden rounded-[28px] border border-white/80 aspect-square"
+              >
+                <BouquetImageLightbox
+                  src={src}
+                  alt="Bouquet gallery preview"
+                  className="block h-full w-full"
+                  imageClassName="h-full w-full object-cover"
+                  previewWidth={400}
+                  previewHeight={400}
+                  lightboxWidth={1600}
+                  lightboxHeight={1600}
+                  galleryItems={atelierGalleryItems}
+                  galleryStartIndex={idx}
+                />
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
