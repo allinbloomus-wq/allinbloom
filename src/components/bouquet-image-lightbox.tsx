@@ -17,6 +17,41 @@ type BouquetImageLightboxProps = {
   onOpen?: () => void;
 };
 
+type TelegramViewport = {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+};
+
+function detectTelegramWebview(): boolean {
+  const w = window as Window & {
+    TelegramWebviewProxy?: unknown;
+    Telegram?: { WebApp?: unknown };
+  };
+
+  const ua = navigator.userAgent || "";
+  if (/telegram|tgwebview|telegrambot|telegram-android|telegram-ios/i.test(ua)) {
+    return true;
+  }
+
+  if (w.TelegramWebviewProxy || w.Telegram?.WebApp) {
+    return true;
+  }
+
+  return document.documentElement.dataset.telegramWebview === "true";
+}
+
+function getTelegramViewport(): TelegramViewport {
+  const viewport = window.visualViewport;
+  return {
+    top: Math.max(0, Math.round(viewport?.offsetTop ?? 0)),
+    left: Math.max(0, Math.round(viewport?.offsetLeft ?? 0)),
+    width: Math.max(0, Math.round(viewport?.width ?? window.innerWidth)),
+    height: Math.max(0, Math.round(viewport?.height ?? window.innerHeight)),
+  };
+}
+
 export default function BouquetImageLightbox({
   src,
   alt,
@@ -31,6 +66,7 @@ export default function BouquetImageLightbox({
 }: BouquetImageLightboxProps) {
   const [open, setOpen] = useState(false);
   const [headerOffset, setHeaderOffset] = useState(0);
+  const [telegramViewport, setTelegramViewport] = useState<TelegramViewport | null>(null);
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -59,10 +95,12 @@ export default function BouquetImageLightbox({
   useEffect(() => {
     if (!open) return;
     const updateOffset = () => {
-      if (document.documentElement.dataset.telegramWebview === "true") {
+      if (detectTelegramWebview()) {
         setHeaderOffset(0);
+        setTelegramViewport(getTelegramViewport());
         return;
       }
+      setTelegramViewport(null);
 
       const header = document.querySelector("header");
       if (!header) {
@@ -77,10 +115,16 @@ export default function BouquetImageLightbox({
     };
     updateOffset();
     const delayedUpdate = window.setTimeout(updateOffset, 120);
+    window.visualViewport?.addEventListener("resize", updateOffset);
+    window.visualViewport?.addEventListener("scroll", updateOffset);
     window.addEventListener("resize", updateOffset);
+    window.addEventListener("scroll", updateOffset, { passive: true });
     return () => {
       window.clearTimeout(delayedUpdate);
+      window.visualViewport?.removeEventListener("resize", updateOffset);
+      window.visualViewport?.removeEventListener("scroll", updateOffset);
       window.removeEventListener("resize", updateOffset);
+      window.removeEventListener("scroll", updateOffset);
     };
   }, [open]);
 
@@ -249,13 +293,25 @@ export default function BouquetImageLightbox({
         ? createPortal(
             <div
               className="lightbox-overlay fixed bg-black/70 flex items-center justify-center p-4"
-              style={{
-                top: headerOffset,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                zIndex: 50,
-              }}
+              style={
+                telegramViewport
+                  ? {
+                      top: 0,
+                      left: 0,
+                      width: telegramViewport.left + telegramViewport.width + 2,
+                      height: telegramViewport.top + telegramViewport.height + 2,
+                      right: "auto",
+                      bottom: "auto",
+                      zIndex: 120,
+                    }
+                  : {
+                      top: headerOffset,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      zIndex: 120,
+                    }
+              }
               role="dialog"
               aria-modal="true"
               onClick={handleOverlayClick}
