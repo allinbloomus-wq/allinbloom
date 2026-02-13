@@ -273,6 +273,15 @@ html[data-telegram-webview="true"] .site-header {
   top: auto !important;
 }
 
+html[data-telegram-webview="true"] .lightbox-overlay {
+  top: calc(var(--tg-vv-top, 0px) - 1px) !important;
+  left: calc(var(--tg-vv-left, 0px) - 1px) !important;
+  width: calc(var(--tg-vv-width, 100vw) + 2px) !important;
+  height: calc(var(--tg-vv-height, 100dvh) + 2px) !important;
+  right: auto !important;
+  bottom: auto !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;

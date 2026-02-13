@@ -31,6 +31,7 @@ export default function BouquetImageLightbox({
 }: BouquetImageLightboxProps) {
   const [open, setOpen] = useState(false);
   const [headerOffset, setHeaderOffset] = useState(0);
+  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const pointersRef = useRef(new Map<number, { x: number; y: number }>());
@@ -40,8 +41,11 @@ export default function BouquetImageLightbox({
   const lastSinglePointerRef = useRef<{ x: number; y: number } | null>(null);
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const imageContainerRef = useRef<HTMLDivElement | null>(null);
-  const portalRoot =
-    typeof document !== "undefined" ? document.getElementById("lightbox-root") : null;
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    setPortalRoot(document.getElementById("lightbox-root") ?? document.body);
+  }, []);
 
   const close = () => {
     setOpen(false);
@@ -113,9 +117,11 @@ export default function BouquetImageLightbox({
       return;
     }
 
-    if (!portalRoot) {
+    if (typeof document === "undefined") {
       return;
     }
+    const root = document.getElementById("lightbox-root") ?? document.body;
+    setPortalRoot(root);
 
     setScale(1);
     setPosition({ x: 0, y: 0 });
@@ -237,7 +243,7 @@ export default function BouquetImageLightbox({
       {open && portalRoot
         ? createPortal(
             <div
-              className="fixed bg-black/70 flex items-center justify-center p-4"
+              className="lightbox-overlay fixed bg-black/70 flex items-center justify-center p-4"
               style={{
                 top: headerOffset,
                 left: 0,
