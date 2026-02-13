@@ -56,12 +56,23 @@ export default function BouquetImageLightbox({
     if (!open) return;
     const updateOffset = () => {
       const header = document.querySelector("header");
-      const height = header ? header.getBoundingClientRect().height : 0;
+      if (!header) {
+        setHeaderOffset(0);
+        return;
+      }
+
+      const position = window.getComputedStyle(header).position;
+      const shouldReserveHeaderSpace = position === "sticky" || position === "fixed";
+      const height = shouldReserveHeaderSpace ? header.getBoundingClientRect().height : 0;
       setHeaderOffset(height);
     };
     updateOffset();
+    const delayedUpdate = window.setTimeout(updateOffset, 120);
     window.addEventListener("resize", updateOffset);
-    return () => window.removeEventListener("resize", updateOffset);
+    return () => {
+      window.clearTimeout(delayedUpdate);
+      window.removeEventListener("resize", updateOffset);
+    };
   }, [open]);
 
   useEffect(() => {
