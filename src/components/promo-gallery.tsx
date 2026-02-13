@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import GalleryImageLightbox from "@/components/gallery-image-lightbox";
+import ImageWithFallback from "@/components/image-with-fallback";
 
 type PromoSlide = {
   id: string;
@@ -44,16 +44,6 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
   const items = useMemo(
     () => (slides.length ? slides : FALLBACK_SLIDES),
     [slides]
-  );
-  const promoLightboxItems = useMemo(
-    () =>
-      items.map((slide, idx) => ({
-        src: slide.image,
-        alt: slide.title || `Promotion image ${idx + 1}`,
-        lightboxWidth: 1600,
-        lightboxHeight: 1600,
-      })),
-    [items]
   );
   const [index, setIndex] = useState(0);
   const [isAutoPaused, setIsAutoPaused] = useState(false);
@@ -303,17 +293,13 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
                 className="w-full flex-shrink-0 snap-start cursor-grab active:cursor-grabbing lg:w-[calc((100%-2rem)/3)]"
               >
                 <div className="relative w-full overflow-hidden rounded-[24px] border border-white/40 sm:border-white/80 aspect-[9/16] sm:aspect-[9/16] lg:aspect-[9/16]">
-                  <GalleryImageLightbox
+                  <ImageWithFallback
                     src={slide.image}
                     alt={slide.title || "Promo slide"}
-                    className="block h-full w-full"
-                    imageClassName="h-full w-full object-cover"
-                    previewWidth={900}
-                    previewHeight={1600}
-                    canOpen={() => !blockLinkClickRef.current}
-                    onOpen={pauseAutoscroll}
-                    items={promoLightboxItems}
-                    startIndex={idx}
+                    width={900}
+                    height={1600}
+                    className="h-full w-full object-cover pointer-events-none"
+                    draggable={false}
                   />
                   <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/10 to-transparent pointer-events-none" />
                   {(slide.title || slide.subtitle || slide.link) && (

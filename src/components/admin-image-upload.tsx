@@ -7,11 +7,13 @@ import { clientFetch } from "@/lib/api-client";
 type AdminImageUploadProps = {
   defaultValue: string;
   recommendedSize?: string;
+  isInvalid?: boolean;
 };
 
 export default function AdminImageUpload({
   defaultValue,
   recommendedSize = "600x800",
+  isInvalid = false,
 }: AdminImageUploadProps) {
   const [imageUrl, setImageUrl] = useState(defaultValue);
   const [status, setStatus] = useState<string | null>(null);
@@ -87,7 +89,11 @@ export default function AdminImageUpload({
           value={imageUrl}
           onChange={(event) => setImageUrl(event.target.value)}
           required
-          className="rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+          className={`rounded-2xl bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none ${
+            isInvalid
+              ? "border border-rose-300 focus:border-rose-500"
+              : "border border-stone-200 focus:border-stone-400"
+          }`}
         />
       </label>
       <label className="flex flex-col gap-2 text-sm text-stone-700">
