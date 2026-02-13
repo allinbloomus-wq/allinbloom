@@ -22,7 +22,7 @@ export async function createBouquet(formData: FormData) {
     throw new Error("Unable to create bouquet.");
   }
   revalidatePath("/admin");
-  redirect("/admin");
+  redirect("/admin?toast=bouquet-added");
 }
 
 export async function updateBouquet(formData: FormData) {

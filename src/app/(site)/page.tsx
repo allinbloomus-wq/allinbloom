@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import BouquetCard from "@/components/bouquet-card";
+import BouquetImageLightbox from "@/components/bouquet-image-lightbox";
 import FloristChoiceForm from "@/components/florist-choice-form";
 import PromoCard from "@/components/promo-card";
 import PromoGallery from "@/components/promo-gallery";
@@ -219,7 +220,7 @@ export default async function HomePage() {
           </div>
           <Link
             href="/catalog?filter=featured"
-            className="rounded-full border border-stone-300 bg-white/80 px-5 py-2 text-xs uppercase tracking-[0.3em] text-stone-600 transition hover:border-stone-400"
+            className="rounded-full border border-stone-300 bg-white/80 px-5 py-2 text-xs uppercase tracking-[0.3em] text-stone-600 transition hover:border-stone-400 shrink-0 whitespace-nowrap"
           >
             View all
           </Link>
@@ -271,12 +272,15 @@ export default async function HomePage() {
               key={src}
               className="glass overflow-hidden rounded-[28px] border border-white/80 aspect-square"
             >
-              <Image
+              <BouquetImageLightbox
                 src={src}
                 alt="Bouquet gallery preview"
-                width={400}
-                height={400}
-                className="h-full w-full object-cover"
+                className="block h-full w-full"
+                imageClassName="h-full w-full object-cover"
+                previewWidth={400}
+                previewHeight={400}
+                lightboxWidth={1600}
+                lightboxHeight={1600}
               />
             </div>
           ))}
@@ -296,7 +300,7 @@ export default async function HomePage() {
         />
       </section>
 
-      <section className="grid gap-10 rounded-[36px] border border-white/80 bg-white/70 p-8 shadow-sm lg:grid-cols-[1fr_1.1fr] animate-rise [animation-delay:480ms]">
+      <section className="grid gap-8 rounded-none border-0 bg-transparent p-0 shadow-none sm:gap-10 sm:rounded-[36px] sm:border sm:border-white/80 sm:bg-white/70 sm:p-8 sm:shadow-sm lg:grid-cols-[1fr_1.1fr] animate-rise [animation-delay:480ms]">
         <div className="space-y-5">
           <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
             FLORIST CHOICE BOUQUET
@@ -324,7 +328,7 @@ export default async function HomePage() {
         <FloristChoiceForm />
       </section>
 
-      <section className="grid gap-6 rounded-[36px] border border-white/80 bg-white/70 p-8 shadow-sm lg:grid-cols-[0.9fr_1.1fr] animate-rise [animation-delay:520ms]">
+      <section className="grid gap-6 rounded-none border-0 bg-transparent p-0 shadow-none sm:rounded-[36px] sm:border sm:border-white/80 sm:bg-white/70 sm:p-8 sm:shadow-sm lg:grid-cols-[0.9fr_1.1fr] animate-rise [animation-delay:520ms]">
         <div className="space-y-4">
           <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
             Visit our studio
@@ -353,3 +357,4 @@ export default async function HomePage() {
     </div>
   );
 }
+

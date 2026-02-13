@@ -39,7 +39,7 @@ export async function createPromoSlide(formData: FormData) {
   }
   revalidatePath("/");
   revalidatePath("/admin/promotions");
-  redirect("/admin/promotions");
+  redirect("/admin/promotions?toast=promotion-added");
 }
 
 export async function updatePromoSlide(formData: FormData) {

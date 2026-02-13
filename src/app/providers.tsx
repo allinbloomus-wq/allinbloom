@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { CartProvider } from "@/lib/cart";
 import { getClientAuthToken, getClientUser, getUsableAuthToken } from "@/lib/auth-client";
+import { ToastProvider } from "@/components/toast-provider";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
@@ -18,5 +19,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     return () => window.clearInterval(interval);
   }, []);
 
-  return <CartProvider>{children}</CartProvider>;
+  return (
+    <ToastProvider>
+      <CartProvider>{children}</CartProvider>
+    </ToastProvider>
+  );
 }

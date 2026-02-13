@@ -1,6 +1,7 @@
 "use client";
 
 import { useCart } from "@/lib/cart";
+import { useToast } from "@/components/toast-provider";
 
 type AddToCartControlsProps = {
   item: {
@@ -19,13 +20,14 @@ type AddToCartControlsProps = {
 
 export default function AddToCartControls({ item }: AddToCartControlsProps) {
   const { items, addItem, updateQuantity } = useCart();
+  const { showToast } = useToast();
   const existing = items.find((entry) => entry.id === item.id);
 
   if (!existing) {
     return (
       <button
         type="button"
-        onClick={() =>
+        onClick={() => {
           addItem({
             id: item.id,
             name: item.name,
@@ -41,8 +43,9 @@ export default function AddToCartControls({ item }: AddToCartControlsProps) {
               bouquetColors: item.colors,
               isMixed: item.isMixed,
             },
-          })
-        }
+          });
+          showToast("Added to cart.");
+        }}
         className="w-full rounded-full bg-[color:var(--brand)] px-4 py-2 text-xs uppercase tracking-[0.3em] text-white transition hover:bg-[color:var(--brand-dark)]"
       >
         Add to cart

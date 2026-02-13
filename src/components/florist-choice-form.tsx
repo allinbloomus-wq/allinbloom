@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useCart } from "@/lib/cart";
+import { useToast } from "@/components/toast-provider";
 
 const paletteOptions = [
   "Blush & Ivory",
@@ -15,6 +16,7 @@ const styleOptions = ["Romantic", "Modern", "Garden", "Minimal"];
 
 export default function FloristChoiceForm() {
   const { addItem } = useCart();
+  const { showToast } = useToast();
   const [price, setPrice] = useState(95);
   const [palette, setPalette] = useState(paletteOptions[0]);
   const [style, setStyle] = useState(styleOptions[0]);
@@ -36,6 +38,7 @@ export default function FloristChoiceForm() {
         isCustom: true,
       },
     });
+    showToast("Added to cart.");
     setNote("");
   };
 

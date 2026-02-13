@@ -8,12 +8,26 @@ type BouquetImageLightboxProps = {
   src: string;
   alt: string;
   className?: string;
+  imageClassName?: string;
+  previewWidth?: number;
+  previewHeight?: number;
+  lightboxWidth?: number;
+  lightboxHeight?: number;
+  canOpen?: () => boolean;
+  onOpen?: () => void;
 };
 
 export default function BouquetImageLightbox({
   src,
   alt,
   className,
+  imageClassName,
+  previewWidth = 520,
+  previewHeight = 520,
+  lightboxWidth = 1600,
+  lightboxHeight = 1600,
+  canOpen,
+  onOpen,
 }: BouquetImageLightboxProps) {
   const [open, setOpen] = useState(false);
   const [headerOffset, setHeaderOffset] = useState(0);
@@ -86,9 +100,16 @@ export default function BouquetImageLightbox({
       return;
     }
 
+    if (canOpen && !canOpen()) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
     setScale(1);
     setPosition({ x: 0, y: 0 });
     setOpen(true);
+    onOpen?.();
   };
 
   const handleOverlayClick = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -204,9 +225,9 @@ export default function BouquetImageLightbox({
         <ImageWithFallback
           src={src}
           alt={alt}
-          width={520}
-          height={520}
-          className="aspect-square w-full object-cover"
+          width={previewWidth}
+          height={previewHeight}
+          className={imageClassName || "aspect-square w-full object-cover"}
         />
       </button>
       {open && portalRoot
@@ -249,8 +270,8 @@ export default function BouquetImageLightbox({
                 <ImageWithFallback
                   src={src}
                   alt={alt}
-                  width={1600}
-                  height={1600}
+                  width={lightboxWidth}
+                  height={lightboxHeight}
                   className="max-h-[85vh] max-w-[90vw] block h-auto w-auto object-contain"
                   draggable={false}
                 />

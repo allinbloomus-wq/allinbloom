@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import ImageWithFallback from "@/components/image-with-fallback";
+import BouquetImageLightbox from "@/components/bouquet-image-lightbox";
 
 type PromoSlide = {
   id: string;
@@ -257,7 +257,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
   }, []);
 
   return (
-    <div className="glass rounded-[36px] border border-white/80 p-6">
+    <div className="rounded-[28px] border-0 bg-transparent p-0 shadow-none sm:glass sm:rounded-[36px] sm:border sm:border-white/80 sm:p-6">
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
@@ -272,7 +272,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
         </div>
       </div>
 
-      <div className="relative mt-6">
+      <div className="relative mt-5 sm:mt-6">
         <div
           ref={viewportRef}
           className="select-none overflow-x-auto rounded-[28px] border border-white/80 scroll-smooth snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
@@ -292,18 +292,22 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
                 }}
                 className="w-full flex-shrink-0 snap-start cursor-grab active:cursor-grabbing lg:w-[calc((100%-2rem)/3)]"
               >
-                <div className="relative w-full overflow-hidden rounded-[24px] border border-white/80 aspect-[9/16] sm:aspect-[9/16] lg:aspect-[9/16]">
-                  <ImageWithFallback
+                <div className="relative w-full overflow-hidden rounded-[24px] border border-white/40 sm:border-white/80 aspect-[9/16] sm:aspect-[9/16] lg:aspect-[9/16]">
+                  <BouquetImageLightbox
                     src={slide.image}
                     alt={slide.title || "Promo slide"}
-                    fill
-                    className="object-cover pointer-events-none"
-                    sizes="(max-width: 768px) 100vw, 900px"
-                    draggable={false}
+                    className="block h-full w-full"
+                    imageClassName="h-full w-full object-cover"
+                    previewWidth={900}
+                    previewHeight={1600}
+                    lightboxWidth={1600}
+                    lightboxHeight={1600}
+                    canOpen={() => !blockLinkClickRef.current}
+                    onOpen={pauseAutoscroll}
                   />
                   <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/10 to-transparent pointer-events-none" />
                   {(slide.title || slide.subtitle || slide.link) && (
-                    <div className="absolute left-6 top-6 max-w-md text-white">
+                    <div className="pointer-events-none absolute left-6 top-6 max-w-md text-white">
                       {slide.title && (
                         <>
                           <p className="text-xs uppercase tracking-[0.3em] text-white/70">
@@ -322,7 +326,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
                       {slide.link && (
                         <Link
                           href={slide.link}
-                          className="mt-4 inline-flex rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs uppercase tracking-[0.3em] text-white backdrop-blur"
+                          className="pointer-events-auto mt-4 inline-flex rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs uppercase tracking-[0.3em] text-white backdrop-blur"
                           onClick={(event) => {
                             if (blockLinkClickRef.current) {
                               event.preventDefault();

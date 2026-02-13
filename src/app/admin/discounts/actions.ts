@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth-session";
 import { updateStoreSettings } from "@/lib/data/settings";
 import { clampPercent } from "@/lib/pricing";
@@ -100,4 +101,5 @@ export async function updateDiscountSettings(formData: FormData) {
   revalidatePath("/admin");
   revalidatePath("/catalog");
   revalidatePath("/");
+  redirect("/admin/discounts?toast=discounts-saved");
 }
