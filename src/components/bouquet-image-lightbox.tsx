@@ -24,6 +24,7 @@ type BouquetImageLightboxProps = {
   onOpen?: () => void;
   galleryItems?: LightboxGalleryItem[];
   galleryStartIndex?: number;
+  enableGalleryNavigation?: boolean;
 };
 
 export default function BouquetImageLightbox({
@@ -39,12 +40,17 @@ export default function BouquetImageLightbox({
   onOpen,
   galleryItems,
   galleryStartIndex = 0,
+  enableGalleryNavigation = false,
 }: BouquetImageLightboxProps) {
   const [open, setOpen] = useState(false);
   const [headerOffset, setHeaderOffset] = useState(0);
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [transitionDirection, setTransitionDirection] = useState<"next" | "prev" | null>(
+    null
+  );
+  const [transitionTick, setTransitionTick] = useState(0);
   const pointersRef = useRef(new Map<number, { x: number; y: number }>());
   const startDistanceRef = useRef<number | null>(null);
   const startScaleRef = useRef(1);
@@ -71,7 +77,7 @@ export default function BouquetImageLightbox({
     ];
   }, [alt, galleryItems, lightboxHeight, lightboxWidth, src]);
 
-  const hasGallery = lightboxItems.length > 1;
+  const hasGallery = enableGalleryNavigation && lightboxItems.length > 1;
 
   const clampIndex = useCallback(
     (index: number) => Math.max(0, Math.min(index, lightboxItems.length - 1)),
@@ -94,10 +100,13 @@ export default function BouquetImageLightbox({
 
   const goToIndex = useCallback(
     (targetIndex: number) => {
+      const current = currentIndexRef.current;
       const nextIndex = clampIndex(targetIndex);
-      if (nextIndex === currentIndexRef.current) {
+      if (nextIndex === current) {
         return;
       }
+      setTransitionDirection(nextIndex > current ? "next" : "prev");
+      setTransitionTick((value) => value + 1);
       currentIndexRef.current = nextIndex;
       setCurrentIndex(nextIndex);
       resetInteraction();
@@ -108,6 +117,11 @@ export default function BouquetImageLightbox({
   const activeItem = lightboxItems[currentIndex] || lightboxItems[0];
   const canGoPrev = hasGallery && currentIndex > 0 && scale === 1;
   const canGoNext = hasGallery && currentIndex < lightboxItems.length - 1 && scale === 1;
+  const imageAnimation = transitionDirection
+    ? transitionDirection === "next"
+      ? "lightbox-slide-next 260ms cubic-bezier(0.22, 1, 0.36, 1)"
+      : "lightbox-slide-prev 260ms cubic-bezier(0.22, 1, 0.36, 1)"
+    : "lightbox-fade-in 200ms ease-out";
 
   useEffect(() => {
     currentIndexRef.current = currentIndex;
@@ -179,7 +193,14 @@ export default function BouquetImageLightbox({
       return;
     }
 
+    // Fail-safe: avoid locking the page if portal target is not present.
+    if (!portalRoot) {
+      return;
+    }
+
     const nextIndex = clampIndex(galleryStartIndex);
+    setTransitionDirection(null);
+    setTransitionTick((value) => value + 1);
     currentIndexRef.current = nextIndex;
     setCurrentIndex(nextIndex);
     resetInteraction();
@@ -397,8 +418,61 @@ export default function BouquetImageLightbox({
                       />
                     </svg>
                   </button>
-                  <div className="pointer-events-none absolute bottom-4 left-1/2 z-20 -translate-x-1/2 rounded-full border border-white/40 bg-black/35 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-white/95 backdrop-blur">
+                  <div className="pointer-events-none absolute bottom-16 left-1/2 z-20 -translate-x-1/2 rounded-full border border-white/40 bg-black/35 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-white/95 backdrop-blur sm:bottom-4">
                     {currentIndex + 1} / {lightboxItems.length}
+                  </div>
+                  <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex items-center justify-between px-4 sm:hidden">
+                    <button
+                      type="button"
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        goToIndex(currentIndexRef.current - 1);
+                      }}
+                      disabled={!canGoPrev}
+                      className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/85 text-stone-700 shadow-sm backdrop-blur transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-35"
+                      aria-label="Previous image"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        className="h-4 w-4"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M12.78 4.22a.75.75 0 0 1 0 1.06L8.06 10l4.72 4.72a.75.75 0 1 1-1.06 1.06l-5.25-5.25a.75.75 0 0 1 0-1.06l5.25-5.25a.75.75 0 0 1 1.06 0Z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </button>
+                    <div className="rounded-full border border-white/35 bg-black/30 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-white/90 backdrop-blur">
+                      Swipe
+                    </div>
+                    <button
+                      type="button"
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        goToIndex(currentIndexRef.current + 1);
+                      }}
+                      disabled={!canGoNext}
+                      className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/85 text-stone-700 shadow-sm backdrop-blur transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-35"
+                      aria-label="Next image"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        className="h-4 w-4"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M7.22 15.78a.75.75 0 0 1 0-1.06L11.94 10 7.22 5.28a.75.75 0 1 1 1.06-1.06l5.25 5.25a.75.75 0 0 1 0 1.06l-5.25 5.25a.75.75 0 0 1-1.06 0Z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </button>
                   </div>
                 </>
               ) : null}
@@ -424,14 +498,19 @@ export default function BouquetImageLightbox({
                 >
                   Close
                 </button>
-                <ImageWithFallback
-                  src={activeItem.src}
-                  alt={activeItem.alt}
-                  width={activeItem.lightboxWidth || lightboxWidth}
-                  height={activeItem.lightboxHeight || lightboxHeight}
-                  className="max-h-[85vh] max-w-[90vw] block h-auto w-auto object-contain"
-                  draggable={false}
-                />
+                <div
+                  key={`${currentIndex}-${transitionTick}`}
+                  style={{ animation: imageAnimation }}
+                >
+                  <ImageWithFallback
+                    src={activeItem.src}
+                    alt={activeItem.alt}
+                    width={activeItem.lightboxWidth || lightboxWidth}
+                    height={activeItem.lightboxHeight || lightboxHeight}
+                    className="max-h-[85vh] max-w-[90vw] block h-auto w-auto object-contain"
+                    draggable={false}
+                  />
+                </div>
               </div>
             </div>,
             portalRoot

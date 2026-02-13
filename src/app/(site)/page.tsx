@@ -301,6 +301,7 @@ export default async function HomePage() {
                   lightboxHeight={1600}
                   galleryItems={atelierGalleryItems}
                   galleryStartIndex={idx}
+                  enableGalleryNavigation
                 />
               </div>
             ))}

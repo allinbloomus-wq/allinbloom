@@ -316,6 +316,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
                     onOpen={pauseAutoscroll}
                     galleryItems={promoLightboxItems}
                     galleryStartIndex={idx}
+                    enableGalleryNavigation
                   />
                   <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/10 to-transparent pointer-events-none" />
                   {(slide.title || slide.subtitle || slide.link) && (
