@@ -65,7 +65,6 @@ export default function BouquetImageLightbox({
   onOpen,
 }: BouquetImageLightboxProps) {
   const [open, setOpen] = useState(false);
-  const [headerOffset, setHeaderOffset] = useState(0);
   const [telegramViewport, setTelegramViewport] = useState<TelegramViewport | null>(null);
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const [scale, setScale] = useState(1);
@@ -94,37 +93,25 @@ export default function BouquetImageLightbox({
 
   useEffect(() => {
     if (!open) return;
-    const updateOffset = () => {
+    const updateViewport = () => {
       if (detectTelegramWebview()) {
-        setHeaderOffset(0);
         setTelegramViewport(getTelegramViewport());
         return;
       }
       setTelegramViewport(null);
-
-      const header = document.querySelector("header");
-      if (!header) {
-        setHeaderOffset(0);
-        return;
-      }
-
-      const position = window.getComputedStyle(header).position;
-      const shouldReserveHeaderSpace = position === "sticky" || position === "fixed";
-      const height = shouldReserveHeaderSpace ? header.getBoundingClientRect().height : 0;
-      setHeaderOffset(height);
     };
-    updateOffset();
-    const delayedUpdate = window.setTimeout(updateOffset, 120);
-    window.visualViewport?.addEventListener("resize", updateOffset);
-    window.visualViewport?.addEventListener("scroll", updateOffset);
-    window.addEventListener("resize", updateOffset);
-    window.addEventListener("scroll", updateOffset, { passive: true });
+    updateViewport();
+    const delayedUpdate = window.setTimeout(updateViewport, 120);
+    window.visualViewport?.addEventListener("resize", updateViewport);
+    window.visualViewport?.addEventListener("scroll", updateViewport);
+    window.addEventListener("resize", updateViewport);
+    window.addEventListener("scroll", updateViewport, { passive: true });
     return () => {
       window.clearTimeout(delayedUpdate);
-      window.visualViewport?.removeEventListener("resize", updateOffset);
-      window.visualViewport?.removeEventListener("scroll", updateOffset);
-      window.removeEventListener("resize", updateOffset);
-      window.removeEventListener("scroll", updateOffset);
+      window.visualViewport?.removeEventListener("resize", updateViewport);
+      window.visualViewport?.removeEventListener("scroll", updateViewport);
+      window.removeEventListener("resize", updateViewport);
+      window.removeEventListener("scroll", updateViewport);
     };
   }, [open]);
 
@@ -305,7 +292,7 @@ export default function BouquetImageLightbox({
                       zIndex: 120,
                     }
                   : {
-                      top: headerOffset,
+                      top: 0,
                       left: 0,
                       right: 0,
                       bottom: 0,
