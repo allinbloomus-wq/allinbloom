@@ -141,7 +141,7 @@ export default function AdminDiscountsForm({
     <form
       action={action}
       onSubmit={onSubmit}
-      className="glass max-w-full space-y-6 rounded-[28px] border border-white/80 p-4 sm:p-6"
+      className="glass relative z-10 max-w-full space-y-6 rounded-[28px] border border-white/80 p-4 sm:p-6"
     >
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="min-w-0 space-y-4">
@@ -213,7 +213,7 @@ export default function AdminDiscountsForm({
               className={fieldClass(invalidSet.has("categoryDiscountPercent"))}
             />
           </label>
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label className="relative z-10 flex flex-col gap-2 text-sm text-stone-700">
             Flower type
             <select
               name="categoryFlowerType"
@@ -239,7 +239,7 @@ export default function AdminDiscountsForm({
               className={fieldClass(invalidSet.has("categoryDiscountNote"))}
             />
           </label>
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label className="relative z-10 flex flex-col gap-2 text-sm text-stone-700">
             Style
             <select
               name="categoryStyle"
@@ -256,7 +256,7 @@ export default function AdminDiscountsForm({
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label className="relative z-10 flex flex-col gap-2 text-sm text-stone-700">
             Mixed / Mono
             <select
               name="categoryMixed"
@@ -270,7 +270,7 @@ export default function AdminDiscountsForm({
               <option value="mono">Mono</option>
             </select>
           </label>
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label className="relative z-10 flex flex-col gap-2 text-sm text-stone-700">
             Color
             <select
               name="categoryColor"

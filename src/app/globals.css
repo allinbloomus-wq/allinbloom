@@ -128,7 +128,7 @@
 
   .custom-select-panel {
     position: absolute;
-    z-index: 30;
+    z-index: 40;
     top: calc(100% + 0.5rem);
     left: 0;
     width: 100%;

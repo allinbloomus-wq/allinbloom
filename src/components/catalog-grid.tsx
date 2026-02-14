@@ -137,7 +137,7 @@ export default function CatalogGrid({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="relative z-0 space-y-6">
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {items.map((entry) => (
           <BouquetCard

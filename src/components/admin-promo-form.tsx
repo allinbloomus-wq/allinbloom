@@ -13,7 +13,7 @@ export default function AdminPromoForm({ slide, action }: AdminPromoFormProps) {
   return (
     <form
       action={action}
-      className="glass max-w-full space-y-6 rounded-[28px] border border-white/80 p-4 sm:p-6"
+      className="glass relative z-10 max-w-full space-y-6 rounded-[28px] border border-white/80 p-4 sm:p-6"
     >
       {slide ? <input type="hidden" name="id" value={slide.id} /> : null}
 

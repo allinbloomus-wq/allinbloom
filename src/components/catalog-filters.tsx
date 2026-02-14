@@ -82,7 +82,12 @@ function FilterDropdown({
   }, [isOpen, onClose]);
 
   return (
-    <div ref={rootRef} className="relative flex min-w-0 flex-col gap-2 text-sm text-stone-700">
+    <div
+      ref={rootRef}
+      className={`relative flex min-w-0 flex-col gap-2 text-sm text-stone-700 ${
+        isOpen ? "z-30" : "z-0"
+      }`}
+    >
       <span>{label}</span>
       <button
         type="button"
@@ -216,7 +221,7 @@ function CatalogFiltersForm({ initialValues }: CatalogFiltersFormProps) {
   };
 
   return (
-    <div className="glass max-w-full rounded-[28px] border border-white/80 p-4 sm:p-6">
+    <div className="glass relative z-20 max-w-full rounded-[28px] border border-white/80 p-4 sm:p-6">
       <form
         ref={formRef}
         onSubmit={applyFilters}

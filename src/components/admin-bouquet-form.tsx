@@ -102,7 +102,7 @@ export default function AdminBouquetForm({
     <form
       action={action}
       onSubmit={onSubmit}
-      className="glass max-w-full space-y-6 rounded-[28px] border border-white/80 p-4 sm:p-6"
+      className="glass relative z-10 max-w-full space-y-6 rounded-[28px] border border-white/80 p-4 sm:p-6"
     >
       {bouquet ? <input type="hidden" name="id" value={bouquet.id} /> : null}
 
@@ -178,7 +178,7 @@ export default function AdminBouquetForm({
             recommendedSize="1000x1000"
             isInvalid={invalidSet.has("image")}
           />
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label className="relative z-10 flex flex-col gap-2 text-sm text-stone-700">
             Flower type
             <select
               name="flowerType"
@@ -192,7 +192,7 @@ export default function AdminBouquetForm({
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label className="relative z-10 flex flex-col gap-2 text-sm text-stone-700">
             Style
             <select
               name="style"
