@@ -67,7 +67,6 @@ export default function BouquetImageLightbox({
 }: BouquetImageLightboxProps) {
   const [open, setOpen] = useState(false);
   const [telegramViewport, setTelegramViewport] = useState<TelegramViewport | null>(null);
-  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const pointersRef = useRef(new Map<number, { x: number; y: number }>());
@@ -75,13 +74,7 @@ export default function BouquetImageLightbox({
   const startScaleRef = useRef(1);
   const startPositionRef = useRef({ x: 0, y: 0 });
   const lastSinglePointerRef = useRef<{ x: number; y: number } | null>(null);
-  const closeRef = useRef<HTMLButtonElement | null>(null);
   const imageContainerRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-    setPortalRoot(document.getElementById("lightbox-root") ?? document.body);
-  }, []);
 
   const close = () => {
     setOpen(false);
@@ -149,8 +142,6 @@ export default function BouquetImageLightbox({
     if (typeof document === "undefined") {
       return;
     }
-    const root = document.getElementById("lightbox-root") ?? document.body;
-    setPortalRoot(root);
 
     setScale(1);
     setPosition({ x: 0, y: 0 });
@@ -171,10 +162,6 @@ export default function BouquetImageLightbox({
   const handleImageContainerPointerDown = (
     event: React.PointerEvent<HTMLDivElement>
   ) => {
-    if (closeRef.current?.contains(event.target as Node)) {
-      return;
-    }
-
     event.stopPropagation();
 
     const target = event.currentTarget as HTMLDivElement;
@@ -254,6 +241,10 @@ export default function BouquetImageLightbox({
   };
 
   const isTelegramLightbox = open && detectTelegramWebview();
+  const portalRoot =
+    typeof document === "undefined"
+      ? null
+      : (document.getElementById("lightbox-root") ?? document.body);
 
   return (
     <>
@@ -287,6 +278,7 @@ export default function BouquetImageLightbox({
                       right: "auto",
                       bottom: "auto",
                       zIndex: 120,
+                      animation: "lightbox-fade-in 160ms ease-out",
                     }
                   : {
                       top: 0,
@@ -294,12 +286,21 @@ export default function BouquetImageLightbox({
                       right: 0,
                       bottom: 0,
                       zIndex: 120,
+                      animation: "lightbox-fade-in 160ms ease-out",
                     }
               }
               role="dialog"
               aria-modal="true"
               onClick={handleOverlayClick}
             >
+              <button
+                type="button"
+                onClick={close}
+                className="absolute right-4 top-4 z-20 rounded-full bg-white/70 px-3 py-1.5 text-[10px] font-medium uppercase tracking-[0.15em] text-stone-800 shadow-lg hover:bg-white/90 transition-colors backdrop-blur-sm"
+                aria-label="Close image"
+              >
+                Close
+              </button>
               <div
                 ref={imageContainerRef}
                 className="relative touch-none"
@@ -308,20 +309,12 @@ export default function BouquetImageLightbox({
                 onPointerUp={handlePointerUp}
                 onPointerCancel={handlePointerUp}
                 style={{
+                  animation: "lightbox-fade-in 180ms ease-out",
                   transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
                   transformOrigin: "center",
                   transition: scale === 1 ? "transform 0.2s ease-out" : "none",
                 }}
               >
-                <button
-                  type="button"
-                  onClick={close}
-                  ref={closeRef}
-                  className="absolute right-[15px] top-[15px] z-10 rounded-full bg-white/60 px-3 py-1.5 text-[10px] font-medium uppercase tracking-[0.15em] text-stone-800 shadow-lg hover:bg-white/80 transition-colors backdrop-blur-sm"
-                  aria-label="Close image"
-                >
-                  Close
-                </button>
                 <ImageWithFallback
                   src={src}
                   alt={alt}
