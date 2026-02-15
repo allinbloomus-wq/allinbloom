@@ -18,7 +18,7 @@ type PromoGalleryProps = {
 
 const DRAG_SPRING_MAX_OFFSET = 92;
 const DRAG_SPRING_MAX_OFFSET_MOBILE = 58;
-const DRAG_SPRING_FACTOR = 0.85;
+const DRAG_SPRING_FACTOR = 0.9; // Увеличено с 0.85 для более плавного пружинения
 const SWIPE_AXIS_LOCK_THRESHOLD = 8;
 const SWIPE_CHANGE_MIN_PX = 24;
 const SWIPE_CHANGE_RATIO = 0.14;
@@ -228,267 +228,298 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
     [getSpringOffset]
   );
 
-  const handleViewportScroll = useCallback(() => {
-    if (isDraggingRef.current) return;
-    if (scrollFrameRef.current !== null) return;
+  const getSlideTravelDistance = useCallback(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return 0;
 
-    scrollFrameRef.current = window.requestAnimationFrame(() => {
-      scrollFrameRef.current = null;
+    const firstSlide = slideRefs.current[0];
+    const secondSlide = slideRefs.current[1];
+    if (!firstSlide || !secondSlide) return 0;
 
-      const viewport = viewportRef.current;
-      if (!viewport) return;
-
-      let nearestIndex = 0;
-      let nearestDistance = Number.POSITIVE_INFINITY;
-
-      for (let currentIndex = 0; currentIndex <= maxIndex; currentIndex += 1) {
-        const slide = slideRefs.current[currentIndex];
-        if (!slide) continue;
-
-        const distance = Math.abs(slide.offsetLeft - viewport.scrollLeft);
-        if (distance < nearestDistance) {
-          nearestDistance = distance;
-          nearestIndex = currentIndex;
-        }
-      }
-
-      const previousIndex = indexRef.current;
-      if (nearestIndex !== previousIndex) {
-        directionRef.current = nearestIndex > previousIndex ? 1 : -1;
-        indexRef.current = nearestIndex;
-        setIndex(nearestIndex);
-      }
-    });
-  }, [maxIndex]);
-
-  const settleToNearestIndex = useCallback(
-    (behavior: ScrollBehavior) => {
-      const viewport = viewportRef.current;
-      if (!viewport) return;
-
-      let nearestIndex = 0;
-      let nearestDistance = Number.POSITIVE_INFINITY;
-
-      for (let currentIndex = 0; currentIndex <= maxIndex; currentIndex += 1) {
-        const slide = slideRefs.current[currentIndex];
-        if (!slide) continue;
-
-        const distance = Math.abs(slide.offsetLeft - viewport.scrollLeft);
-        if (distance < nearestDistance) {
-          nearestDistance = distance;
-          nearestIndex = currentIndex;
-        }
-      }
-
-      directionRef.current = nearestIndex >= indexRef.current ? 1 : -1;
-      indexRef.current = nearestIndex;
-      setIndex(nearestIndex);
-      scrollToIndex(nearestIndex, behavior);
-    },
-    [maxIndex, scrollToIndex]
-  );
+    return secondSlide.offsetLeft - firstSlide.offsetLeft;
+  }, []);
 
   const settleAfterDrag = useCallback(
-    (distance: number) => {
-      if (!canSlide) return;
+    (distanceX: number) => {
+      const viewport = viewportRef.current;
+      if (!viewport) return;
 
-      const startedAtFirst = dragStartIndexRef.current <= 0;
-      const startedAtLast = dragStartIndexRef.current >= maxIndex;
-
-      // Keep edge overscroll perfectly symmetric: always return to the same edge.
-      if ((startedAtFirst && distance <= 0) || (startedAtLast && distance >= 0)) {
+      const stepDistance = getSlideTravelDistance();
+      if (stepDistance === 0) {
         goToIndex(dragStartIndexRef.current);
         return;
       }
 
-      settleToNearestIndex("smooth");
-    },
-    [canSlide, goToIndex, maxIndex, settleToNearestIndex]
-  );
+      const viewportWidth = viewport.clientWidth;
+      const scrollLeft = dragLastScrollLeftRef.current;
+      const maxScrollLeft = Math.max(0, viewport.scrollWidth - viewportWidth);
 
-  const getSlideTravelDistance = useCallback(
-    (baseIndex: number) => {
-      const viewport = viewportRef.current;
-      if (!viewport) return 1;
+      // ИСПРАВЛЕНИЕ БАГА: Проверяем границы прокрутки
+      const isAtStart = scrollLeft <= 0;
+      const isAtEnd = scrollLeft >= maxScrollLeft - 1; // Добавляем небольшой допуск
 
-      const current = slideRefs.current[baseIndex] || null;
-      const next = slideRefs.current[Math.min(baseIndex + 1, maxIndex)] || null;
-      const prev = slideRefs.current[Math.max(baseIndex - 1, 0)] || null;
-
-      if (current && next && next !== current) {
-        return Math.max(1, Math.abs(next.offsetLeft - current.offsetLeft));
+      // Если мы на границе и пытаемся выйти за неё, возвращаемся к текущему индексу
+      if (isAtStart && distanceX > 0) {
+        goToIndex(0);
+        return;
       }
-      if (current && prev && prev !== current) {
-        return Math.max(1, Math.abs(current.offsetLeft - prev.offsetLeft));
+      
+      if (isAtEnd && distanceX < 0) {
+        goToIndex(maxIndex);
+        return;
       }
 
-      return Math.max(1, viewport.clientWidth / Math.max(1, perView));
+      // Вычисляем ближайший индекс на основе текущей позиции скролла
+      let closestIndex = dragStartIndexRef.current;
+      let minDistance = Infinity;
+
+      for (let i = 0; i < slideRefs.current.length; i++) {
+        const slide = slideRefs.current[i];
+        if (!slide) continue;
+
+        const slideLeft = slide.offsetLeft;
+        const distance = Math.abs(scrollLeft - slideLeft);
+
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestIndex = i;
+        }
+      }
+
+      // Ограничиваем индекс максимальным значением
+      closestIndex = Math.min(closestIndex, maxIndex);
+      goToIndex(closestIndex);
     },
-    [maxIndex, perView]
+    [getSlideTravelDistance, goToIndex, maxIndex]
   );
 
-  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!event.isPrimary || !hasSlides || event.pointerType === "touch") return;
-    beginInteraction(event.clientX, event.clientY);
-
+  const handleViewportScroll = useCallback(() => {
     const viewport = viewportRef.current;
-    if (!viewport) return;
+    if (!viewport || isDraggingRef.current) return;
 
-    dragPointerIdRef.current = event.pointerId;
-    dragStartXRef.current = event.clientX;
-    dragStartYRef.current = event.clientY;
-    dragStartScrollLeftRef.current = viewport.scrollLeft;
-    dragStartIndexRef.current = indexRef.current;
-    dragStartTimeRef.current = performance.now();
-    dragLastScrollLeftRef.current = viewport.scrollLeft;
-    isDraggingRef.current = true;
-    setIsDragging(true);
-    if (typeof viewport.setPointerCapture === "function") {
-      viewport.setPointerCapture(event.pointerId);
+    if (scrollFrameRef.current !== null) {
+      return;
     }
-  };
 
-  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!event.isPrimary || event.pointerType === "touch") return;
-    moveInteraction(event.clientX, event.clientY);
-    if (dragPointerIdRef.current !== event.pointerId) return;
-    applyDragPosition(event.clientX);
-  };
+    scrollFrameRef.current = window.requestAnimationFrame(() => {
+      scrollFrameRef.current = null;
 
-  const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.pointerType === "touch") return;
-    if (
-      dragPointerIdRef.current !== null &&
-      dragPointerIdRef.current === event.pointerId
-    ) {
+      let closestIndex = 0;
+      let closestDistance = Infinity;
+
+      for (let i = 0; i < slideRefs.current.length; i++) {
+        const slide = slideRefs.current[i];
+        if (!slide) continue;
+
+        const distance = Math.abs(
+          slide.offsetLeft - viewport.scrollLeft
+        );
+
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestIndex = i;
+        }
+      }
+
+      if (closestIndex !== indexRef.current) {
+        directionRef.current =
+          closestIndex > indexRef.current ? 1 : -1;
+        indexRef.current = closestIndex;
+        setIndex(closestIndex);
+      }
+    });
+  }, []);
+
+  const handleNext = useCallback(() => {
+    const nextIndex = Math.min(index + 1, maxIndex);
+    goToIndex(nextIndex);
+  }, [goToIndex, index, maxIndex]);
+
+  const handlePrev = useCallback(() => {
+    const prevIndex = Math.max(index - 1, 0);
+    goToIndex(prevIndex);
+  }, [goToIndex, index]);
+
+  const handlePointerDown = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      if (!canSlide) return;
+
       const viewport = viewportRef.current;
-      if (
-        viewport &&
-        typeof viewport.hasPointerCapture === "function" &&
-        viewport.hasPointerCapture(event.pointerId) &&
-        typeof viewport.releasePointerCapture === "function"
-      ) {
+      if (!viewport) return;
+
+      if (event.button !== 0) return;
+
+      dragPointerIdRef.current = event.pointerId;
+      dragStartXRef.current = event.clientX;
+      dragStartYRef.current = event.clientY;
+      dragStartScrollLeftRef.current = viewport.scrollLeft;
+      dragLastScrollLeftRef.current = viewport.scrollLeft;
+      dragStartIndexRef.current = indexRef.current;
+      dragStartTimeRef.current = Date.now();
+
+      setIsDragging(true);
+      setDragOffset(0);
+
+      viewport.setPointerCapture(event.pointerId);
+      beginInteraction(event.clientX, event.clientY);
+    },
+    [beginInteraction, canSlide]
+  );
+
+  const handlePointerMove = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      if (dragPointerIdRef.current !== event.pointerId) return;
+
+      applyDragPosition(event.clientX);
+      moveInteraction(event.clientX, event.clientY);
+    },
+    [applyDragPosition, moveInteraction]
+  );
+
+  const handlePointerUp = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      if (dragPointerIdRef.current !== event.pointerId) return;
+
+      const viewport = viewportRef.current;
+      if (viewport) {
         viewport.releasePointerCapture(event.pointerId);
       }
+
       dragPointerIdRef.current = null;
-    }
 
-    isDraggingRef.current = false;
-    setIsDragging(false);
-    setDragOffset(0);
-    const distance =
-      dragLastScrollLeftRef.current - dragStartScrollLeftRef.current;
-    settleAfterDrag(distance);
-    endInteraction();
-  };
+      setIsDragging(false);
+      setDragOffset(0);
 
-  const handlePrev = () => {
-    if (!canSlide) return;
-    goToIndex(indexRef.current - 1);
-  };
+      const distanceX = event.clientX - dragStartXRef.current;
+      const timeElapsed = Date.now() - dragStartTimeRef.current;
+      const velocity = timeElapsed > 0 ? distanceX / timeElapsed : 0;
 
-  const handleNext = () => {
-    if (!canSlide) return;
-    goToIndex(indexRef.current + 1);
-  };
+      const stepDistance = getSlideTravelDistance();
+      const swipeThreshold = Math.max(
+        SWIPE_CHANGE_MIN_PX,
+        stepDistance * SWIPE_CHANGE_RATIO
+      );
+      const isFlick =
+        Math.abs(distanceX) >= SWIPE_FLICK_MIN_PX &&
+        Math.abs(velocity) >= SWIPE_FLICK_VELOCITY;
+
+      let switchedBySwipe = false;
+
+      if (distanceX <= -swipeThreshold || (distanceX < 0 && isFlick)) {
+        goToIndex(dragStartIndexRef.current + 1);
+        switchedBySwipe = true;
+      } else if (distanceX >= swipeThreshold || (distanceX > 0 && isFlick)) {
+        goToIndex(dragStartIndexRef.current - 1);
+        switchedBySwipe = true;
+      }
+
+      if (!switchedBySwipe) {
+        settleAfterDrag(distanceX);
+      }
+
+      endInteraction();
+    },
+    [
+      endInteraction,
+      getSlideTravelDistance,
+      goToIndex,
+      settleAfterDrag,
+    ]
+  );
 
   useEffect(() => {
-    const clampedIndex = Math.min(indexRef.current, maxIndex);
-    indexRef.current = clampedIndex;
-    scrollToIndex(clampedIndex, "auto");
-  }, [items.length, maxIndex, perView, scrollToIndex]);
+    if (!hasSlides || !canSlide || isAutoPaused || isDragging) return;
 
-  useEffect(() => {
-    if (!canSlide || isAutoPaused) return;
+    const autoInterval = setInterval(() => {
+      const nextIndex =
+        directionRef.current > 0
+          ? indexRef.current + 1
+          : indexRef.current - 1;
 
-    const interval = setInterval(() => {
-      setIndex(() => {
-        const currentIndex = Math.min(indexRef.current, maxIndex);
-        const nextRaw = currentIndex + directionRef.current;
-        let nextIndex = nextRaw;
-
-        if (nextRaw > maxIndex) {
-          directionRef.current = -1;
-          nextIndex = Math.max(currentIndex - 1, 0);
-        } else if (nextRaw < 0) {
-          directionRef.current = 1;
-          nextIndex = Math.min(currentIndex + 1, maxIndex);
-        }
-
-        indexRef.current = nextIndex;
-        scrollToIndex(nextIndex, "smooth");
-        return nextIndex;
-      });
+      if (nextIndex > maxIndex) {
+        directionRef.current = -1;
+        goToIndex(maxIndex - 1);
+      } else if (nextIndex < 0) {
+        directionRef.current = 1;
+        goToIndex(1);
+      } else {
+        goToIndex(nextIndex);
+      }
     }, 5000);
 
-    return () => clearInterval(interval);
-  }, [canSlide, isAutoPaused, maxIndex, scrollToIndex]);
+    return () => clearInterval(autoInterval);
+  }, [canSlide, goToIndex, hasSlides, isAutoPaused, isDragging, maxIndex]);
 
   useEffect(() => {
     const viewport = viewportRef.current;
-    if (!viewport) return;
+    if (!viewport || !hasSlides || !canSlide) return;
 
     const onTouchStart = (event: TouchEvent) => {
-      if (!hasSlides || event.touches.length !== 1) return;
+      if (event.touches.length !== 1) return;
+
       const touch = event.touches[0];
-      beginInteraction(touch.clientX, touch.clientY);
+      if (!touch) return;
 
       touchGestureActiveRef.current = true;
       touchGestureAxisRef.current = null;
       dragStartXRef.current = touch.clientX;
       dragStartYRef.current = touch.clientY;
       dragStartScrollLeftRef.current = viewport.scrollLeft;
-      dragStartIndexRef.current = indexRef.current;
-      dragStartTimeRef.current = performance.now();
       dragLastScrollLeftRef.current = viewport.scrollLeft;
+      dragStartIndexRef.current = indexRef.current;
+      dragStartTimeRef.current = Date.now();
+
+      setIsDragging(true);
+      setDragOffset(0);
+      beginInteraction(touch.clientX, touch.clientY);
     };
 
     const onTouchMove = (event: TouchEvent) => {
-      if (!touchGestureActiveRef.current || event.touches.length !== 1) return;
+      if (!touchGestureActiveRef.current || event.touches.length !== 1) {
+        return;
+      }
+
       const touch = event.touches[0];
-      moveInteraction(touch.clientX, touch.clientY);
+      if (!touch) return;
+
+      const deltaX = Math.abs(touch.clientX - dragStartXRef.current);
+      const deltaY = Math.abs(touch.clientY - dragStartYRef.current);
 
       if (touchGestureAxisRef.current === null) {
-        const movedX = Math.abs(touch.clientX - dragStartXRef.current);
-        const movedY = Math.abs(touch.clientY - dragStartYRef.current);
-        if (
-          movedX < SWIPE_AXIS_LOCK_THRESHOLD &&
-          movedY < SWIPE_AXIS_LOCK_THRESHOLD
-        ) {
-          return;
+        if (deltaX > SWIPE_AXIS_LOCK_THRESHOLD || deltaY > SWIPE_AXIS_LOCK_THRESHOLD) {
+          touchGestureAxisRef.current = deltaX > deltaY ? "x" : "y";
         }
-        touchGestureAxisRef.current = movedX > movedY ? "x" : "y";
       }
 
-      if (touchGestureAxisRef.current !== "x") return;
-      if (event.cancelable) {
+      if (touchGestureAxisRef.current === "x") {
         event.preventDefault();
+        applyDragPosition(touch.clientX);
+        moveInteraction(touch.clientX, touch.clientY);
       }
-      if (!isDraggingRef.current) {
-        isDraggingRef.current = true;
-        setIsDragging(true);
-      }
-      applyDragPosition(touch.clientX);
     };
 
-    const onTouchEnd = () => {
+    const onTouchEnd = (event: TouchEvent) => {
       if (!touchGestureActiveRef.current) return;
-      const hadHorizontalDrag = touchGestureAxisRef.current === "x";
-      const distance =
-        dragLastScrollLeftRef.current - dragStartScrollLeftRef.current;
+
       touchGestureActiveRef.current = false;
-      touchGestureAxisRef.current = null;
-      if (isDraggingRef.current) {
-        isDraggingRef.current = false;
-        setIsDragging(false);
-      }
+      setIsDragging(false);
       setDragOffset(0);
 
+      const touch = event.changedTouches[0];
+      if (!touch) {
+        settleAfterDrag(0);
+        endInteraction();
+        return;
+      }
+
+      const distance = dragStartXRef.current - touch.clientX;
+      const timeElapsed = Date.now() - dragStartTimeRef.current;
+      const velocity = timeElapsed > 0 ? distance / timeElapsed : 0;
+
       let switchedBySwipe = false;
-      if (canSlide && hadHorizontalDrag) {
-        const elapsed = Math.max(1, performance.now() - dragStartTimeRef.current);
-        const velocity = distance / elapsed;
-        const stepDistance = getSlideTravelDistance(dragStartIndexRef.current);
+
+      if (touchGestureAxisRef.current === "x") {
+        const stepDistance = getSlideTravelDistance();
         const swipeThreshold = Math.max(
           SWIPE_CHANGE_MIN_PX,
           stepDistance * SWIPE_CHANGE_RATIO
@@ -586,7 +617,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
               transform: `translate3d(${dragOffset}px, 0, 0)`,
               transition: isDragging
                 ? "none"
-                : "transform 460ms cubic-bezier(0.22, 0.9, 0.24, 1)",
+                : "transform 400ms cubic-bezier(0.25, 0.8, 0.25, 1)", // Улучшенная кривая для более плавной анимации
             }}
           >
             {items.map((slide, idx) => (
@@ -715,4 +746,3 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
     </div>
   );
 }
-
