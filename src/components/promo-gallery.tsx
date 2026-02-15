@@ -17,7 +17,7 @@ type PromoGalleryProps = {
 };
 
 const DRAG_SPRING_MAX_OFFSET = 84;
-const DRAG_SPRING_FACTOR = 0.34;
+const DRAG_SPRING_FACTOR = 1;
 const SWIPE_AXIS_LOCK_THRESHOLD = 8;
 
 const FALLBACK_SLIDES: PromoSlide[] = [
@@ -76,10 +76,15 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
   const dragStartScrollLeftRef = useRef(0);
   const touchGestureActiveRef = useRef(false);
   const touchGestureAxisRef = useRef<"x" | "y" | null>(null);
+  const isDraggingRef = useRef(false);
 
   useEffect(() => {
     indexRef.current = index;
   }, [index]);
+
+  useEffect(() => {
+    isDraggingRef.current = isDragging;
+  }, [isDragging]);
 
   useEffect(() => {
     slideRefs.current = slideRefs.current.slice(0, items.length);
@@ -179,9 +184,12 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
   const getSpringOffset = useCallback((overflow: number) => {
     if (overflow === 0) return 0;
     const sign = Math.sign(overflow);
-    const eased =
-      Math.pow(Math.abs(overflow), 0.86) * DRAG_SPRING_FACTOR;
-    return sign * Math.min(DRAG_SPRING_MAX_OFFSET, eased);
+    const absOverflow = Math.abs(overflow);
+    const scaled = absOverflow * DRAG_SPRING_FACTOR;
+    const softened =
+      DRAG_SPRING_MAX_OFFSET *
+      (1 - Math.exp(-scaled / DRAG_SPRING_MAX_OFFSET));
+    return sign * softened;
   }, []);
 
   const applyDragPosition = useCallback(
@@ -215,6 +223,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
   );
 
   const handleViewportScroll = useCallback(() => {
+    if (isDraggingRef.current) return;
     if (scrollFrameRef.current !== null) return;
 
     scrollFrameRef.current = window.requestAnimationFrame(() => {
@@ -246,6 +255,33 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
     });
   }, [maxIndex]);
 
+  const settleToNearestIndex = useCallback(
+    (behavior: ScrollBehavior) => {
+      const viewport = viewportRef.current;
+      if (!viewport) return;
+
+      let nearestIndex = 0;
+      let nearestDistance = Number.POSITIVE_INFINITY;
+
+      for (let currentIndex = 0; currentIndex <= maxIndex; currentIndex += 1) {
+        const slide = slideRefs.current[currentIndex];
+        if (!slide) continue;
+
+        const distance = Math.abs(slide.offsetLeft - viewport.scrollLeft);
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearestIndex = currentIndex;
+        }
+      }
+
+      directionRef.current = nearestIndex >= indexRef.current ? 1 : -1;
+      indexRef.current = nearestIndex;
+      setIndex(nearestIndex);
+      scrollToIndex(nearestIndex, behavior);
+    },
+    [maxIndex, scrollToIndex]
+  );
+
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!event.isPrimary || !hasSlides || event.pointerType === "touch") return;
     beginInteraction(event.clientX, event.clientY);
@@ -257,6 +293,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
     dragStartXRef.current = event.clientX;
     dragStartYRef.current = event.clientY;
     dragStartScrollLeftRef.current = viewport.scrollLeft;
+    isDraggingRef.current = true;
     setIsDragging(true);
     if (typeof viewport.setPointerCapture === "function") {
       viewport.setPointerCapture(event.pointerId);
@@ -288,60 +325,12 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
       dragPointerIdRef.current = null;
     }
 
+    isDraggingRef.current = false;
     setIsDragging(false);
     setDragOffset(0);
-    endInteraction();
-  };
-
-  const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
-    if (!hasSlides || event.touches.length !== 1) return;
-    const touch = event.touches[0];
-    beginInteraction(touch.clientX, touch.clientY);
-
-    const viewport = viewportRef.current;
-    if (!viewport) return;
-
-    touchGestureActiveRef.current = true;
-    touchGestureAxisRef.current = null;
-    dragStartXRef.current = touch.clientX;
-    dragStartYRef.current = touch.clientY;
-    dragStartScrollLeftRef.current = viewport.scrollLeft;
-  };
-
-  const handleTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
-    if (!touchGestureActiveRef.current || event.touches.length !== 1) return;
-
-    const touch = event.touches[0];
-    moveInteraction(touch.clientX, touch.clientY);
-
-    if (touchGestureAxisRef.current === null) {
-      const movedX = Math.abs(touch.clientX - dragStartXRef.current);
-      const movedY = Math.abs(touch.clientY - dragStartYRef.current);
-      if (
-        movedX < SWIPE_AXIS_LOCK_THRESHOLD &&
-        movedY < SWIPE_AXIS_LOCK_THRESHOLD
-      ) {
-        return;
-      }
-      touchGestureAxisRef.current = movedX > movedY ? "x" : "y";
+    if (canSlide) {
+      settleToNearestIndex("smooth");
     }
-
-    if (touchGestureAxisRef.current !== "x") return;
-
-    if (event.cancelable) {
-      event.preventDefault();
-    }
-
-    setIsDragging(true);
-    applyDragPosition(touch.clientX);
-  };
-
-  const handleTouchEnd = () => {
-    if (!touchGestureActiveRef.current) return;
-    touchGestureActiveRef.current = false;
-    touchGestureAxisRef.current = null;
-    setIsDragging(false);
-    setDragOffset(0);
     endInteraction();
   };
 
@@ -388,6 +377,86 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
   }, [canSlide, isAutoPaused, maxIndex, scrollToIndex]);
 
   useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+
+    const onTouchStart = (event: TouchEvent) => {
+      if (!hasSlides || event.touches.length !== 1) return;
+      const touch = event.touches[0];
+      beginInteraction(touch.clientX, touch.clientY);
+
+      touchGestureActiveRef.current = true;
+      touchGestureAxisRef.current = null;
+      dragStartXRef.current = touch.clientX;
+      dragStartYRef.current = touch.clientY;
+      dragStartScrollLeftRef.current = viewport.scrollLeft;
+    };
+
+    const onTouchMove = (event: TouchEvent) => {
+      if (!touchGestureActiveRef.current || event.touches.length !== 1) return;
+      const touch = event.touches[0];
+      moveInteraction(touch.clientX, touch.clientY);
+
+      if (touchGestureAxisRef.current === null) {
+        const movedX = Math.abs(touch.clientX - dragStartXRef.current);
+        const movedY = Math.abs(touch.clientY - dragStartYRef.current);
+        if (
+          movedX < SWIPE_AXIS_LOCK_THRESHOLD &&
+          movedY < SWIPE_AXIS_LOCK_THRESHOLD
+        ) {
+          return;
+        }
+        touchGestureAxisRef.current = movedX > movedY ? "x" : "y";
+      }
+
+      if (touchGestureAxisRef.current !== "x") return;
+      if (event.cancelable) {
+        event.preventDefault();
+      }
+      if (!isDraggingRef.current) {
+        isDraggingRef.current = true;
+        setIsDragging(true);
+      }
+      applyDragPosition(touch.clientX);
+    };
+
+    const onTouchEnd = () => {
+      if (!touchGestureActiveRef.current) return;
+      touchGestureActiveRef.current = false;
+      touchGestureAxisRef.current = null;
+      if (isDraggingRef.current) {
+        isDraggingRef.current = false;
+        setIsDragging(false);
+      }
+      setDragOffset(0);
+      if (canSlide) {
+        settleToNearestIndex("smooth");
+      }
+      endInteraction();
+    };
+
+    viewport.addEventListener("touchstart", onTouchStart, { passive: true });
+    viewport.addEventListener("touchmove", onTouchMove, { passive: false });
+    viewport.addEventListener("touchend", onTouchEnd, { passive: true });
+    viewport.addEventListener("touchcancel", onTouchEnd, { passive: true });
+
+    return () => {
+      viewport.removeEventListener("touchstart", onTouchStart);
+      viewport.removeEventListener("touchmove", onTouchMove);
+      viewport.removeEventListener("touchend", onTouchEnd);
+      viewport.removeEventListener("touchcancel", onTouchEnd);
+    };
+  }, [
+    applyDragPosition,
+    beginInteraction,
+    canSlide,
+    endInteraction,
+    hasSlides,
+    moveInteraction,
+    settleToNearestIndex,
+  ]);
+
+  useEffect(() => {
     return () => {
       if (pauseTimerRef.current) {
         clearTimeout(pauseTimerRef.current);
@@ -420,17 +489,18 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
       <div className="relative mt-5 sm:mt-6">
         <div
           ref={viewportRef}
-          className="touch-pan-y select-none overflow-x-auto rounded-[28px] border border-white/80 scroll-smooth snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+          className="touch-pan-y overscroll-x-contain select-none overflow-x-auto rounded-[28px] border border-white/80 snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
           onScroll={handleViewportScroll}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
           onPointerLeave={handlePointerUp}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          onTouchCancel={handleTouchEnd}
+          style={{
+            scrollBehavior: isDragging ? "auto" : "smooth",
+            scrollSnapType: isDragging ? "none" : "x mandatory",
+            WebkitOverflowScrolling: "touch",
+          }}
         >
           <div
             className="flex gap-0 md:gap-4"
