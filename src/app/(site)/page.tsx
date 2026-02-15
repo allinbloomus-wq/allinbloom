@@ -84,7 +84,7 @@ export default async function HomePage() {
   };
 
   return (
-    <div className="flex flex-col gap-14 sm:gap-20">
+    <div className="flex flex-col gap-14 sm:gap-20 lg:gap-[4.5rem]">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{

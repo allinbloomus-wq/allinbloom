@@ -22,7 +22,7 @@ const SWIPE_AXIS_LOCK_THRESHOLD = 8;
 const SWIPE_CHANGE_MIN_PX = 24;
 const SWIPE_CHANGE_RATIO = 0.14;
 const SWIPE_FLICK_MIN_PX = 10;
-const SWIPE_FLICK_VELOCITY = 0.35;
+const SWIPE_FLICK_VELOCITY = 0.2;
 
 const FALLBACK_SLIDES: PromoSlide[] = [
   {
@@ -80,8 +80,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
   const dragStartScrollLeftRef = useRef(0);
   const dragStartIndexRef = useRef(0);
   const dragStartTimeRef = useRef(0);
-  const dragLastXRef = useRef(0);
-  const dragLastTimeRef = useRef(0);
+  const dragLastScrollLeftRef = useRef(0);
   const touchGestureActiveRef = useRef(false);
   const touchGestureAxisRef = useRef<"x" | "y" | null>(null);
   const isDraggingRef = useRef(false);
@@ -211,20 +210,13 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
         0,
         viewport.scrollWidth - viewport.clientWidth
       );
+      const clampedScrollLeft = Math.max(0, Math.min(nextScrollLeft, maxScrollLeft));
+      viewport.scrollLeft = clampedScrollLeft;
+      dragLastScrollLeftRef.current = clampedScrollLeft;
 
-      if (maxScrollLeft > 0) {
-        viewport.scrollLeft = nextScrollLeft;
-      }
-
-      let nextOffset = 0;
-      if (maxScrollLeft === 0) {
-        nextOffset = getSpringOffset(distanceX);
-      } else if (nextScrollLeft < 0) {
-        nextOffset = getSpringOffset(-nextScrollLeft);
-      } else if (nextScrollLeft > maxScrollLeft) {
-        nextOffset = getSpringOffset(-(nextScrollLeft - maxScrollLeft));
-      }
-
+      const overflow = nextScrollLeft - clampedScrollLeft;
+      const nextOffset =
+        maxScrollLeft === 0 ? getSpringOffset(distanceX) : getSpringOffset(-overflow);
       setDragOffset(nextOffset);
     },
     [getSpringOffset]
@@ -324,8 +316,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
     dragStartScrollLeftRef.current = viewport.scrollLeft;
     dragStartIndexRef.current = indexRef.current;
     dragStartTimeRef.current = performance.now();
-    dragLastXRef.current = event.clientX;
-    dragLastTimeRef.current = dragStartTimeRef.current;
+    dragLastScrollLeftRef.current = viewport.scrollLeft;
     isDraggingRef.current = true;
     setIsDragging(true);
     if (typeof viewport.setPointerCapture === "function") {
@@ -337,8 +328,6 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
     if (!event.isPrimary || event.pointerType === "touch") return;
     moveInteraction(event.clientX, event.clientY);
     if (dragPointerIdRef.current !== event.pointerId) return;
-    dragLastXRef.current = event.clientX;
-    dragLastTimeRef.current = performance.now();
     applyDragPosition(event.clientX);
   };
 
@@ -427,8 +416,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
       dragStartScrollLeftRef.current = viewport.scrollLeft;
       dragStartIndexRef.current = indexRef.current;
       dragStartTimeRef.current = performance.now();
-      dragLastXRef.current = touch.clientX;
-      dragLastTimeRef.current = dragStartTimeRef.current;
+      dragLastScrollLeftRef.current = viewport.scrollLeft;
     };
 
     const onTouchMove = (event: TouchEvent) => {
@@ -456,8 +444,6 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
         isDraggingRef.current = true;
         setIsDragging(true);
       }
-      dragLastXRef.current = touch.clientX;
-      dragLastTimeRef.current = performance.now();
       applyDragPosition(touch.clientX);
     };
 
@@ -474,8 +460,9 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
 
       let switchedBySwipe = false;
       if (canSlide && hadHorizontalDrag) {
-        const distance = dragLastXRef.current - dragStartXRef.current;
-        const elapsed = Math.max(1, dragLastTimeRef.current - dragStartTimeRef.current);
+        const distance =
+          dragLastScrollLeftRef.current - dragStartScrollLeftRef.current;
+        const elapsed = Math.max(1, performance.now() - dragStartTimeRef.current);
         const velocity = distance / elapsed;
         const stepDistance = getSlideTravelDistance(dragStartIndexRef.current);
         const swipeThreshold = Math.max(
@@ -486,10 +473,10 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
           Math.abs(distance) >= SWIPE_FLICK_MIN_PX &&
           Math.abs(velocity) >= SWIPE_FLICK_VELOCITY;
 
-        if (distance <= -swipeThreshold || (distance < 0 && isFlick)) {
+        if (distance >= swipeThreshold || (distance > 0 && isFlick)) {
           goToIndex(dragStartIndexRef.current + 1);
           switchedBySwipe = true;
-        } else if (distance >= swipeThreshold || (distance > 0 && isFlick)) {
+        } else if (distance <= -swipeThreshold || (distance < 0 && isFlick)) {
           goToIndex(dragStartIndexRef.current - 1);
           switchedBySwipe = true;
         }
@@ -563,7 +550,6 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
-          onPointerLeave={handlePointerUp}
           style={{
             scrollBehavior: isDragging ? "auto" : "smooth",
             scrollSnapType: isDragging ? "none" : "x mandatory",
@@ -682,7 +668,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
       </div>
 
       {canSlide ? (
-        <p className="mt-3 text-center text-[10px] uppercase tracking-[0.24em] text-stone-500 sm:hidden">
+        <p className="mt-3 text-center text-[10px] uppercase tracking-[0.24em] text-stone-500">
           Swipe to browse
         </p>
       ) : null}
