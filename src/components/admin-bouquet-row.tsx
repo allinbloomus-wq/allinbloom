@@ -41,7 +41,7 @@ export default function AdminBouquetRow({ bouquet }: { bouquet: Bouquet }) {
       <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
         <Link
           href={`/admin/bouquets/${bouquet.id}/edit`}
-          className="w-full rounded-full border border-stone-300 bg-white/80 px-4 py-2 text-center text-xs uppercase tracking-[0.3em] text-stone-600 sm:w-auto"
+          className="inline-flex h-11 w-full items-center justify-center rounded-full border border-stone-300 bg-white/80 px-4 text-center text-xs uppercase tracking-[0.3em] text-stone-600 sm:w-auto"
         >
           Edit
         </Link>
@@ -49,7 +49,7 @@ export default function AdminBouquetRow({ bouquet }: { bouquet: Bouquet }) {
           <input type="hidden" name="id" value={bouquet.id} />
           <button
             type="submit"
-            className="w-full rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-xs uppercase tracking-[0.3em] text-rose-700 sm:w-auto"
+            className="inline-flex h-11 w-full items-center justify-center rounded-full border border-rose-200 bg-rose-50 px-4 text-xs uppercase tracking-[0.3em] text-rose-700 sm:w-auto"
           >
             Delete
           </button>

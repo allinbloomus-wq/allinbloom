@@ -62,3 +62,7 @@ class StripeSessionOut(SchemaBase):
     payment_status: Optional[str] = None
     status: Optional[str] = None
     shipping: Optional[StripeShippingOut] = None
+    delivery_address: Optional[str] = None
+    delivery_miles: Optional[str] = None
+    delivery_fee_cents: Optional[int] = None
+    first_order_discount_percent: Optional[int] = None

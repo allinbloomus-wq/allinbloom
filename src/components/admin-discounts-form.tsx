@@ -11,7 +11,7 @@ type AdminDiscountsFormProps = {
 };
 
 const fieldClass = (isInvalid: boolean) =>
-  `w-full min-w-0 rounded-2xl bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none ${
+  `h-11 w-full min-w-0 rounded-2xl bg-white/80 px-4 py-0 text-sm text-stone-800 outline-none ${
     isInvalid
       ? "border border-rose-300 focus:border-rose-500"
       : "border border-stone-200 focus:border-stone-400"
@@ -38,7 +38,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="w-full rounded-full bg-[color:var(--brand)] px-6 py-3 text-xs uppercase tracking-[0.3em] text-white transition hover:bg-[color:var(--brand-dark)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+      className="inline-flex h-11 w-full items-center justify-center rounded-full bg-[color:var(--brand)] px-6 text-xs uppercase tracking-[0.3em] text-white transition hover:bg-[color:var(--brand-dark)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
     >
       {pending ? "Saving..." : "Save discounts"}
     </button>

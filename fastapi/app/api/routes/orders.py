@@ -29,6 +29,15 @@ from app.utils.admin_orders import parse_day_key
 router = APIRouter(prefix="/api", tags=["orders"])
 
 
+def _parse_optional_int(value: object) -> int | None:
+    if value is None:
+        return None
+    try:
+        return int(str(value))
+    except (TypeError, ValueError):
+        return None
+
+
 @router.get("/orders/me", response_model=list[OrderOut])
 def list_my_orders(user=Depends(get_current_user), db: Session = Depends(get_db)):
     orders = get_orders_by_email(db, user.email)
@@ -117,6 +126,7 @@ def get_order_stripe_session(
 
     shipping = getattr(session, "shipping_details", None)
     address = getattr(shipping, "address", None) if shipping else None
+    metadata = getattr(session, "metadata", None) or {}
     return StripeSessionOut(
         payment_status=getattr(session, "payment_status", None),
         status=getattr(session, "status", None),
@@ -136,4 +146,10 @@ def get_order_stripe_session(
         )
         if shipping
         else None,
+        delivery_address=metadata.get("deliveryAddress"),
+        delivery_miles=metadata.get("deliveryMiles"),
+        delivery_fee_cents=_parse_optional_int(metadata.get("deliveryFeeCents")),
+        first_order_discount_percent=_parse_optional_int(
+            metadata.get("firstOrderDiscountPercent")
+        ),
     )

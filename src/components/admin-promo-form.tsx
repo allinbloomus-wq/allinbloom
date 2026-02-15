@@ -7,7 +7,7 @@ type AdminPromoFormProps = {
 };
 
 const fieldClass =
-  "w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400";
+  "h-11 w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-0 text-sm text-stone-800 outline-none focus:border-stone-400";
 
 export default function AdminPromoForm({ slide, action }: AdminPromoFormProps) {
   return (
@@ -72,7 +72,7 @@ export default function AdminPromoForm({ slide, action }: AdminPromoFormProps) {
       <div className="flex flex-wrap gap-3">
         <button
           type="submit"
-          className="w-full rounded-full bg-[color:var(--brand)] px-6 py-3 text-xs uppercase tracking-[0.3em] text-white transition hover:bg-[color:var(--brand-dark)] sm:w-auto"
+          className="inline-flex h-11 w-full items-center justify-center rounded-full bg-[color:var(--brand)] px-6 text-xs uppercase tracking-[0.3em] text-white transition hover:bg-[color:var(--brand-dark)] sm:w-auto"
         >
           Save slide
         </button>

@@ -12,12 +12,20 @@ type AdminBouquetFormProps = {
   action: (formData: FormData) => Promise<void>;
 };
 
-const fieldClass = (isInvalid: boolean) =>
-  `w-full min-w-0 rounded-2xl bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none ${
+const fieldStateClass = (isInvalid: boolean) =>
+  isInvalid
+    ? "border border-rose-300 focus:border-rose-500"
+    : "border border-stone-200 focus:border-stone-400";
+
+const controlFieldClass = (isInvalid: boolean) =>
+  `h-11 w-full min-w-0 rounded-2xl bg-white/80 px-4 py-0 text-sm text-stone-800 outline-none ${fieldStateClass(
     isInvalid
-      ? "border border-rose-300 focus:border-rose-500"
-      : "border border-stone-200 focus:border-stone-400"
-  }`;
+  )}`;
+
+const textareaFieldClass = (isInvalid: boolean) =>
+  `w-full min-w-0 rounded-2xl bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none ${fieldStateClass(
+    isInvalid
+  )}`;
 
 const parseNumber = (value: FormDataEntryValue | null) => {
   const raw = String(value || "").trim();
@@ -32,7 +40,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="w-full rounded-full bg-[color:var(--brand)] px-6 py-3 text-xs uppercase tracking-[0.3em] text-white transition hover:bg-[color:var(--brand-dark)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+      className="inline-flex h-11 w-full items-center justify-center rounded-full bg-[color:var(--brand)] px-6 text-xs uppercase tracking-[0.3em] text-white transition hover:bg-[color:var(--brand-dark)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
     >
       {pending ? "Saving..." : "Save bouquet"}
     </button>
@@ -114,7 +122,7 @@ export default function AdminBouquetForm({
               name="name"
               defaultValue={bouquet?.name}
               required
-              className={fieldClass(invalidSet.has("name"))}
+              className={controlFieldClass(invalidSet.has("name"))}
             />
           </label>
           <label className="flex flex-col gap-2 text-sm text-stone-700">
@@ -124,7 +132,7 @@ export default function AdminBouquetForm({
               defaultValue={bouquet?.description}
               rows={4}
               required
-              className={fieldClass(invalidSet.has("description"))}
+              className={textareaFieldClass(invalidSet.has("description"))}
             />
           </label>
           <div className="grid gap-4">
@@ -139,7 +147,7 @@ export default function AdminBouquetForm({
                   bouquet ? (bouquet.priceCents / 100).toFixed(2) : ""
                 }
                 required
-                className={fieldClass(invalidSet.has("price"))}
+                className={controlFieldClass(invalidSet.has("price"))}
               />
             </label>
             <label className="flex flex-col gap-2 text-sm text-stone-700">
@@ -150,7 +158,7 @@ export default function AdminBouquetForm({
                 min="0"
                 max="90"
                 defaultValue={bouquet?.discountPercent ?? 0}
-                className={fieldClass(false)}
+                className={controlFieldClass(false)}
               />
             </label>
             <label className="flex flex-col gap-2 text-sm text-stone-700">
@@ -159,7 +167,7 @@ export default function AdminBouquetForm({
                 name="discountNote"
                 defaultValue={bouquet?.discountNote || ""}
                 placeholder="Reason for discount"
-                className={fieldClass(invalidSet.has("discountNote"))}
+                className={controlFieldClass(invalidSet.has("discountNote"))}
               />
             </label>
           </div>
@@ -168,7 +176,7 @@ export default function AdminBouquetForm({
             <input
               name="colors"
               defaultValue={bouquet?.colors}
-              className={fieldClass(false)}
+              className={controlFieldClass(false)}
             />
           </label>
         </div>
@@ -183,7 +191,7 @@ export default function AdminBouquetForm({
             <select
               name="flowerType"
               defaultValue={bouquet?.flowerType || FLOWER_TYPES[0]}
-              className={`select-field ${fieldClass(false)}`}
+              className={`select-field ${controlFieldClass(false)}`}
             >
               {FLOWER_TYPES.map((type) => (
                 <option key={type} value={type}>
@@ -197,7 +205,7 @@ export default function AdminBouquetForm({
             <select
               name="style"
               defaultValue={bouquet?.style || BOUQUET_STYLES[0]}
-              className={`select-field ${fieldClass(false)}`}
+              className={`select-field ${controlFieldClass(false)}`}
             >
               {BOUQUET_STYLES.map((style) => (
                 <option key={style} value={style}>

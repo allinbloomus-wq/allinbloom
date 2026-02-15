@@ -83,13 +83,16 @@
 
   .custom-select-trigger {
     position: relative;
+    display: flex;
+    align-items: center;
     width: 100%;
+    min-height: 2.75rem;
     border: 1px solid rgba(135, 87, 78, 0.25);
     border-radius: 1rem;
     background:
       linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(253, 245, 241, 0.9) 100%);
     color: #3f2a26;
-    padding: 0.68rem 2.4rem 0.68rem 0.85rem;
+    padding: 0 2.4rem 0 0.85rem;
     text-align: left;
     font-size: 0.93rem;
     line-height: 1.35;

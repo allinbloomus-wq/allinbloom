@@ -18,7 +18,7 @@ export default async function AdminPage() {
         </div>
         <Link
           href="/admin/bouquets/new"
-          className="w-full rounded-full bg-[color:var(--brand)] px-5 py-2 text-center text-xs uppercase tracking-[0.3em] text-white transition hover:bg-[color:var(--brand-dark)] sm:w-auto"
+          className="inline-flex h-11 w-full items-center justify-center rounded-full bg-[color:var(--brand)] px-5 text-center text-xs uppercase tracking-[0.3em] text-white transition hover:bg-[color:var(--brand-dark)] sm:w-auto"
         >
           Add bouquet
         </Link>

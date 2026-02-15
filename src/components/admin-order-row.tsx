@@ -58,7 +58,7 @@ export default function AdminOrderRow({ order }: AdminOrderRowProps) {
         </div>
         <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
           <div
-            className={`rounded-full px-4 py-2 text-xs uppercase tracking-[0.3em] whitespace-nowrap ${
+            className={`inline-flex h-11 items-center justify-center rounded-full px-4 text-xs uppercase tracking-[0.3em] whitespace-nowrap ${
               isPaid
                 ? "border border-emerald-200 bg-emerald-100 text-emerald-700"
                 : "border border-rose-200 bg-rose-100 text-rose-700"
@@ -70,7 +70,7 @@ export default function AdminOrderRow({ order }: AdminOrderRowProps) {
             type="button"
             onClick={toggleRead}
             disabled={isLoading}
-            className={`rounded-full border px-4 py-2 text-xs uppercase tracking-[0.3em] transition whitespace-nowrap ${
+            className={`inline-flex h-11 items-center justify-center rounded-full border px-4 text-xs uppercase tracking-[0.3em] transition whitespace-nowrap ${
               isRead
                 ? "border-emerald-200 bg-emerald-100 text-emerald-700"
                 : "border-stone-200 bg-white/80 text-stone-600"
@@ -78,12 +78,12 @@ export default function AdminOrderRow({ order }: AdminOrderRowProps) {
           >
             {isRead ? "Read" : "Unread"}
           </button>
-          <div className="rounded-full border border-stone-200 bg-white/80 px-4 py-2 text-xs uppercase tracking-[0.3em] text-stone-600 whitespace-nowrap">
+          <div className="inline-flex h-11 items-center justify-center rounded-full border border-stone-200 bg-white/80 px-4 text-xs uppercase tracking-[0.3em] text-stone-600 whitespace-nowrap">
             {order.items.length} items
           </div>
           <Link
             href={`/admin/orders/${order.id}`}
-            className="w-full rounded-full border border-stone-300 bg-white/80 px-4 py-2 text-center text-xs uppercase tracking-[0.3em] text-stone-600 sm:w-auto"
+            className="inline-flex h-11 w-full items-center justify-center rounded-full border border-stone-300 bg-white/80 px-4 text-center text-xs uppercase tracking-[0.3em] text-stone-600 sm:w-auto"
           >
             Details
           </Link>

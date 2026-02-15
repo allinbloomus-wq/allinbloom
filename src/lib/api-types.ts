@@ -111,4 +111,8 @@ export type OrderStripeSession = {
   paymentStatus: string | null;
   status: string | null;
   shipping: OrderStripeShipping | null;
+  deliveryAddress: string | null;
+  deliveryMiles: string | null;
+  deliveryFeeCents: number | null;
+  firstOrderDiscountPercent: number | null;
 };

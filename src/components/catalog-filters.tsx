@@ -163,6 +163,8 @@ function CatalogFiltersForm({ initialValues }: CatalogFiltersFormProps) {
   const formRef = useRef<HTMLFormElement | null>(null);
   const [formValues, setFormValues] = useState<FilterFormValues>(initialValues);
   const [openDropdown, setOpenDropdown] = useState<DropdownField | null>(null);
+  const priceFieldClass =
+    "h-11 w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-0 text-[0.93rem] leading-[1.35] text-stone-800 outline-none focus:border-[color:var(--brand)]";
 
   const dropdownOptions = useMemo(
     () => ({
@@ -276,7 +278,7 @@ function CatalogFiltersForm({ initialValues }: CatalogFiltersFormProps) {
             onChange={(event) => setFormValues((current) => ({ ...current, min: event.target.value }))}
             min={PRICE_LIMITS.min}
             placeholder="45"
-            className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-3 py-2 outline-none focus:border-[color:var(--brand)]"
+            className={priceFieldClass}
           />
         </label>
         <label className="flex flex-col gap-2 text-sm text-stone-700">
@@ -288,7 +290,7 @@ function CatalogFiltersForm({ initialValues }: CatalogFiltersFormProps) {
             onChange={(event) => setFormValues((current) => ({ ...current, max: event.target.value }))}
             max={PRICE_LIMITS.max}
             placeholder="200"
-            className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-3 py-2 outline-none focus:border-[color:var(--brand)]"
+            className={priceFieldClass}
           />
         </label>
       </form>
@@ -296,7 +298,7 @@ function CatalogFiltersForm({ initialValues }: CatalogFiltersFormProps) {
         <button
           type="button"
           onClick={() => formRef.current?.requestSubmit()}
-          className="w-full rounded-full bg-[color:var(--brand)] px-6 py-2 text-xs uppercase tracking-[0.3em] text-white transition hover:bg-[color:var(--brand-dark)] sm:w-auto"
+          className="inline-flex h-11 w-full items-center justify-center rounded-full bg-[color:var(--brand)] px-6 text-xs uppercase tracking-[0.3em] text-white transition hover:bg-[color:var(--brand-dark)] sm:w-auto"
         >
           Apply filters
         </button>
@@ -304,7 +306,7 @@ function CatalogFiltersForm({ initialValues }: CatalogFiltersFormProps) {
           <button
             type="button"
             onClick={() => router.push("/catalog")}
-            className="w-full rounded-full border border-stone-200 bg-white/80 px-5 py-2 text-xs uppercase tracking-[0.3em] text-stone-600 sm:w-auto"
+            className="inline-flex h-11 w-full items-center justify-center rounded-full border border-stone-200 bg-white/80 px-5 text-xs uppercase tracking-[0.3em] text-stone-600 sm:w-auto"
           >
             Clear
           </button>

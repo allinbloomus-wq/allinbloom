@@ -14,32 +14,32 @@ export default function AdminSidebar() {
       <nav className="mt-6 space-y-3 text-sm text-stone-600">
         <Link
           href="/admin"
-          className="block rounded-2xl border border-transparent bg-white/70 px-3 py-2 transition hover:border-stone-200"
+          className="flex h-11 items-center rounded-2xl border border-transparent bg-white/70 px-3 transition hover:border-stone-200"
         >
           Bouquets
         </Link>
         <Link
           href="/admin/orders"
-          className="relative block rounded-2xl border border-transparent bg-white/70 px-3 py-2 transition hover:border-stone-200"
+          className="relative flex h-11 items-center rounded-2xl border border-transparent bg-white/70 px-3 transition hover:border-stone-200"
         >
           Orders
           <AdminOrdersBadge />
         </Link>
         <Link
           href="/admin/promotions"
-          className="block rounded-2xl border border-transparent bg-white/70 px-3 py-2 transition hover:border-stone-200"
+          className="flex h-11 items-center rounded-2xl border border-transparent bg-white/70 px-3 transition hover:border-stone-200"
         >
           Promotions
         </Link>
         <Link
           href="/admin/discounts"
-          className="block rounded-2xl border border-transparent bg-white/70 px-3 py-2 transition hover:border-stone-200"
+          className="flex h-11 items-center rounded-2xl border border-transparent bg-white/70 px-3 transition hover:border-stone-200"
         >
           Discounts
         </Link>
         <Link
           href="/catalog"
-          className="block rounded-2xl border border-transparent bg-white/70 px-3 py-2 transition hover:border-stone-200"
+          className="flex h-11 items-center rounded-2xl border border-transparent bg-white/70 px-3 transition hover:border-stone-200"
         >
           View storefront
         </Link>

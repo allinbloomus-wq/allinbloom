@@ -17,10 +17,16 @@ export default async function AdminOrderDetailPage({
     notFound();
   }
 
+  const verifiedDeliveryAddress = stripeSession?.deliveryAddress?.trim() || "";
+  const deliveryMiles = stripeSession?.deliveryMiles;
+  const deliveryFeeCents = stripeSession?.deliveryFeeCents;
   const shipping = stripeSession?.shipping;
   const address = shipping?.address;
   const hasStripeSession = Boolean(
-    stripeSession?.paymentStatus || stripeSession?.status || shipping
+    stripeSession?.paymentStatus ||
+      stripeSession?.status ||
+      shipping ||
+      verifiedDeliveryAddress
   );
 
   return (
@@ -81,7 +87,18 @@ export default async function AdminOrderDetailPage({
               Delivery address
             </h2>
             <div className="mt-3 space-y-2">
-              {shipping ? (
+              {verifiedDeliveryAddress ? (
+                <>
+                  <p className="break-words">{verifiedDeliveryAddress}</p>
+                  {deliveryMiles ? <p>Distance: {deliveryMiles} miles</p> : null}
+                  {deliveryFeeCents !== null ? (
+                    <p>
+                      Delivery fee:{" "}
+                      {deliveryFeeCents > 0 ? formatMoney(deliveryFeeCents) : "Free"}
+                    </p>
+                  ) : null}
+                </>
+              ) : shipping ? (
                 <>
                   <p>{shipping.name}</p>
                   {shipping.phone ? <p>{shipping.phone}</p> : null}
@@ -98,7 +115,7 @@ export default async function AdminOrderDetailPage({
                 </>
               ) : (
                 <p>
-                  Address will appear after payment is completed in Stripe.
+                  Address will appear after checkout is created.
                 </p>
               )}
             </div>

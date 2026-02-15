@@ -250,7 +250,6 @@ async def start_checkout(
             line_items=line_items,
             success_url=f"{origin}/checkout/success",
             cancel_url=f"{origin}/cart",
-            shipping_address_collection={"allowed_countries": ["US"]},
             payment_method_types=["card"],
             customer_email=user.email or None,
             metadata={

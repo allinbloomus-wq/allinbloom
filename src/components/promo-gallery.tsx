@@ -62,6 +62,9 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
   const interactionStartRef = useRef<{ x: number; y: number } | null>(null);
   const blockLinkClickRef = useRef(false);
   const resetLinkBlockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dragPointerIdRef = useRef<number | null>(null);
+  const dragStartXRef = useRef(0);
+  const dragStartScrollLeftRef = useRef(0);
 
   useEffect(() => {
     indexRef.current = index;
@@ -73,13 +76,15 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
 
   useEffect(() => {
     const updatePerView = () => {
-      setPerView(window.innerWidth >= 1024 ? 3 : 1);
+      const isDesktop = window.innerWidth >= 1024;
+      const nextPerView = isDesktop && items.length > 3 ? 3 : 1;
+      setPerView(nextPerView);
     };
 
     updatePerView();
     window.addEventListener("resize", updatePerView);
     return () => window.removeEventListener("resize", updatePerView);
-  }, []);
+  }, [items.length]);
 
   const scrollToIndex = useCallback((targetIndex: number, behavior: ScrollBehavior) => {
     const viewport = viewportRef.current;
@@ -189,14 +194,44 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!event.isPrimary || items.length < 2) return;
     beginInteraction(event.clientX, event.clientY);
+
+    if (event.pointerType !== "mouse") return;
+
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+
+    dragPointerIdRef.current = event.pointerId;
+    dragStartXRef.current = event.clientX;
+    dragStartScrollLeftRef.current = viewport.scrollLeft;
+    viewport.setPointerCapture(event.pointerId);
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!event.isPrimary) return;
     moveInteraction(event.clientX, event.clientY);
+
+    if (event.pointerType !== "mouse") return;
+    if (dragPointerIdRef.current !== event.pointerId) return;
+
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+
+    const distanceX = event.clientX - dragStartXRef.current;
+    viewport.scrollLeft = dragStartScrollLeftRef.current - distanceX;
   };
 
-  const handlePointerUp = () => {
+  const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (
+      dragPointerIdRef.current !== null &&
+      dragPointerIdRef.current === event.pointerId
+    ) {
+      const viewport = viewportRef.current;
+      if (viewport?.hasPointerCapture(event.pointerId)) {
+        viewport.releasePointerCapture(event.pointerId);
+      }
+      dragPointerIdRef.current = null;
+    }
+
     endInteraction();
   };
 
@@ -290,7 +325,9 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
                 ref={(node) => {
                   slideRefs.current[idx] = node;
                 }}
-                className="w-full flex-shrink-0 snap-start cursor-grab active:cursor-grabbing lg:w-[calc((100%-2rem)/3)]"
+                className={`w-full flex-shrink-0 snap-start cursor-grab active:cursor-grabbing ${
+                  perView === 3 ? "lg:w-[calc((100%-2rem)/3)]" : "lg:w-full"
+                }`}
               >
                 <div className="relative w-full overflow-hidden rounded-[24px] border border-white/40 sm:border-white/80 aspect-[9/16] sm:aspect-[9/16] lg:aspect-[9/16]">
                   <ImageWithFallback

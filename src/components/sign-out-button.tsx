@@ -15,7 +15,7 @@ export default function SignOutButton() {
           window.location.href = "/";
         }
       }}
-      className="w-full rounded-full border border-stone-300 bg-white/80 px-4 py-2 text-xs uppercase tracking-[0.3em] text-stone-600 transition hover:border-stone-400"
+      className="inline-flex h-11 w-full items-center justify-center rounded-full border border-stone-300 bg-white/80 px-4 text-xs uppercase tracking-[0.3em] text-stone-600 transition hover:border-stone-400"
     >
       Sign out
     </button>

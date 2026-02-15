@@ -89,7 +89,7 @@ export default function AdminImageUpload({
           value={imageUrl}
           onChange={(event) => setImageUrl(event.target.value)}
           required
-          className={`w-full min-w-0 rounded-2xl bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none ${
+          className={`h-11 w-full min-w-0 rounded-2xl bg-white/80 px-4 py-0 text-sm text-stone-800 outline-none ${
             isInvalid
               ? "border border-rose-300 focus:border-rose-500"
               : "border border-stone-200 focus:border-stone-400"
@@ -103,7 +103,7 @@ export default function AdminImageUpload({
           accept="image/*"
           onChange={handleFileChange}
           disabled={uploading}
-          className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-2 text-sm text-stone-700"
+          className="h-11 w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-0 text-sm text-stone-700 outline-none focus:border-stone-400"
         />
       </label>
       {status ? (
