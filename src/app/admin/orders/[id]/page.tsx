@@ -19,7 +19,7 @@ export default async function AdminOrderDetailPage({
 
   const verifiedDeliveryAddress = stripeSession?.deliveryAddress?.trim() || "";
   const deliveryMiles = stripeSession?.deliveryMiles;
-  const deliveryFeeCents = stripeSession?.deliveryFeeCents;
+  const deliveryFeeCents = stripeSession?.deliveryFeeCents ?? null;
   const shipping = stripeSession?.shipping;
   const address = shipping?.address;
   const hasStripeSession = Boolean(
