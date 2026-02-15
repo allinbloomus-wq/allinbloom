@@ -44,6 +44,7 @@ type CartViewProps = {
   isAuthenticated: boolean;
   globalDiscount: DiscountInfo | null;
   firstOrderDiscount: DiscountInfo | null;
+  canceledCheckoutStatus: string | null;
   categoryDiscount: {
     percent: number;
     note: string;
@@ -60,6 +61,7 @@ export default function CartView({
   isAuthenticated,
   globalDiscount,
   firstOrderDiscount,
+  canceledCheckoutStatus,
   categoryDiscount,
 }: CartViewProps) {
   const { items, updateQuantity, removeItem } = useCart();
@@ -331,6 +333,16 @@ export default function CartView({
       </div>
       <div className="glass h-fit space-y-4 rounded-[28px] border border-white/80 p-5 sm:p-6">
         <h2 className="text-xl font-semibold text-stone-900">Order summary</h2>
+        {canceledCheckoutStatus === "CANCELED" || canceledCheckoutStatus === "FAILED" ? (
+          <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs uppercase tracking-[0.24em] text-amber-800">
+            Previous checkout was canceled.
+          </p>
+        ) : null}
+        {canceledCheckoutStatus === "PAID" ? (
+          <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs uppercase tracking-[0.24em] text-emerald-800">
+            Previous checkout is already paid.
+          </p>
+        ) : null}
         <div className="space-y-3">
           <label className="flex flex-col gap-2 text-sm text-stone-700">
             Delivery address

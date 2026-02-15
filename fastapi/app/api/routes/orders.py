@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.api.deps import get_db, get_current_user, require_admin
 from app.core.config import settings
 from app.core.critical_logging import log_critical_event
+from app.models.enums import OrderStatus
 from app.models.order import Order
 from app.schemas.order import (
     OrderCountOut,
@@ -26,6 +27,7 @@ from app.services.orders import (
     get_admin_orders,
     get_admin_orders_by_day,
     get_orders_by_email,
+    sync_order_with_stripe,
 )
 from app.utils.admin_orders import parse_day_key
 
@@ -58,6 +60,8 @@ def get_order(order_id: str, db: Session = Depends(get_db), _admin=Depends(requi
     )
     if not order:
         raise HTTPException(status_code=404, detail="Not found")
+    if order.status == OrderStatus.PENDING:
+        sync_order_with_stripe(db, order)
     return order
 
 

@@ -9,23 +9,113 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.core.config import settings
 from app.models.order import Order
-from app.models.order_item import OrderItem
 from app.models.enums import OrderStatus
 from app.utils.admin_orders import get_day_range
 
 
 PENDING_EXPIRATION_HOURS = 24
+PENDING_WITHOUT_SESSION_EXPIRATION_MINUTES = 10
+STRIPE_CHECKOUT_SESSION_EXPIRATION_SECONDS = 30 * 60
+
+
+def _read_stripe_attr(obj: object, key: str) -> object:
+    if isinstance(obj, dict):
+        return obj.get(key)
+    return getattr(obj, key, None)
+
+
+def _extract_payment_intent_status(payment_intent: object) -> str | None:
+    if not payment_intent:
+        return None
+
+    if isinstance(payment_intent, str):
+        try:
+            intent = stripe.PaymentIntent.retrieve(payment_intent)
+        except Exception:
+            return None
+        status = getattr(intent, "status", None)
+    elif isinstance(payment_intent, dict):
+        status = payment_intent.get("status")
+    else:
+        status = getattr(payment_intent, "status", None)
+
+    if not status:
+        return None
+    return str(status).lower()
+
+
+def resolve_order_status_from_session(
+    order: Order, session: object, now_seconds: int | None = None
+) -> OrderStatus | None:
+    metadata_raw = _read_stripe_attr(session, "metadata") or {}
+    metadata_order_id = (
+        metadata_raw.get("orderId") if isinstance(metadata_raw, dict) else None
+    )
+    if metadata_order_id and metadata_order_id != order.id:
+        return None
+
+    session_status = str(_read_stripe_attr(session, "status") or "").lower()
+    payment_status = str(_read_stripe_attr(session, "payment_status") or "").lower()
+    amount_total = _read_stripe_attr(session, "amount_total")
+    currency = str(_read_stripe_attr(session, "currency") or "").lower()
+
+    amount_matches = isinstance(amount_total, int) and amount_total == order.total_cents
+    currency_matches = not currency or currency == order.currency.lower()
+
+    if (
+        session_status == "complete"
+        and payment_status in {"paid", "no_payment_required"}
+        and amount_matches
+        and currency_matches
+    ):
+        if payment_status == "no_payment_required" and amount_total not in {0, None}:
+            return None
+        return OrderStatus.PAID
+
+    if session_status == "expired":
+        return OrderStatus.FAILED
+
+    if now_seconds is None:
+        now_seconds = int(datetime.now(timezone.utc).timestamp())
+    expires_at = _read_stripe_attr(session, "expires_at")
+    if isinstance(expires_at, int) and expires_at < now_seconds:
+        return OrderStatus.FAILED
+
+    if session_status == "complete" and payment_status == "unpaid":
+        payment_intent = _read_stripe_attr(session, "payment_intent")
+        intent_status = _extract_payment_intent_status(payment_intent)
+        if intent_status == "succeeded" and amount_matches and currency_matches:
+            return OrderStatus.PAID
+        if intent_status in {"canceled", "requires_payment_method"}:
+            return OrderStatus.FAILED
+
+    return None
 
 
 def expire_pending_orders(db: Session) -> None:
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=PENDING_EXPIRATION_HOURS)
+    now = datetime.now(timezone.utc)
+    cutoff_with_session = now - timedelta(hours=PENDING_EXPIRATION_HOURS)
+    cutoff_without_session = now - timedelta(
+        minutes=PENDING_WITHOUT_SESSION_EXPIRATION_MINUTES
+    )
+
     db.execute(
         update(Order)
         .where(
             Order.status == OrderStatus.PENDING,
             Order.stripe_session_id.is_not(None),
             Order.is_deleted.is_(False),
-            Order.created_at < cutoff,
+            Order.created_at < cutoff_with_session,
+        )
+        .values(status=OrderStatus.FAILED)
+    )
+    db.execute(
+        update(Order)
+        .where(
+            Order.status == OrderStatus.PENDING,
+            Order.stripe_session_id.is_(None),
+            Order.is_deleted.is_(False),
+            Order.created_at < cutoff_without_session,
         )
         .values(status=OrderStatus.FAILED)
     )
@@ -47,44 +137,48 @@ def _sync_with_stripe(db: Session, orders: Iterable[Order]) -> dict[str, OrderSt
         except Exception:
             continue
 
-        amount_matches = (
-            isinstance(session.amount_total, int)
-            and session.amount_total == order.total_cents
+        next_status = resolve_order_status_from_session(
+            order, session, now_seconds=now_seconds
         )
-        currency_matches = (
-            not session.currency
-            or session.currency.lower() == order.currency.lower()
-        )
-        is_paid = (
-            session.payment_status == "paid"
-            and session.status == "complete"
-            and amount_matches
-            and currency_matches
-        )
-        if is_paid:
+        if next_status and next_status != order.status:
             db.execute(
                 update(Order)
-                .where(Order.id == order.id)
-                .values(status=OrderStatus.PAID)
+                .where(Order.id == order.id, Order.status == OrderStatus.PENDING)
+                .values(status=next_status)
             )
-            updates[order.id] = OrderStatus.PAID
-            continue
-
-        is_expired = session.status == "expired" or (
-            isinstance(session.expires_at, int) and session.expires_at < now_seconds
-        )
-        is_unpaid_complete = session.payment_status == "unpaid" and session.status != "open"
-        if is_expired or is_unpaid_complete:
-            db.execute(
-                update(Order)
-                .where(Order.id == order.id)
-                .values(status=OrderStatus.FAILED)
-            )
-            updates[order.id] = OrderStatus.FAILED
+            updates[order.id] = next_status
 
     if updates:
         db.commit()
     return updates
+
+
+def sync_order_with_stripe(db: Session, order: Order) -> OrderStatus | None:
+    if (
+        order.status != OrderStatus.PENDING
+        or not order.stripe_session_id
+        or not settings.stripe_secret_key
+    ):
+        return None
+
+    stripe.api_key = settings.stripe_secret_key
+    try:
+        session = stripe.checkout.Session.retrieve(order.stripe_session_id)
+    except Exception:
+        return None
+
+    next_status = resolve_order_status_from_session(order, session)
+    if not next_status or next_status == order.status:
+        return None
+
+    db.execute(
+        update(Order)
+        .where(Order.id == order.id, Order.status == OrderStatus.PENDING)
+        .values(status=next_status)
+    )
+    db.commit()
+    order.status = next_status
+    return next_status
 
 
 def get_admin_orders(db: Session) -> list[Order]:

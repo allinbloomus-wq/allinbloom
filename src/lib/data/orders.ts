@@ -36,6 +36,22 @@ export async function getOrdersByEmail(email: string): Promise<Order[]> {
   return response.json() as Promise<Order[]>;
 }
 
+export async function cancelCheckoutOrder(orderId: string): Promise<string | null> {
+  if (!orderId) return null;
+  const response = await apiFetch(
+    "/api/checkout/cancel",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderId }),
+    },
+    true
+  );
+  if (!response.ok) return null;
+  const data = (await response.json().catch(() => ({}))) as { status?: string };
+  return data.status || null;
+}
+
 export async function getOrderStripeSession(
   orderId: string
 ): Promise<OrderStripeSession | null> {
@@ -46,5 +62,5 @@ export async function getOrderStripeSession(
 
 export async function countOrdersByEmail(email: string) {
   const orders = await getOrdersByEmail(email);
-  return orders.length;
+  return orders.filter((order) => order.status === "PAID").length;
 }

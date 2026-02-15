@@ -22,3 +22,12 @@ class CheckoutRequest(SchemaBase):
 
 class CheckoutResponse(SchemaBase):
     url: str
+
+
+class CheckoutCancelRequest(SchemaBase):
+    order_id: str
+
+
+class CheckoutCancelResponse(SchemaBase):
+    canceled: bool
+    status: str

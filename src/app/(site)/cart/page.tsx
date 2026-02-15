@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import CartView from "@/components/cart-view";
 import { getStoreSettings } from "@/lib/data/settings";
-import { countOrdersByEmail } from "@/lib/data/orders";
+import { cancelCheckoutOrder, countOrdersByEmail } from "@/lib/data/orders";
 import { getAuthSession } from "@/lib/auth-session";
 
 export const metadata: Metadata = {
@@ -12,8 +12,28 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function CartPage() {
+type CartSearchParams = Promise<{
+  checkoutCanceled?: string | string[];
+  orderId?: string | string[];
+}>;
+
+const pickFirst = (value: string | string[] | undefined) =>
+  Array.isArray(value) ? value[0] : value;
+
+export default async function CartPage({
+  searchParams,
+}: {
+  searchParams: CartSearchParams;
+}) {
+  const params = await searchParams;
   const { user } = await getAuthSession();
+  const checkoutCanceledParam = pickFirst(params.checkoutCanceled);
+  const canceledOrderId = pickFirst(params.orderId);
+  const canceledCheckoutStatus =
+    checkoutCanceledParam === "1" && canceledOrderId && user
+      ? await cancelCheckoutOrder(canceledOrderId)
+      : null;
+
   const settings = await getStoreSettings();
   const email = user?.email || null;
   const orderCount = email ? await countOrdersByEmail(email) : 0;
@@ -60,9 +80,10 @@ export default async function CartPage() {
                 note:
                   settings.firstOrderDiscountNote ||
                   "10% off your first order",
-              }
+                }
             : null
         }
+        canceledCheckoutStatus={canceledCheckoutStatus}
       />
     </div>
   );

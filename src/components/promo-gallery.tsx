@@ -48,9 +48,13 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
   const [index, setIndex] = useState(0);
   const [isAutoPaused, setIsAutoPaused] = useState(false);
   const [perView, setPerView] = useState(1);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
 
+  const hasSlides = items.length > 0;
   const maxIndex = Math.max(0, items.length - perView);
   const canSlide = maxIndex > 0;
+  const pageCount = maxIndex + 1;
   const activeIndex = Math.min(index, maxIndex);
 
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -198,10 +202,8 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
   }, [maxIndex]);
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!event.isPrimary || !canSlide) return;
+    if (!event.isPrimary || !hasSlides) return;
     beginInteraction(event.clientX, event.clientY);
-
-    if (event.pointerType !== "mouse") return;
 
     const viewport = viewportRef.current;
     if (!viewport) return;
@@ -209,21 +211,38 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
     dragPointerIdRef.current = event.pointerId;
     dragStartXRef.current = event.clientX;
     dragStartScrollLeftRef.current = viewport.scrollLeft;
+    setIsDragging(true);
     viewport.setPointerCapture(event.pointerId);
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!event.isPrimary) return;
     moveInteraction(event.clientX, event.clientY);
-
-    if (event.pointerType !== "mouse") return;
     if (dragPointerIdRef.current !== event.pointerId) return;
 
     const viewport = viewportRef.current;
     if (!viewport) return;
 
     const distanceX = event.clientX - dragStartXRef.current;
-    viewport.scrollLeft = dragStartScrollLeftRef.current - distanceX;
+    const nextScrollLeft = dragStartScrollLeftRef.current - distanceX;
+    const maxScrollLeft = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
+
+    if (maxScrollLeft > 0) {
+      viewport.scrollLeft = nextScrollLeft;
+    }
+
+    let nextOffset = 0;
+    if (maxScrollLeft === 0) {
+      nextOffset = Math.max(-72, Math.min(72, distanceX * 0.28));
+    } else if (nextScrollLeft < 0) {
+      nextOffset = Math.max(-72, Math.min(72, -nextScrollLeft * 0.35));
+    } else if (nextScrollLeft > maxScrollLeft) {
+      nextOffset = Math.max(
+        -72,
+        Math.min(72, -(nextScrollLeft - maxScrollLeft) * 0.35)
+      );
+    }
+    setDragOffset(nextOffset);
   };
 
   const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -238,6 +257,8 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
       dragPointerIdRef.current = null;
     }
 
+    setIsDragging(false);
+    setDragOffset(0);
     endInteraction();
   };
 
@@ -254,6 +275,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
   useEffect(() => {
     const clampedIndex = Math.min(indexRef.current, maxIndex);
     indexRef.current = clampedIndex;
+    setDragOffset(0);
     scrollToIndex(clampedIndex, "auto");
   }, [items.length, maxIndex, perView, scrollToIndex]);
 
@@ -316,7 +338,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
       <div className="relative mt-5 sm:mt-6">
         <div
           ref={viewportRef}
-          className="select-none overflow-x-auto rounded-[28px] border border-white/80 scroll-smooth snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+          className="touch-pan-y select-none overflow-x-auto rounded-[28px] border border-white/80 scroll-smooth snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
           onScroll={handleViewportScroll}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -324,7 +346,15 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
           onPointerCancel={handlePointerUp}
           onPointerLeave={handlePointerUp}
         >
-          <div className="flex gap-0 md:gap-4">
+          <div
+            className="flex gap-0 md:gap-4"
+            style={{
+              transform: `translate3d(${dragOffset}px, 0, 0)`,
+              transition: isDragging
+                ? "none"
+                : "transform 320ms cubic-bezier(0.22, 1, 0.36, 1)",
+            }}
+          >
             {items.map((slide, idx) => (
               <div
                 key={slide.id}
@@ -383,48 +413,48 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
           </div>
         </div>
 
-        {canSlide ? (
-          <div className="pointer-events-none absolute inset-0 hidden items-center justify-between px-3 sm:flex">
-            <button
-              type="button"
-              onClick={handlePrev}
-              className="pointer-events-auto flex h-11 w-11 items-center justify-center rounded-full border border-white/70 bg-white/80 text-stone-700 shadow-sm backdrop-blur transition hover:scale-105"
-              aria-label="Previous promotion"
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-between px-2 sm:px-3">
+          <button
+            type="button"
+            onClick={handlePrev}
+            disabled={!canSlide}
+            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/85 text-stone-700 shadow-sm backdrop-blur transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-45 sm:h-11 sm:w-11"
+            aria-label="Previous promotion"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              className="h-4 w-4"
             >
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                className="h-4 w-4"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M12.78 4.22a.75.75 0 0 1 0 1.06L8.06 10l4.72 4.72a.75.75 0 1 1-1.06 1.06l-5.25-5.25a.75.75 0 0 1 0-1.06l5.25-5.25a.75.75 0 0 1 1.06 0Z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </button>
-            <button
-              type="button"
-              onClick={handleNext}
-              className="pointer-events-auto flex h-11 w-11 items-center justify-center rounded-full border border-white/70 bg-white/80 text-stone-700 shadow-sm backdrop-blur transition hover:scale-105"
-              aria-label="Next promotion"
+              <path
+                fillRule="evenodd"
+                d="M12.78 4.22a.75.75 0 0 1 0 1.06L8.06 10l4.72 4.72a.75.75 0 1 1-1.06 1.06l-5.25-5.25a.75.75 0 0 1 0-1.06l5.25-5.25a.75.75 0 0 1 1.06 0Z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={handleNext}
+            disabled={!canSlide}
+            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/85 text-stone-700 shadow-sm backdrop-blur transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-45 sm:h-11 sm:w-11"
+            aria-label="Next promotion"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              className="h-4 w-4"
             >
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                className="h-4 w-4"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M7.22 15.78a.75.75 0 0 1 0-1.06L11.94 10 7.22 5.28a.75.75 0 1 1 1.06-1.06l5.25 5.25a.75.75 0 0 1 0 1.06l-5.25 5.25a.75.75 0 0 1-1.06 0Z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </button>
-          </div>
-        ) : null}
+              <path
+                fillRule="evenodd"
+                d="M7.22 15.78a.75.75 0 0 1 0-1.06L11.94 10 7.22 5.28a.75.75 0 1 1 1.06-1.06l5.25 5.25a.75.75 0 0 1 0 1.06l-5.25 5.25a.75.75 0 0 1-1.06 0Z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {canSlide ? (
@@ -433,9 +463,9 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
         </p>
       ) : null}
 
-      {canSlide ? (
+      {hasSlides ? (
         <div className="mt-4 flex justify-center gap-2">
-          {Array.from({ length: maxIndex + 1 }).map((_, idx) => (
+          {Array.from({ length: pageCount }).map((_, idx) => (
             <button
               key={`promo-dot-${idx}`}
               type="button"
@@ -443,7 +473,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
               className={`h-2 w-2 rounded-full transition ${
                 idx === activeIndex ? "bg-[color:var(--brand)]" : "bg-stone-300"
               }`}
-              aria-label={`Go to slide ${idx + 1}`}
+              aria-label={`Go to page ${idx + 1}`}
             />
           ))}
         </div>

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -11,14 +12,32 @@ from app.api.deps import get_current_user, get_db
 from app.core.config import settings
 from app.core.critical_logging import log_critical_event
 from app.models.bouquet import Bouquet
+from app.models.enums import OrderStatus
 from app.models.order import Order
 from app.models.order_item import OrderItem
-from app.schemas.checkout import CheckoutRequest, CheckoutResponse
+from app.schemas.checkout import (
+    CheckoutCancelRequest,
+    CheckoutCancelResponse,
+    CheckoutRequest,
+    CheckoutResponse,
+)
 from app.services.delivery import get_delivery_quote
+from app.services.orders import (
+    STRIPE_CHECKOUT_SESSION_EXPIRATION_SECONDS,
+    resolve_order_status_from_session,
+)
 from app.services.pricing import apply_percent_discount, get_bouquet_discount
 from app.services.settings import get_store_settings
 
 router = APIRouter(prefix="/api/checkout", tags=["checkout"])
+
+
+def _set_order_status_safely(db: Session, order: Order, status: OrderStatus) -> None:
+    try:
+        order.status = status
+        db.commit()
+    except Exception:
+        db.rollback()
 
 
 @router.post("", response_model=CheckoutResponse)
@@ -163,7 +182,11 @@ async def start_checkout(
         )
 
     orders_count = (
-        db.execute(select(func.count()).select_from(Order).where(Order.email == user.email)).scalar_one()
+        db.execute(
+            select(func.count())
+            .select_from(Order)
+            .where(Order.email == user.email, Order.status == OrderStatus.PAID)
+        ).scalar_one()
     )
     first_order_discount_percent = (
         settings_row.first_order_discount_percent if orders_count == 0 and not has_any_discount else 0
@@ -216,6 +239,7 @@ async def start_checkout(
 
     origin = settings.resolved_site_url()
     stripe.api_key = settings.stripe_secret_key
+    expires_at = int(datetime.now(timezone.utc).timestamp()) + STRIPE_CHECKOUT_SESSION_EXPIRATION_SECONDS
 
     line_items = [
         {
@@ -249,9 +273,10 @@ async def start_checkout(
             mode="payment",
             line_items=line_items,
             success_url=f"{origin}/checkout/success",
-            cancel_url=f"{origin}/cart",
+            cancel_url=f"{origin}/cart?checkoutCanceled=1&orderId={order.id}",
             payment_method_types=["card"],
             customer_email=user.email or None,
+            expires_at=expires_at,
             metadata={
                 "orderId": order.id,
                 "deliveryAddress": address,
@@ -260,6 +285,7 @@ async def start_checkout(
                 "firstOrderDiscountPercent": str(first_order_discount_percent),
                 "phone": normalized_phone,
             },
+            payment_intent_data={"metadata": {"orderId": order.id}},
         )
     except Exception as exc:
         log_critical_event(
@@ -270,6 +296,7 @@ async def start_checkout(
             context={"order_id": order.id, "user_id": user.id, "item_count": len(discounted_items)},
             exc=exc,
         )
+        _set_order_status_safely(db, order, OrderStatus.FAILED)
         raise HTTPException(status_code=502, detail="Unable to start checkout.")
 
     order.stripe_session_id = session.id
@@ -283,5 +310,67 @@ async def start_checkout(
             request=request,
             context={"order_id": order.id, "user_id": user.id},
         )
+        _set_order_status_safely(db, order, OrderStatus.FAILED)
         raise HTTPException(status_code=500, detail="Unable to start checkout.")
     return CheckoutResponse(url=session.url)
+
+
+@router.post("/cancel", response_model=CheckoutCancelResponse)
+async def cancel_checkout(
+    payload: CheckoutCancelRequest,
+    request: Request,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    order = db.get(Order, payload.order_id)
+    if not order or order.email != user.email:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    if order.status == OrderStatus.PAID:
+        return CheckoutCancelResponse(canceled=False, status=order.status.value)
+
+    if order.status in {OrderStatus.CANCELED, OrderStatus.FAILED}:
+        return CheckoutCancelResponse(canceled=True, status=order.status.value)
+
+    if order.stripe_session_id and settings.stripe_secret_key:
+        stripe.api_key = settings.stripe_secret_key
+        try:
+            session = stripe.checkout.Session.retrieve(order.stripe_session_id)
+        except Exception as exc:
+            log_critical_event(
+                domain="payment",
+                event="stripe_session_fetch_failed_during_cancel",
+                message="Failed to fetch Stripe checkout session during cancellation.",
+                request=request,
+                context={"order_id": order.id, "user_id": user.id},
+                exc=exc,
+                level=logging.WARNING,
+            )
+            session = None
+
+        if session:
+            resolved_status = resolve_order_status_from_session(order, session)
+            if resolved_status == OrderStatus.PAID:
+                _set_order_status_safely(db, order, OrderStatus.PAID)
+                return CheckoutCancelResponse(canceled=False, status=OrderStatus.PAID.value)
+            if resolved_status == OrderStatus.FAILED:
+                _set_order_status_safely(db, order, OrderStatus.FAILED)
+                return CheckoutCancelResponse(canceled=True, status=OrderStatus.FAILED.value)
+
+            session_status = (getattr(session, "status", None) or "").lower()
+            if session_status == "open":
+                try:
+                    stripe.checkout.Session.expire(order.stripe_session_id)
+                except Exception as exc:
+                    log_critical_event(
+                        domain="payment",
+                        event="stripe_session_expire_failed",
+                        message="Failed to expire open Stripe checkout session during cancellation.",
+                        request=request,
+                        context={"order_id": order.id, "user_id": user.id},
+                        exc=exc,
+                        level=logging.WARNING,
+                    )
+
+    _set_order_status_safely(db, order, OrderStatus.CANCELED)
+    return CheckoutCancelResponse(canceled=True, status=OrderStatus.CANCELED.value)

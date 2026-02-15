@@ -13,8 +13,39 @@ from app.core.critical_logging import log_critical_event
 from app.models.order import Order
 from app.models.enums import OrderStatus
 from app.services.email import send_admin_order_email, send_customer_order_email
+from app.services.orders import resolve_order_status_from_session
 
 router = APIRouter(prefix="/api/stripe", tags=["stripe"])
+
+
+def _load_order_for_session(
+    db: Session, order_id: str | None, session_id: str | None
+) -> Order | None:
+    if order_id:
+        order = (
+            db.execute(
+                select(Order).where(Order.id == order_id).options(joinedload(Order.items))
+            )
+            .unique()
+            .scalars()
+            .first()
+        )
+        if order:
+            return order
+
+    if session_id:
+        return (
+            db.execute(
+                select(Order)
+                .where(Order.stripe_session_id == session_id)
+                .options(joinedload(Order.items))
+            )
+            .unique()
+            .scalars()
+            .first()
+        )
+
+    return None
 
 
 @router.post("/webhook")
@@ -58,65 +89,90 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
 
     if event["type"] in ["checkout.session.completed", "checkout.session.async_payment_succeeded"]:
         session = event["data"]["object"]
-        order_id = (session.get("metadata") or {}).get("orderId")
-        if order_id:
-            order = (
-                db.execute(
-                    select(Order).where(Order.id == order_id).options(joinedload(Order.items))
-                )
-                .unique()
-                .scalars()
-                .first()
+        metadata = session.get("metadata") or {}
+        order_id = metadata.get("orderId")
+        session_id = session.get("id")
+        order = _load_order_for_session(db, order_id=order_id, session_id=session_id)
+
+        if not order:
+            log_critical_event(
+                domain="payment",
+                event="webhook_order_not_found",
+                message="Stripe webhook references unknown order.",
+                request=request,
+                context={"order_id": order_id, "stripe_session_id": session_id},
             )
-            if order:
-                is_paid = session.get("payment_status") == "paid" and session.get("status") == "complete"
-                amount_matches = isinstance(session.get("amount_total"), int) and session.get("amount_total") == order.total_cents
-                currency = (session.get("currency") or "").lower()
-                currency_matches = not currency or currency == order.currency.lower()
-                if is_paid and amount_matches and currency_matches:
-                    updated = db.execute(
-                        update(Order)
-                        .where(Order.id == order_id, Order.status != OrderStatus.PAID)
-                        .values(
-                            status=OrderStatus.PAID,
-                            stripe_session_id=session.get("id") or order.stripe_session_id,
-                        )
+        elif order.stripe_session_id and session_id and order.stripe_session_id != session_id:
+            log_critical_event(
+                domain="payment",
+                event="stripe_session_id_mismatch",
+                message="Stripe webhook session id does not match stored order session id.",
+                request=request,
+                context={
+                    "order_id": order.id,
+                    "stripe_session_id": session_id,
+                    "expected_stripe_session_id": order.stripe_session_id,
+                },
+            )
+        else:
+            resolved_status = resolve_order_status_from_session(order, session)
+            if resolved_status == OrderStatus.PAID:
+                updated = db.execute(
+                    update(Order)
+                    .where(Order.id == order.id, Order.status != OrderStatus.PAID)
+                    .values(
+                        status=OrderStatus.PAID,
+                        stripe_session_id=session_id or order.stripe_session_id,
                     )
-                    db.commit()
-                    if updated.rowcount:
-                        metadata = session.get("metadata") or {}
-                        email_payload = {
-                            "order_id": order.id,
-                            "total_cents": order.total_cents,
-                            "currency": order.currency,
-                            "email": order.email,
-                            "phone": metadata.get("phone") or order.phone,
-                            "items": [
-                                {
-                                    "name": item.name,
-                                    "quantity": item.quantity,
-                                    "price_cents": item.price_cents,
-                                }
-                                for item in order.items
-                            ],
-                            "delivery_address": metadata.get("deliveryAddress"),
-                            "delivery_miles": metadata.get("deliveryMiles"),
-                            "delivery_fee": metadata.get("deliveryFeeCents"),
-                            "first_order_discount": metadata.get("firstOrderDiscountPercent"),
-                        }
-                        try:
-                            await send_admin_order_email(email_payload)
-                            await send_customer_order_email(email_payload)
-                        except Exception as exc:
-                            log_critical_event(
-                                domain="messaging",
-                                event="order_email_delivery_failed",
-                                message="Order confirmation email delivery failed after successful payment.",
-                                request=request,
-                                context={"order_id": order.id},
-                                exc=exc,
-                            )
-                else:
+                )
+                db.commit()
+                if updated.rowcount:
+                    email_payload = {
+                        "order_id": order.id,
+                        "total_cents": order.total_cents,
+                        "currency": order.currency,
+                        "email": order.email,
+                        "phone": metadata.get("phone") or order.phone,
+                        "items": [
+                            {
+                                "name": item.name,
+                                "quantity": item.quantity,
+                                "price_cents": item.price_cents,
+                            }
+                            for item in order.items
+                        ],
+                        "delivery_address": metadata.get("deliveryAddress"),
+                        "delivery_miles": metadata.get("deliveryMiles"),
+                        "delivery_fee": metadata.get("deliveryFeeCents"),
+                        "first_order_discount": metadata.get("firstOrderDiscountPercent"),
+                    }
+                    try:
+                        await send_admin_order_email(email_payload)
+                        await send_customer_order_email(email_payload)
+                    except Exception as exc:
+                        log_critical_event(
+                            domain="messaging",
+                            event="order_email_delivery_failed",
+                            message="Order confirmation email delivery failed after successful payment.",
+                            request=request,
+                            context={"order_id": order.id},
+                            exc=exc,
+                        )
+            elif resolved_status == OrderStatus.FAILED:
+                db.execute(
+                    update(Order)
+                    .where(Order.id == order.id, Order.status != OrderStatus.PAID)
+                    .values(
+                        status=OrderStatus.FAILED,
+                        stripe_session_id=session_id or order.stripe_session_id,
+                    )
+                )
+                db.commit()
+            else:
+                payment_status = (session.get("payment_status") or "").lower()
+                session_status = (session.get("status") or "").lower()
+                currency = (session.get("currency") or "").lower()
+                if session_status == "complete" and payment_status in {"paid", "no_payment_required"}:
                     log_critical_event(
                         domain="payment",
                         event="stripe_payment_data_mismatch",
@@ -130,32 +186,30 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                             "expected_currency": order.currency.lower(),
                         },
                     )
-            else:
-                log_critical_event(
-                    domain="payment",
-                    event="webhook_order_not_found",
-                    message="Stripe webhook references unknown order.",
-                    request=request,
-                    context={"order_id": order_id},
-                )
-        else:
-            log_critical_event(
-                domain="payment",
-                event="webhook_missing_order_id",
-                message="Stripe webhook payload does not include orderId metadata.",
-                request=request,
-                level=logging.WARNING,
-            )
 
     if event["type"] in ["checkout.session.expired", "checkout.session.async_payment_failed"]:
         session = event["data"]["object"]
-        order_id = (session.get("metadata") or {}).get("orderId")
-        if order_id:
+        metadata = session.get("metadata") or {}
+        order_id = metadata.get("orderId")
+        session_id = session.get("id")
+        order = _load_order_for_session(db, order_id=order_id, session_id=session_id)
+        if order:
             db.execute(
                 update(Order)
-                .where(Order.id == order_id, Order.status != OrderStatus.PAID)
-                .values(status=OrderStatus.FAILED)
+                .where(Order.id == order.id, Order.status != OrderStatus.PAID)
+                .values(
+                    status=OrderStatus.FAILED,
+                    stripe_session_id=session_id or order.stripe_session_id,
+                )
             )
             db.commit()
+        else:
+            log_critical_event(
+                domain="payment",
+                event="webhook_order_not_found",
+                message="Stripe failure webhook references unknown order.",
+                request=request,
+                context={"order_id": order_id, "stripe_session_id": session_id},
+            )
 
     return {"received": True}
