@@ -125,6 +125,24 @@ def soft_delete_order(
     return OrderSoftDeleteOut(is_deleted=True)
 
 
+@router.patch("/admin/orders/{order_id}/restore", response_model=OrderSoftDeleteOut)
+def restore_order(
+    order_id: str,
+    db: Session = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    order = db.get(Order, order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Not found")
+    if not order.is_deleted:
+        return OrderSoftDeleteOut(is_deleted=False)
+
+    order.is_deleted = False
+    order.deleted_at = None
+    db.commit()
+    return OrderSoftDeleteOut(is_deleted=False)
+
+
 @router.get("/admin/orders/{order_id}/stripe-session", response_model=StripeSessionOut)
 def get_order_stripe_session(
     order_id: str,

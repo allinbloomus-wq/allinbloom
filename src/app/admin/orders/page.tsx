@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getAdminOrdersByDay } from "@/lib/data/orders";
 import {
   addDaysToDayKey,
@@ -5,27 +6,28 @@ import {
 } from "@/lib/admin-orders";
 import AdminOrdersList from "@/components/admin-orders-list";
 
-export default async function AdminOrdersPage() {
+type OrdersSearchParams = {
+  tab?: string;
+};
+
+export default async function AdminOrdersPage({
+  searchParams,
+}: {
+  searchParams: Promise<OrdersSearchParams>;
+}) {
+  const params = await searchParams;
+  const activeTab = params.tab === "deleted" ? "deleted" : "active";
   const todayKey = getDayKey(new Date());
   const yesterdayKey = addDaysToDayKey(todayKey, -1);
 
   const [todayOrders, yesterdayOrders] = await Promise.all([
-    getAdminOrdersByDay(todayKey, "active"),
-    getAdminOrdersByDay(yesterdayKey, "active"),
-  ]);
-
-  const [todayDeletedOrders, yesterdayDeletedOrders] = await Promise.all([
-    getAdminOrdersByDay(todayKey, "deleted"),
-    getAdminOrdersByDay(yesterdayKey, "deleted"),
+    getAdminOrdersByDay(todayKey, activeTab),
+    getAdminOrdersByDay(yesterdayKey, activeTab),
   ]);
 
   const initialDays = [
     { dayKey: todayKey, orders: todayOrders },
     { dayKey: yesterdayKey, orders: yesterdayOrders },
-  ];
-  const initialDeletedDays = [
-    { dayKey: todayKey, orders: todayDeletedOrders },
-    { dayKey: yesterdayKey, orders: yesterdayDeletedOrders },
   ];
   const initialOldestDayKey = addDaysToDayKey(yesterdayKey, -1);
 
@@ -39,20 +41,36 @@ export default async function AdminOrdersPage() {
           Customer orders
         </h1>
       </div>
+      <div className="inline-flex rounded-full border border-stone-200 bg-white/80 p-1">
+        <Link
+          href="/admin/orders?tab=active"
+          className={`inline-flex h-10 items-center justify-center rounded-full px-5 text-xs uppercase tracking-[0.28em] transition ${
+            activeTab === "active"
+              ? "bg-stone-900 text-white"
+              : "text-stone-600 hover:bg-stone-100"
+          }`}
+        >
+          Active orders
+        </Link>
+        <Link
+          href="/admin/orders?tab=deleted"
+          className={`inline-flex h-10 items-center justify-center rounded-full px-5 text-xs uppercase tracking-[0.28em] transition ${
+            activeTab === "deleted"
+              ? "bg-stone-900 text-white"
+              : "text-stone-600 hover:bg-stone-100"
+          }`}
+        >
+          Deleted orders
+        </Link>
+      </div>
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-stone-900">Active orders</h2>
+        <h2 className="text-lg font-semibold text-stone-900">
+          {activeTab === "deleted" ? "Deleted orders" : "Active orders"}
+        </h2>
         <AdminOrdersList
           initialDays={initialDays}
           initialOldestDayKey={initialOldestDayKey}
-          mode="active"
-        />
-      </div>
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-stone-900">Deleted orders</h2>
-        <AdminOrdersList
-          initialDays={initialDeletedDays}
-          initialOldestDayKey={initialOldestDayKey}
-          mode="deleted"
+          mode={activeTab}
         />
       </div>
     </div>

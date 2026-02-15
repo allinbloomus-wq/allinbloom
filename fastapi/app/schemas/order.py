@@ -47,6 +47,12 @@ class OrdersByDayOut(SchemaBase):
     orders: list[OrderOut]
 
 
+class OrdersPageOut(SchemaBase):
+    orders: list[OrderOut]
+    has_more: bool
+    next_offset: Optional[int] = None
+
+
 class StripeAddressOut(SchemaBase):
     line1: Optional[str] = None
     line2: Optional[str] = None

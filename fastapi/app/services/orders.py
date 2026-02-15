@@ -140,6 +140,57 @@ def get_admin_orders_by_day(
     return orders
 
 
+def get_admin_orders_page(
+    db: Session,
+    only_deleted: bool = False,
+    offset: int = 0,
+    limit: int = 20,
+) -> tuple[list[Order], bool, int | None]:
+    expire_pending_orders(db)
+    safe_offset = max(offset, 0)
+    safe_limit = max(limit, 1)
+    order_ids = (
+        db.execute(
+            select(Order.id)
+            .where(Order.is_deleted.is_(only_deleted))
+            .order_by(Order.created_at.desc(), Order.id.desc())
+            .offset(safe_offset)
+            .limit(safe_limit + 1)
+        )
+        .scalars()
+        .all()
+    )
+    has_more = len(order_ids) > safe_limit
+    page_order_ids = order_ids[:safe_limit]
+    if not page_order_ids:
+        return [], False, None
+
+    orders = (
+        db.execute(
+            select(Order)
+            .where(Order.id.in_(page_order_ids))
+            .options(joinedload(Order.items))
+        )
+        .unique()
+        .scalars()
+        .all()
+    )
+    orders_by_id = {order.id: order for order in orders}
+    sorted_orders = [
+        orders_by_id[order_id]
+        for order_id in page_order_ids
+        if order_id in orders_by_id
+    ]
+    updates = _sync_with_stripe(db, sorted_orders)
+    if updates:
+        for order in sorted_orders:
+            if order.id in updates:
+                order.status = updates[order.id]
+
+    next_offset = safe_offset + safe_limit if has_more else None
+    return sorted_orders, has_more, next_offset
+
+
 def get_orders_by_email(db: Session, email: str) -> list[Order]:
     expire_pending_orders(db)
     orders = (

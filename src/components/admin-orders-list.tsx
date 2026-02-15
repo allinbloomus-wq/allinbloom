@@ -44,7 +44,7 @@ export default function AdminOrdersList({
     return formatDate(dayKeyToDate(dayKey));
   };
 
-  const handleOrderDeleted = (orderId: string) => {
+  const handleOrderRemoved = (orderId: string) => {
     setDays((current) =>
       current.map((day) => ({
         ...day,
@@ -99,8 +99,8 @@ export default function AdminOrdersList({
                 <AdminOrderRow
                   key={order.id}
                   order={order}
-                  onDeleted={handleOrderDeleted}
-                  allowDelete={mode === "active"}
+                  onRemoved={handleOrderRemoved}
+                  mode={mode}
                 />
               ))}
             </div>
