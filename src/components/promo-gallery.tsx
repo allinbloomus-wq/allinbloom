@@ -392,11 +392,6 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
 
       dragPointerIdRef.current = null;
 
-      setIsDragging(false);
-      
-      // Небольшая задержка для сброса offset после завершения анимации isDragging
-      setTimeout(() => setDragOffset(0), 0);
-
       const distanceX = event.clientX - dragStartXRef.current;
       const timeElapsed = Date.now() - dragStartTimeRef.current;
       const velocity = timeElapsed > 0 ? distanceX / timeElapsed : 0;
@@ -423,6 +418,10 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
       if (!switchedBySwipe) {
         settleAfterDrag(distanceX);
       }
+
+      // Сбрасываем состояние драга после всех вычислений
+      setIsDragging(false);
+      setDragOffset(0);
 
       endInteraction();
     },
@@ -509,14 +508,12 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
       if (!touchGestureActiveRef.current) return;
 
       touchGestureActiveRef.current = false;
-      setIsDragging(false);
-      
-      // Небольшая задержка для сброса offset после завершения анимации isDragging
-      setTimeout(() => setDragOffset(0), 0);
 
       const touch = event.changedTouches[0];
       if (!touch) {
         settleAfterDrag(0);
+        setIsDragging(false);
+        setDragOffset(0);
         endInteraction();
         return;
       }
@@ -549,6 +546,11 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
       if (!switchedBySwipe) {
         settleAfterDrag(distance);
       }
+
+      // Сбрасываем состояние драга после всех вычислений
+      setIsDragging(false);
+      setDragOffset(0);
+      
       endInteraction();
     };
 
@@ -623,7 +625,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
           <div
             className="flex gap-0 md:gap-4"
             style={{
-              transform: `translate3d(${dragOffset}px, 0, 0)`,
+              transform: isDragging ? `translate3d(${dragOffset}px, 0, 0)` : 'translate3d(0, 0, 0)',
               transition: isDragging
                 ? "none"
                 : "transform 400ms cubic-bezier(0.25, 0.8, 0.25, 1)", // Улучшенная кривая для более плавной анимации
