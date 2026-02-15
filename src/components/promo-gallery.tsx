@@ -17,6 +17,7 @@ type PromoGalleryProps = {
 };
 
 const DRAG_SPRING_MAX_OFFSET = 84;
+const DRAG_SPRING_MAX_OFFSET_MOBILE = 44;
 const DRAG_SPRING_FACTOR = 1;
 const SWIPE_AXIS_LOCK_THRESHOLD = 8;
 const SWIPE_CHANGE_MIN_PX = 24;
@@ -192,10 +193,15 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
     if (overflow === 0) return 0;
     const sign = Math.sign(overflow);
     const absOverflow = Math.abs(overflow);
+    const viewportWidth = viewportRef.current?.clientWidth ?? 0;
+    const maxOffset =
+      viewportWidth > 0 && viewportWidth < 768
+        ? DRAG_SPRING_MAX_OFFSET_MOBILE
+        : DRAG_SPRING_MAX_OFFSET;
     const scaled = absOverflow * DRAG_SPRING_FACTOR;
     const softened =
-      DRAG_SPRING_MAX_OFFSET *
-      (1 - Math.exp(-scaled / DRAG_SPRING_MAX_OFFSET));
+      maxOffset *
+      (1 - Math.exp(-scaled / maxOffset));
     return sign * softened;
   }, []);
 
@@ -667,7 +673,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
         </div>
       </div>
 
-      {canSlide ? (
+      {hasSlides ? (
         <p className="mt-3 text-center text-[10px] uppercase tracking-[0.24em] text-stone-500">
           Swipe to browse
         </p>
