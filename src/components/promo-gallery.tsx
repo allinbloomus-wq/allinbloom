@@ -298,22 +298,18 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
       const startedAtFirst = dragStartIndexRef.current <= 0;
       const startedAtLast = dragStartIndexRef.current >= maxIndex;
       
-      const maxScrollLeft = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
-      const currentScrollLeft = viewport.scrollLeft;
-      
-      // Проверяем, достигли ли мы физической границы скролла
-      const atScrollStart = currentScrollLeft <= 1;
-      const atScrollEnd = currentScrollLeft >= maxScrollLeft - 1;
+      // Порог минимального изменения scrollLeft для определения намерения
+      const significantScroll = Math.abs(distance) > 5;
 
       // Keep edge overscroll perfectly symmetric: always return to the same edge.
-      // Если начали на крайнем слайде И достигли границы скролла - возвращаемся
+      // Если на первом и тянули влево (distance < 0) или на последнем и тянули вправо
       if ((startedAtFirst && distance <= 0) || (startedAtLast && distance >= 0)) {
         goToIndex(dragStartIndexRef.current);
         return;
       }
       
-      // Дополнительная проверка: если находимся на границе скролла, возвращаемся к стартовому индексу
-      if ((atScrollStart && startedAtFirst) || (atScrollEnd && startedAtLast)) {
+      // Если на краях и практически не было скролла - тоже возврат
+      if ((startedAtFirst || startedAtLast) && !significantScroll) {
         goToIndex(dragStartIndexRef.current);
         return;
       }
