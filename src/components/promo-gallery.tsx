@@ -16,9 +16,9 @@ type PromoGalleryProps = {
   slides: PromoSlide[];
 };
 
-const DRAG_SPRING_MAX_OFFSET = 84;
-const DRAG_SPRING_MAX_OFFSET_MOBILE = 44;
-const DRAG_SPRING_FACTOR = 1;
+const DRAG_SPRING_MAX_OFFSET = 92;
+const DRAG_SPRING_MAX_OFFSET_MOBILE = 58;
+const DRAG_SPRING_FACTOR = 0.85;
 const SWIPE_AXIS_LOCK_THRESHOLD = 8;
 const SWIPE_CHANGE_MIN_PX = 24;
 const SWIPE_CHANGE_RATIO = 0.14;
@@ -288,6 +288,24 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
     [maxIndex, scrollToIndex]
   );
 
+  const settleAfterDrag = useCallback(
+    (distance: number) => {
+      if (!canSlide) return;
+
+      const startedAtFirst = dragStartIndexRef.current <= 0;
+      const startedAtLast = dragStartIndexRef.current >= maxIndex;
+
+      // Keep edge overscroll perfectly symmetric: always return to the same edge.
+      if ((startedAtFirst && distance <= 0) || (startedAtLast && distance >= 0)) {
+        goToIndex(dragStartIndexRef.current);
+        return;
+      }
+
+      settleToNearestIndex("smooth");
+    },
+    [canSlide, goToIndex, maxIndex, settleToNearestIndex]
+  );
+
   const getSlideTravelDistance = useCallback(
     (baseIndex: number) => {
       const viewport = viewportRef.current;
@@ -358,9 +376,9 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
     isDraggingRef.current = false;
     setIsDragging(false);
     setDragOffset(0);
-    if (canSlide) {
-      settleToNearestIndex("smooth");
-    }
+    const distance =
+      dragLastScrollLeftRef.current - dragStartScrollLeftRef.current;
+    settleAfterDrag(distance);
     endInteraction();
   };
 
@@ -456,6 +474,8 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
     const onTouchEnd = () => {
       if (!touchGestureActiveRef.current) return;
       const hadHorizontalDrag = touchGestureAxisRef.current === "x";
+      const distance =
+        dragLastScrollLeftRef.current - dragStartScrollLeftRef.current;
       touchGestureActiveRef.current = false;
       touchGestureAxisRef.current = null;
       if (isDraggingRef.current) {
@@ -466,8 +486,6 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
 
       let switchedBySwipe = false;
       if (canSlide && hadHorizontalDrag) {
-        const distance =
-          dragLastScrollLeftRef.current - dragStartScrollLeftRef.current;
         const elapsed = Math.max(1, performance.now() - dragStartTimeRef.current);
         const velocity = distance / elapsed;
         const stepDistance = getSlideTravelDistance(dragStartIndexRef.current);
@@ -488,22 +506,22 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
         }
       }
 
-      if (canSlide && !switchedBySwipe) {
-        settleToNearestIndex("smooth");
+      if (!switchedBySwipe) {
+        settleAfterDrag(distance);
       }
       endInteraction();
     };
 
     viewport.addEventListener("touchstart", onTouchStart, { passive: true });
-    viewport.addEventListener("touchmove", onTouchMove, { passive: false });
-    viewport.addEventListener("touchend", onTouchEnd, { passive: true });
-    viewport.addEventListener("touchcancel", onTouchEnd, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
+    window.addEventListener("touchend", onTouchEnd, { passive: true });
+    window.addEventListener("touchcancel", onTouchEnd, { passive: true });
 
     return () => {
       viewport.removeEventListener("touchstart", onTouchStart);
-      viewport.removeEventListener("touchmove", onTouchMove);
-      viewport.removeEventListener("touchend", onTouchEnd);
-      viewport.removeEventListener("touchcancel", onTouchEnd);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
+      window.removeEventListener("touchcancel", onTouchEnd);
     };
   }, [
     applyDragPosition,
@@ -514,7 +532,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
     goToIndex,
     hasSlides,
     moveInteraction,
-    settleToNearestIndex,
+    settleAfterDrag,
   ]);
 
   useEffect(() => {
@@ -568,7 +586,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
               transform: `translate3d(${dragOffset}px, 0, 0)`,
               transition: isDragging
                 ? "none"
-                : "transform 380ms cubic-bezier(0.2, 0.9, 0.33, 1.2)",
+                : "transform 460ms cubic-bezier(0.22, 0.9, 0.24, 1)",
             }}
           >
             {items.map((slide, idx) => (
