@@ -183,6 +183,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
       directionRef.current = nextIndex >= previousIndex ? 1 : -1;
       indexRef.current = nextIndex;
       setIndex(nextIndex);
+      setDragOffset(0); // Всегда сбрасываем offset при переходе
       scrollToIndex(nextIndex, "smooth");
       pauseAutoscroll();
     },
@@ -246,6 +247,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
 
       const stepDistance = getSlideTravelDistance();
       if (stepDistance === 0) {
+        setDragOffset(0); // Сбрасываем offset
         goToIndex(dragStartIndexRef.current);
         return;
       }
@@ -260,11 +262,13 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
 
       // Если мы на границе и пытаемся выйти за неё, возвращаемся к текущему индексу
       if (isAtStart && distanceX > 0) {
+        setDragOffset(0); // Сбрасываем offset перед переходом
         goToIndex(0);
         return;
       }
       
       if (isAtEnd && distanceX < 0) {
+        setDragOffset(0); // Сбрасываем offset перед переходом
         goToIndex(maxIndex);
         return;
       }
@@ -288,6 +292,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
 
       // Ограничиваем индекс максимальным значением
       closestIndex = Math.min(closestIndex, maxIndex);
+      setDragOffset(0); // Сбрасываем offset перед переходом
       goToIndex(closestIndex);
     },
     [getSlideTravelDistance, goToIndex, maxIndex]
@@ -388,7 +393,9 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
       dragPointerIdRef.current = null;
 
       setIsDragging(false);
-      setDragOffset(0);
+      
+      // Небольшая задержка для сброса offset после завершения анимации isDragging
+      setTimeout(() => setDragOffset(0), 0);
 
       const distanceX = event.clientX - dragStartXRef.current;
       const timeElapsed = Date.now() - dragStartTimeRef.current;
@@ -503,7 +510,9 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
 
       touchGestureActiveRef.current = false;
       setIsDragging(false);
-      setDragOffset(0);
+      
+      // Небольшая задержка для сброса offset после завершения анимации isDragging
+      setTimeout(() => setDragOffset(0), 0);
 
       const touch = event.changedTouches[0];
       if (!touch) {
