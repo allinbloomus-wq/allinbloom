@@ -17,8 +17,8 @@ type PromoGalleryProps = {
 };
 
 const DRAG_SPRING_MAX_OFFSET = 92;
-const DRAG_SPRING_MAX_OFFSET_MOBILE = 42;
-const DRAG_SPRING_FACTOR = 0.88;
+const DRAG_SPRING_MAX_OFFSET_MOBILE = 58;
+const DRAG_SPRING_FACTOR = 0.85;
 const SWIPE_AXIS_LOCK_THRESHOLD = 8;
 const SWIPE_CHANGE_MIN_PX = 24;
 const SWIPE_CHANGE_RATIO = 0.14;
@@ -295,20 +295,25 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
       const viewport = viewportRef.current;
       if (!viewport) return;
 
-      const scrollLeft = viewport.scrollLeft;
-      const maxScrollLeft = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
-      
       const startedAtFirst = dragStartIndexRef.current <= 0;
       const startedAtLast = dragStartIndexRef.current >= maxIndex;
-      const currentlyAtEnd = scrollLeft >= maxScrollLeft - 2;
-      const currentlyAtStart = scrollLeft <= 2;
+      
+      const maxScrollLeft = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
+      const currentScrollLeft = viewport.scrollLeft;
+      
+      // Проверяем, достигли ли мы физической границы скролла
+      const atScrollStart = currentScrollLeft <= 1;
+      const atScrollEnd = currentScrollLeft >= maxScrollLeft - 1;
 
       // Keep edge overscroll perfectly symmetric: always return to the same edge.
-      // Также проверяем текущую позицию скролла для предотвращения застревания
-      if ((startedAtFirst && distance <= 0) || 
-          (startedAtLast && distance >= 0) ||
-          (currentlyAtEnd && distance > 0) ||
-          (currentlyAtStart && distance < 0)) {
+      // Если начали на крайнем слайде И достигли границы скролла - возвращаемся
+      if ((startedAtFirst && distance <= 0) || (startedAtLast && distance >= 0)) {
+        goToIndex(dragStartIndexRef.current);
+        return;
+      }
+      
+      // Дополнительная проверка: если находимся на границе скролла, возвращаемся к стартовому индексу
+      if ((atScrollStart && startedAtFirst) || (atScrollEnd && startedAtLast)) {
         goToIndex(dragStartIndexRef.current);
         return;
       }
@@ -387,7 +392,12 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
 
     isDraggingRef.current = false;
     setIsDragging(false);
-    setDragOffset(0);
+    
+    // Небольшая задержка для плавного сброса offset
+    requestAnimationFrame(() => {
+      setDragOffset(0);
+    });
+    
     const distance =
       dragLastScrollLeftRef.current - dragStartScrollLeftRef.current;
     settleAfterDrag(distance);
@@ -495,10 +505,10 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
         setIsDragging(false);
       }
       
-      // Плавный сброс offset для предотвращения артефактов
-      setTimeout(() => {
+      // Небольшая задержка для плавного сброса offset
+      requestAnimationFrame(() => {
         setDragOffset(0);
-      }, 16);
+      });
 
       let switchedBySwipe = false;
       if (canSlide && hadHorizontalDrag) {
@@ -594,17 +604,15 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
             scrollBehavior: isDragging ? "auto" : "smooth",
             scrollSnapType: isDragging ? "none" : "x mandatory",
             WebkitOverflowScrolling: "touch",
-            overscrollBehaviorX: "contain",
           }}
         >
           <div
             className="flex gap-0 md:gap-4"
             style={{
-              transform: dragOffset !== 0 ? `translate3d(${dragOffset}px, 0, 0)` : 'none',
-              transition: isDragging || dragOffset !== 0
+              transform: dragOffset !== 0 ? `translate3d(${dragOffset}px, 0, 0)` : undefined,
+              transition: isDragging
                 ? "none"
-                : "transform 360ms cubic-bezier(0.22, 0.9, 0.24, 1)",
-              willChange: isDragging || dragOffset !== 0 ? 'transform' : 'auto',
+                : "transform 460ms cubic-bezier(0.22, 0.9, 0.24, 1)",
             }}
           >
             {items.map((slide, idx) => (
