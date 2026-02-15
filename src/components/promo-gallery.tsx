@@ -16,6 +16,10 @@ type PromoGalleryProps = {
   slides: PromoSlide[];
 };
 
+const DRAG_SPRING_MAX_OFFSET = 84;
+const DRAG_SPRING_FACTOR = 0.34;
+const SWIPE_AXIS_LOCK_THRESHOLD = 8;
+
 const FALLBACK_SLIDES: PromoSlide[] = [
   {
     id: "fallback-1",
@@ -68,7 +72,10 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
   const resetLinkBlockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dragPointerIdRef = useRef<number | null>(null);
   const dragStartXRef = useRef(0);
+  const dragStartYRef = useRef(0);
   const dragStartScrollLeftRef = useRef(0);
+  const touchGestureActiveRef = useRef(false);
+  const touchGestureAxisRef = useRef<"x" | "y" | null>(null);
 
   useEffect(() => {
     indexRef.current = index;
@@ -169,6 +176,44 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
     [maxIndex, pauseAutoscroll, scrollToIndex]
   );
 
+  const getSpringOffset = useCallback((overflow: number) => {
+    if (overflow === 0) return 0;
+    const sign = Math.sign(overflow);
+    const eased =
+      Math.pow(Math.abs(overflow), 0.86) * DRAG_SPRING_FACTOR;
+    return sign * Math.min(DRAG_SPRING_MAX_OFFSET, eased);
+  }, []);
+
+  const applyDragPosition = useCallback(
+    (clientX: number) => {
+      const viewport = viewportRef.current;
+      if (!viewport) return;
+
+      const distanceX = clientX - dragStartXRef.current;
+      const nextScrollLeft = dragStartScrollLeftRef.current - distanceX;
+      const maxScrollLeft = Math.max(
+        0,
+        viewport.scrollWidth - viewport.clientWidth
+      );
+
+      if (maxScrollLeft > 0) {
+        viewport.scrollLeft = nextScrollLeft;
+      }
+
+      let nextOffset = 0;
+      if (maxScrollLeft === 0) {
+        nextOffset = getSpringOffset(distanceX);
+      } else if (nextScrollLeft < 0) {
+        nextOffset = getSpringOffset(-nextScrollLeft);
+      } else if (nextScrollLeft > maxScrollLeft) {
+        nextOffset = getSpringOffset(-(nextScrollLeft - maxScrollLeft));
+      }
+
+      setDragOffset(nextOffset);
+    },
+    [getSpringOffset]
+  );
+
   const handleViewportScroll = useCallback(() => {
     if (scrollFrameRef.current !== null) return;
 
@@ -202,7 +247,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
   }, [maxIndex]);
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!event.isPrimary || !hasSlides) return;
+    if (!event.isPrimary || !hasSlides || event.pointerType === "touch") return;
     beginInteraction(event.clientX, event.clientY);
 
     const viewport = viewportRef.current;
@@ -210,53 +255,91 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
 
     dragPointerIdRef.current = event.pointerId;
     dragStartXRef.current = event.clientX;
+    dragStartYRef.current = event.clientY;
     dragStartScrollLeftRef.current = viewport.scrollLeft;
     setIsDragging(true);
-    viewport.setPointerCapture(event.pointerId);
+    if (typeof viewport.setPointerCapture === "function") {
+      viewport.setPointerCapture(event.pointerId);
+    }
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!event.isPrimary) return;
+    if (!event.isPrimary || event.pointerType === "touch") return;
     moveInteraction(event.clientX, event.clientY);
     if (dragPointerIdRef.current !== event.pointerId) return;
-
-    const viewport = viewportRef.current;
-    if (!viewport) return;
-
-    const distanceX = event.clientX - dragStartXRef.current;
-    const nextScrollLeft = dragStartScrollLeftRef.current - distanceX;
-    const maxScrollLeft = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
-
-    if (maxScrollLeft > 0) {
-      viewport.scrollLeft = nextScrollLeft;
-    }
-
-    let nextOffset = 0;
-    if (maxScrollLeft === 0) {
-      nextOffset = Math.max(-72, Math.min(72, distanceX * 0.28));
-    } else if (nextScrollLeft < 0) {
-      nextOffset = Math.max(-72, Math.min(72, -nextScrollLeft * 0.35));
-    } else if (nextScrollLeft > maxScrollLeft) {
-      nextOffset = Math.max(
-        -72,
-        Math.min(72, -(nextScrollLeft - maxScrollLeft) * 0.35)
-      );
-    }
-    setDragOffset(nextOffset);
+    applyDragPosition(event.clientX);
   };
 
   const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "touch") return;
     if (
       dragPointerIdRef.current !== null &&
       dragPointerIdRef.current === event.pointerId
     ) {
       const viewport = viewportRef.current;
-      if (viewport?.hasPointerCapture(event.pointerId)) {
+      if (
+        viewport &&
+        typeof viewport.hasPointerCapture === "function" &&
+        viewport.hasPointerCapture(event.pointerId) &&
+        typeof viewport.releasePointerCapture === "function"
+      ) {
         viewport.releasePointerCapture(event.pointerId);
       }
       dragPointerIdRef.current = null;
     }
 
+    setIsDragging(false);
+    setDragOffset(0);
+    endInteraction();
+  };
+
+  const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (!hasSlides || event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    beginInteraction(touch.clientX, touch.clientY);
+
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+
+    touchGestureActiveRef.current = true;
+    touchGestureAxisRef.current = null;
+    dragStartXRef.current = touch.clientX;
+    dragStartYRef.current = touch.clientY;
+    dragStartScrollLeftRef.current = viewport.scrollLeft;
+  };
+
+  const handleTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (!touchGestureActiveRef.current || event.touches.length !== 1) return;
+
+    const touch = event.touches[0];
+    moveInteraction(touch.clientX, touch.clientY);
+
+    if (touchGestureAxisRef.current === null) {
+      const movedX = Math.abs(touch.clientX - dragStartXRef.current);
+      const movedY = Math.abs(touch.clientY - dragStartYRef.current);
+      if (
+        movedX < SWIPE_AXIS_LOCK_THRESHOLD &&
+        movedY < SWIPE_AXIS_LOCK_THRESHOLD
+      ) {
+        return;
+      }
+      touchGestureAxisRef.current = movedX > movedY ? "x" : "y";
+    }
+
+    if (touchGestureAxisRef.current !== "x") return;
+
+    if (event.cancelable) {
+      event.preventDefault();
+    }
+
+    setIsDragging(true);
+    applyDragPosition(touch.clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchGestureActiveRef.current) return;
+    touchGestureActiveRef.current = false;
+    touchGestureAxisRef.current = null;
     setIsDragging(false);
     setDragOffset(0);
     endInteraction();
@@ -275,7 +358,6 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
   useEffect(() => {
     const clampedIndex = Math.min(indexRef.current, maxIndex);
     indexRef.current = clampedIndex;
-    setDragOffset(0);
     scrollToIndex(clampedIndex, "auto");
   }, [items.length, maxIndex, perView, scrollToIndex]);
 
@@ -345,6 +427,10 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
           onPointerLeave={handlePointerUp}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchEnd}
         >
           <div
             className="flex gap-0 md:gap-4"
@@ -352,7 +438,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
               transform: `translate3d(${dragOffset}px, 0, 0)`,
               transition: isDragging
                 ? "none"
-                : "transform 320ms cubic-bezier(0.22, 1, 0.36, 1)",
+                : "transform 380ms cubic-bezier(0.2, 0.9, 0.33, 1.2)",
             }}
           >
             {items.map((slide, idx) => (
