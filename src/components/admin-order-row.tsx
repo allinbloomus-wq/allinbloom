@@ -13,12 +13,26 @@ type AdminOrderRowProps = {
   mode?: "active" | "deleted";
 };
 
+const orderStatusBadgeClass = (status: Order["status"]) => {
+  switch (status) {
+    case "PAID":
+      return "border-emerald-200 bg-emerald-100 text-emerald-700";
+    case "PENDING":
+      return "border-amber-200 bg-amber-100 text-amber-700";
+    case "FAILED":
+      return "border-rose-200 bg-rose-100 text-rose-700";
+    case "CANCELED":
+      return "border-stone-300 bg-stone-200 text-stone-700";
+    default:
+      return "border-stone-200 bg-white/80 text-stone-600";
+  }
+};
+
 export default function AdminOrderRow({
   order,
   onRemoved,
   mode = "active",
 }: AdminOrderRowProps) {
-  const isPaid = order.status === "PAID";
   const statusLabel = formatOrderStatus(order.status);
   const isDeletedMode = mode === "deleted";
   const [isRead, setIsRead] = useState(order.isRead ?? false);
@@ -108,7 +122,7 @@ export default function AdminOrderRow({
             Order {order.id.slice(0, 8)}
           </p>
           <p className="break-words text-sm font-semibold text-stone-900">
-            {formatMoney(order.totalCents)} - {statusLabel}
+            {formatMoney(order.totalCents)}
           </p>
           <p className="text-xs text-stone-500">
             {formatDateTime(order.createdAt)}
@@ -117,13 +131,11 @@ export default function AdminOrderRow({
             <p className="break-all text-xs text-stone-500">{order.email}</p>
           ) : null}
         </div>
-        <div className="flex w-full flex-wrap gap-2 sm:ml-auto sm:w-auto sm:justify-end">
+        <div className="flex w-full flex-wrap justify-end gap-2 sm:ml-auto sm:w-auto">
           <div
-            className={`inline-flex h-11 items-center justify-center rounded-full px-4 text-xs uppercase tracking-[0.3em] whitespace-nowrap ${
-              isPaid
-                ? "border border-emerald-200 bg-emerald-100 text-emerald-700"
-                : "border border-rose-200 bg-rose-100 text-rose-700"
-            }`}
+            className={`inline-flex h-11 items-center justify-center rounded-full border px-4 text-xs uppercase tracking-[0.3em] whitespace-nowrap ${orderStatusBadgeClass(
+              order.status
+            )}`}
           >
             {statusLabel}
           </div>
