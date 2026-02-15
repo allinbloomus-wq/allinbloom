@@ -10,13 +10,22 @@ export default async function AdminOrdersPage() {
   const yesterdayKey = addDaysToDayKey(todayKey, -1);
 
   const [todayOrders, yesterdayOrders] = await Promise.all([
-    getAdminOrdersByDay(todayKey),
-    getAdminOrdersByDay(yesterdayKey),
+    getAdminOrdersByDay(todayKey, "active"),
+    getAdminOrdersByDay(yesterdayKey, "active"),
+  ]);
+
+  const [todayDeletedOrders, yesterdayDeletedOrders] = await Promise.all([
+    getAdminOrdersByDay(todayKey, "deleted"),
+    getAdminOrdersByDay(yesterdayKey, "deleted"),
   ]);
 
   const initialDays = [
     { dayKey: todayKey, orders: todayOrders },
     { dayKey: yesterdayKey, orders: yesterdayOrders },
+  ];
+  const initialDeletedDays = [
+    { dayKey: todayKey, orders: todayDeletedOrders },
+    { dayKey: yesterdayKey, orders: yesterdayDeletedOrders },
   ];
   const initialOldestDayKey = addDaysToDayKey(yesterdayKey, -1);
 
@@ -30,10 +39,22 @@ export default async function AdminOrdersPage() {
           Customer orders
         </h1>
       </div>
-      <AdminOrdersList
-        initialDays={initialDays}
-        initialOldestDayKey={initialOldestDayKey}
-      />
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold text-stone-900">Active orders</h2>
+        <AdminOrdersList
+          initialDays={initialDays}
+          initialOldestDayKey={initialOldestDayKey}
+          mode="active"
+        />
+      </div>
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold text-stone-900">Deleted orders</h2>
+        <AdminOrdersList
+          initialDays={initialDeletedDays}
+          initialOldestDayKey={initialOldestDayKey}
+          mode="deleted"
+        />
+      </div>
     </div>
   );
 }

@@ -1,14 +1,23 @@
 import { apiFetch } from "@/lib/api-server";
 import type { Order, OrderStripeSession } from "@/lib/api-types";
 
+export type AdminOrdersScope = "active" | "deleted";
+
 export async function getAdminOrders(): Promise<Order[]> {
   const response = await apiFetch("/api/admin/orders", {}, true);
   if (!response.ok) return [];
   return response.json() as Promise<Order[]>;
 }
 
-export async function getAdminOrdersByDay(dayKey: string): Promise<Order[]> {
-  const response = await apiFetch(`/api/admin/orders/by-day?date=${dayKey}`, {}, true);
+export async function getAdminOrdersByDay(
+  dayKey: string,
+  scope: AdminOrdersScope = "active"
+): Promise<Order[]> {
+  const response = await apiFetch(
+    `/api/admin/orders/by-day?date=${dayKey}&scope=${scope}`,
+    {},
+    true
+  );
   if (!response.ok) return [];
   const data = (await response.json()) as { orders?: Order[] };
   return data.orders || [];

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getOrderById, getOrderStripeSession } from "@/lib/data/orders";
 import { formatDateTime, formatMoney, formatOrderStatus } from "@/lib/format";
@@ -31,13 +32,33 @@ export default async function AdminOrderDetailPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
-          Order details
-        </p>
-        <h1 className="text-2xl font-semibold text-stone-900 sm:text-3xl">
-          Order {order.id.slice(0, 8)}
-        </h1>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
+            Order details
+          </p>
+          <h1 className="text-2xl font-semibold text-stone-900 sm:text-3xl">
+            Order {order.id.slice(0, 8)}
+          </h1>
+        </div>
+        <Link
+          href="/admin/orders"
+          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border border-stone-300 bg-white/80 px-4 text-center text-xs uppercase tracking-[0.3em] text-stone-600 sm:w-auto"
+        >
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            className="h-4 w-4"
+          >
+            <path
+              fillRule="evenodd"
+              d="M12.78 4.22a.75.75 0 0 1 0 1.06L8.06 10l4.72 4.72a.75.75 0 1 1-1.06 1.06l-5.25-5.25a.75.75 0 0 1 0-1.06l5.25-5.25a.75.75 0 0 1 1.06 0Z"
+              clipRule="evenodd"
+            />
+          </svg>
+          Back to orders
+        </Link>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">

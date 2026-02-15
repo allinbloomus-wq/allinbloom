@@ -24,6 +24,7 @@ def expire_pending_orders(db: Session) -> None:
         .where(
             Order.status == OrderStatus.PENDING,
             Order.stripe_session_id.is_not(None),
+            Order.is_deleted.is_(False),
             Order.created_at < cutoff,
         )
         .values(status=OrderStatus.FAILED)
@@ -89,7 +90,12 @@ def _sync_with_stripe(db: Session, orders: Iterable[Order]) -> dict[str, OrderSt
 def get_admin_orders(db: Session) -> list[Order]:
     expire_pending_orders(db)
     orders = (
-        db.execute(select(Order).options(joinedload(Order.items)).order_by(Order.created_at.desc()))
+        db.execute(
+            select(Order)
+            .where(Order.is_deleted.is_(False))
+            .options(joinedload(Order.items))
+            .order_by(Order.created_at.desc())
+        )
         .unique()
         .scalars()
         .all()
@@ -103,7 +109,9 @@ def get_admin_orders(db: Session) -> list[Order]:
     return orders
 
 
-def get_admin_orders_by_day(db: Session, day_key: str) -> list[Order]:
+def get_admin_orders_by_day(
+    db: Session, day_key: str, only_deleted: bool = False
+) -> list[Order]:
     expire_pending_orders(db)
     day_range = get_day_range(day_key)
     if not day_range:
@@ -111,7 +119,11 @@ def get_admin_orders_by_day(db: Session, day_key: str) -> list[Order]:
     orders = (
         db.execute(
             select(Order)
-            .where(Order.created_at >= day_range["start"], Order.created_at < day_range["end"])
+            .where(
+                Order.created_at >= day_range["start"],
+                Order.created_at < day_range["end"],
+                Order.is_deleted.is_(only_deleted),
+            )
             .options(joinedload(Order.items))
             .order_by(Order.created_at.desc())
         )

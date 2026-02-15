@@ -76,15 +76,21 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
 
   useEffect(() => {
     const updatePerView = () => {
-      const isDesktop = window.innerWidth >= 1024;
-      const nextPerView = isDesktop && items.length > 3 ? 3 : 1;
-      setPerView(nextPerView);
+      if (window.innerWidth >= 1024) {
+        setPerView(3);
+        return;
+      }
+      if (window.innerWidth >= 768) {
+        setPerView(2);
+        return;
+      }
+      setPerView(1);
     };
 
     updatePerView();
     window.addEventListener("resize", updatePerView);
     return () => window.removeEventListener("resize", updatePerView);
-  }, [items.length]);
+  }, []);
 
   const scrollToIndex = useCallback((targetIndex: number, behavior: ScrollBehavior) => {
     const viewport = viewportRef.current;
@@ -192,7 +198,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
   }, [maxIndex]);
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!event.isPrimary || items.length < 2) return;
+    if (!event.isPrimary || !canSlide) return;
     beginInteraction(event.clientX, event.clientY);
 
     if (event.pointerType !== "mouse") return;
@@ -318,16 +324,14 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
           onPointerCancel={handlePointerUp}
           onPointerLeave={handlePointerUp}
         >
-          <div className="flex gap-0 lg:gap-4">
+          <div className="flex gap-0 md:gap-4">
             {items.map((slide, idx) => (
               <div
                 key={slide.id}
                 ref={(node) => {
                   slideRefs.current[idx] = node;
                 }}
-                className={`w-full flex-shrink-0 snap-start cursor-grab active:cursor-grabbing ${
-                  perView === 3 ? "lg:w-[calc((100%-2rem)/3)]" : "lg:w-full"
-                }`}
+                className="w-full flex-shrink-0 snap-start cursor-grab active:cursor-grabbing md:w-[calc((100%-1rem)/2)] lg:w-[calc((100%-2rem)/3)]"
               >
                 <div className="relative w-full overflow-hidden rounded-[24px] border border-white/40 sm:border-white/80 aspect-[9/16] sm:aspect-[9/16] lg:aspect-[9/16]">
                   <ImageWithFallback

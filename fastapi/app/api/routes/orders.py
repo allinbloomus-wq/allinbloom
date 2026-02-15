@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 import stripe
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
@@ -12,6 +14,7 @@ from app.models.order import Order
 from app.schemas.order import (
     OrderCountOut,
     OrderOut,
+    OrderSoftDeleteOut,
     OrderToggleOut,
     OrdersByDayOut,
     StripeAddressOut,
@@ -66,7 +69,9 @@ def list_admin_orders(db: Session = Depends(get_db), _admin=Depends(require_admi
 @router.get("/admin/orders/new-count", response_model=OrderCountOut)
 def new_orders_count(db: Session = Depends(get_db), _admin=Depends(require_admin)):
     count = db.execute(
-        select(func.count()).select_from(Order).where(Order.is_read.is_(False))
+        select(func.count())
+        .select_from(Order)
+        .where(Order.is_read.is_(False), Order.is_deleted.is_(False))
     ).scalar_one()
     return OrderCountOut(count=count)
 
@@ -74,12 +79,15 @@ def new_orders_count(db: Session = Depends(get_db), _admin=Depends(require_admin
 @router.get("/admin/orders/by-day", response_model=OrdersByDayOut)
 def orders_by_day(
     date: str = Query(..., alias="date"),
+    scope: str = Query("active"),
     db: Session = Depends(get_db),
     _admin=Depends(require_admin),
 ):
     if not parse_day_key(date):
         raise HTTPException(status_code=400, detail="Invalid date")
-    orders = get_admin_orders_by_day(db, date)
+    if scope not in {"active", "deleted"}:
+        raise HTTPException(status_code=400, detail="Invalid scope")
+    orders = get_admin_orders_by_day(db, date, only_deleted=scope == "deleted")
     return OrdersByDayOut(day_key=date, orders=orders)
 
 
@@ -96,6 +104,25 @@ def toggle_read(
     db.commit()
     db.refresh(order)
     return OrderToggleOut(is_read=bool(order.is_read))
+
+
+@router.patch("/admin/orders/{order_id}/soft-delete", response_model=OrderSoftDeleteOut)
+def soft_delete_order(
+    order_id: str,
+    db: Session = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    order = db.get(Order, order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Not found")
+    if order.is_deleted:
+        return OrderSoftDeleteOut(is_deleted=True)
+
+    order.is_deleted = True
+    order.deleted_at = datetime.now(timezone.utc)
+    order.is_read = True
+    db.commit()
+    return OrderSoftDeleteOut(is_deleted=True)
 
 
 @router.get("/admin/orders/{order_id}/stripe-session", response_model=StripeSessionOut)

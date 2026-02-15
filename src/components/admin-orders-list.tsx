@@ -19,11 +19,13 @@ type AdminOrdersDay = {
 type AdminOrdersListProps = {
   initialDays: AdminOrdersDay[];
   initialOldestDayKey: string;
+  mode?: "active" | "deleted";
 };
 
 export default function AdminOrdersList({
   initialDays,
   initialOldestDayKey,
+  mode = "active",
 }: AdminOrdersListProps) {
   const [days, setDays] = useState<AdminOrdersDay[]>(initialDays);
   const [oldestDayKey, setOldestDayKey] = useState(initialOldestDayKey);
@@ -42,6 +44,15 @@ export default function AdminOrdersList({
     return formatDate(dayKeyToDate(dayKey));
   };
 
+  const handleOrderDeleted = (orderId: string) => {
+    setDays((current) =>
+      current.map((day) => ({
+        ...day,
+        orders: day.orders.filter((order) => order.id !== orderId),
+      }))
+    );
+  };
+
   const loadOlderOrders = async () => {
     if (isLoading) return;
     const targetDayKey = oldestDayKey;
@@ -50,7 +61,7 @@ export default function AdminOrdersList({
 
     try {
       const response = await clientFetch(
-        `/api/admin/orders/by-day?date=${targetDayKey}`,
+        `/api/admin/orders/by-day?date=${targetDayKey}&scope=${mode}`,
         { cache: "no-store" },
         true
       );
@@ -85,12 +96,19 @@ export default function AdminOrdersList({
           {day.orders.length ? (
             <div className="grid gap-4">
               {day.orders.map((order) => (
-                <AdminOrderRow key={order.id} order={order} />
+                <AdminOrderRow
+                  key={order.id}
+                  order={order}
+                  onDeleted={handleOrderDeleted}
+                  allowDelete={mode === "active"}
+                />
               ))}
             </div>
           ) : (
             <div className="glass rounded-[28px] border border-white/80 p-6 text-sm text-stone-600">
-              No orders for this day.
+              {mode === "deleted"
+                ? "No deleted orders for this day."
+                : "No orders for this day."}
             </div>
           )}
         </section>
@@ -102,7 +120,11 @@ export default function AdminOrdersList({
           disabled={isLoading}
           className="inline-flex h-11 w-full items-center justify-center rounded-full border border-stone-300 bg-white/80 px-4 text-xs uppercase tracking-[0.3em] text-stone-600 transition hover:border-stone-400 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
         >
-          {isLoading ? "Loading..." : "Load older orders"}
+          {isLoading
+            ? "Loading..."
+            : mode === "deleted"
+            ? "Load older deleted"
+            : "Load older orders"}
         </button>
         {error ? <p className="text-xs text-rose-500">{error}</p> : null}
       </div>

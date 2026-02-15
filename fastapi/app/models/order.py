@@ -19,6 +19,8 @@ class Order(Base):
     currency = Column(String, default="USD", nullable=False)
     status = Column(Enum(OrderStatus, name="OrderStatus"), default=OrderStatus.PENDING, nullable=False)
     is_read = Column("isRead", Boolean, default=False, nullable=False)
+    is_deleted = Column("isDeleted", Boolean, default=False, nullable=False)
+    deleted_at = Column("deletedAt", DateTime(timezone=True), nullable=True)
     created_at = Column(
         "createdAt", DateTime(timezone=True), server_default=func.now(), nullable=False
     )

@@ -9,16 +9,23 @@ import type { Order } from "@/lib/api-types";
 
 type AdminOrderRowProps = {
   order: Order;
+  onDeleted: (orderId: string) => void;
+  allowDelete?: boolean;
 };
 
-export default function AdminOrderRow({ order }: AdminOrderRowProps) {
+export default function AdminOrderRow({
+  order,
+  onDeleted,
+  allowDelete = true,
+}: AdminOrderRowProps) {
   const isPaid = order.status === "PAID";
   const statusLabel = formatOrderStatus(order.status);
   const [isRead, setIsRead] = useState(order.isRead ?? false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const toggleRead = async () => {
-    if (isLoading) return;
+    if (isLoading || isDeleting) return;
     setIsLoading(true);
     try {
       const response = await clientFetch(
@@ -36,6 +43,32 @@ export default function AdminOrderRow({ order }: AdminOrderRowProps) {
       window.dispatchEvent(new Event(ADMIN_ORDERS_BADGE_EVENT));
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const softDelete = async () => {
+    if (isLoading || isDeleting) return;
+    const confirmed = window.confirm(
+      "Soft delete this order? It will be hidden from admin lists."
+    );
+    if (!confirmed) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await clientFetch(
+        `/api/admin/orders/${order.id}/soft-delete`,
+        {
+          method: "PATCH",
+        },
+        true
+      );
+      if (!response.ok) {
+        return;
+      }
+      onDeleted(order.id);
+      window.dispatchEvent(new Event(ADMIN_ORDERS_BADGE_EVENT));
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -69,7 +102,7 @@ export default function AdminOrderRow({ order }: AdminOrderRowProps) {
           <button
             type="button"
             onClick={toggleRead}
-            disabled={isLoading}
+            disabled={isLoading || isDeleting}
             className={`inline-flex h-11 items-center justify-center rounded-full border px-4 text-xs uppercase tracking-[0.3em] transition whitespace-nowrap ${
               isRead
                 ? "border-emerald-200 bg-emerald-100 text-emerald-700"
@@ -87,6 +120,22 @@ export default function AdminOrderRow({ order }: AdminOrderRowProps) {
           >
             Details
           </Link>
+          {allowDelete ? (
+            <button
+              type="button"
+              onClick={softDelete}
+              disabled={isLoading || isDeleting}
+              className={`inline-flex h-11 w-full items-center justify-center rounded-full border border-rose-200 bg-rose-50 px-4 text-xs uppercase tracking-[0.3em] text-rose-700 sm:w-auto ${
+                isDeleting ? "cursor-wait opacity-70" : ""
+              }`}
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </button>
+          ) : (
+            <div className="inline-flex h-11 w-full items-center justify-center rounded-full border border-stone-200 bg-stone-100 px-4 text-xs uppercase tracking-[0.3em] text-stone-600 sm:w-auto">
+              Deleted
+            </div>
+          )}
         </div>
       </div>
       <div className="mt-4 grid gap-2 text-sm text-stone-600">

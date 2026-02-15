@@ -34,6 +34,10 @@ class OrderToggleOut(SchemaBase):
     is_read: bool
 
 
+class OrderSoftDeleteOut(SchemaBase):
+    is_deleted: bool
+
+
 class OrderCountOut(SchemaBase):
     count: int
 
