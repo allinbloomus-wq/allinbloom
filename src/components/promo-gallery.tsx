@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import useEmblaCarousel from "embla-carousel-react";
 import Link from "next/link";
 import ImageWithFallback from "@/components/image-with-fallback";
 
@@ -16,14 +17,9 @@ type PromoGalleryProps = {
   slides: PromoSlide[];
 };
 
-const DRAG_SPRING_MAX_OFFSET = 92;
-const DRAG_SPRING_MAX_OFFSET_MOBILE = 58;
-const DRAG_SPRING_FACTOR = 0.85;
-const SWIPE_AXIS_LOCK_THRESHOLD = 8;
-const SWIPE_CHANGE_MIN_PX = 24;
-const SWIPE_CHANGE_RATIO = 0.14;
-const SWIPE_FLICK_MIN_PX = 10;
-const SWIPE_FLICK_VELOCITY = 0.2;
+const AUTO_SCROLL_INTERVAL_MS = 5000;
+const AUTO_SCROLL_PAUSE_MS = 20000;
+const INTERACTION_CLICK_THRESHOLD = 8;
 
 const FALLBACK_SLIDES: PromoSlide[] = [
   {
@@ -54,79 +50,38 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
     () => (slides.length ? slides : FALLBACK_SLIDES),
     [slides]
   );
-  const [index, setIndex] = useState(0);
+
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [pageCount, setPageCount] = useState(1);
   const [isAutoPaused, setIsAutoPaused] = useState(false);
-  const [perView, setPerView] = useState(1);
-  const [dragOffset, setDragOffset] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(false);
 
-  const hasSlides = items.length > 0;
-  const maxIndex = Math.max(0, items.length - perView);
-  const canSlide = maxIndex > 0;
-  const pageCount = maxIndex + 1;
-  const activeIndex = Math.min(index, maxIndex);
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    align: "start",
+    loop: false,
+    containScroll: "trimSnaps",
+    slidesToScroll: 1,
+    dragFree: false,
+    skipSnaps: false,
+    dragThreshold: 7,
+    duration: 32,
+  });
 
-  const viewportRef = useRef<HTMLDivElement>(null);
-  const slideRefs = useRef<Array<HTMLDivElement | null>>([]);
-  const directionRef = useRef(1);
-  const indexRef = useRef(0);
+  const directionRef = useRef<1 | -1>(1);
+  const activeIndexRef = useRef(0);
+  const pageCountRef = useRef(1);
   const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const scrollFrameRef = useRef<number | null>(null);
   const interactionStartRef = useRef<{ x: number; y: number } | null>(null);
   const blockLinkClickRef = useRef(false);
-  const resetLinkBlockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const dragPointerIdRef = useRef<number | null>(null);
-  const dragStartXRef = useRef(0);
-  const dragStartYRef = useRef(0);
-  const dragStartScrollLeftRef = useRef(0);
-  const dragStartIndexRef = useRef(0);
-  const dragStartTimeRef = useRef(0);
-  const dragLastScrollLeftRef = useRef(0);
-  const touchGestureActiveRef = useRef(false);
-  const touchGestureAxisRef = useRef<"x" | "y" | null>(null);
-  const isDraggingRef = useRef(false);
+  const resetLinkBlockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
 
-  useEffect(() => {
-    indexRef.current = index;
-  }, [index]);
-
-  useEffect(() => {
-    isDraggingRef.current = isDragging;
-  }, [isDragging]);
-
-  useEffect(() => {
-    slideRefs.current = slideRefs.current.slice(0, items.length);
-  }, [items.length]);
-
-  useEffect(() => {
-    const updatePerView = () => {
-      if (window.innerWidth >= 1024) {
-        setPerView(3);
-        return;
-      }
-      if (window.innerWidth >= 768) {
-        setPerView(2);
-        return;
-      }
-      setPerView(1);
-    };
-
-    updatePerView();
-    window.addEventListener("resize", updatePerView);
-    return () => window.removeEventListener("resize", updatePerView);
-  }, []);
-
-  const scrollToIndex = useCallback((targetIndex: number, behavior: ScrollBehavior) => {
-    const viewport = viewportRef.current;
-    const targetSlide = slideRefs.current[targetIndex];
-
-    if (!viewport || !targetSlide) return;
-
-    viewport.scrollTo({
-      left: targetSlide.offsetLeft,
-      behavior,
-    });
-  }, []);
+  const hasSlides = items.length > 0;
+  const canSlide = pageCount > 1;
+  const maxIndex = Math.max(0, pageCount - 1);
+  const clampedActiveIndex = Math.min(activeIndex, maxIndex);
 
   const pauseAutoscroll = useCallback(() => {
     setIsAutoPaused(true);
@@ -137,8 +92,30 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
 
     pauseTimerRef.current = setTimeout(() => {
       setIsAutoPaused(false);
-    }, 20000);
+    }, AUTO_SCROLL_PAUSE_MS);
   }, []);
+
+  const syncCarouselState = useCallback(() => {
+    if (!emblaApi) return;
+
+    const nextPageCount = Math.max(1, emblaApi.scrollSnapList().length);
+    const nextIndex = Math.max(
+      0,
+      Math.min(emblaApi.selectedScrollSnap(), nextPageCount - 1)
+    );
+    const previousIndex = activeIndexRef.current;
+
+    if (nextIndex !== previousIndex) {
+      directionRef.current = nextIndex > previousIndex ? 1 : -1;
+    }
+
+    activeIndexRef.current = nextIndex;
+    pageCountRef.current = nextPageCount;
+    setActiveIndex(nextIndex);
+    setPageCount(nextPageCount);
+    setCanScrollPrev(emblaApi.canScrollPrev());
+    setCanScrollNext(emblaApi.canScrollNext());
+  }, [emblaApi]);
 
   const beginInteraction = useCallback(
     (x: number, y: number) => {
@@ -154,7 +131,8 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
     if (!start || blockLinkClickRef.current) return;
 
     const movedFarEnough =
-      Math.abs(x - start.x) > 8 || Math.abs(y - start.y) > 8;
+      Math.abs(x - start.x) > INTERACTION_CLICK_THRESHOLD ||
+      Math.abs(y - start.y) > INTERACTION_CLICK_THRESHOLD;
 
     if (movedFarEnough) {
       blockLinkClickRef.current = true;
@@ -177,385 +155,94 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
 
   const goToIndex = useCallback(
     (targetIndex: number) => {
-      const nextIndex = Math.max(0, Math.min(targetIndex, maxIndex));
-      const previousIndex = indexRef.current;
+      if (!emblaApi) return;
 
+      const boundedMax = Math.max(0, pageCountRef.current - 1);
+      const nextIndex = Math.max(0, Math.min(targetIndex, boundedMax));
+      const previousIndex = activeIndexRef.current;
       directionRef.current = nextIndex >= previousIndex ? 1 : -1;
-      indexRef.current = nextIndex;
-      setIndex(nextIndex);
-      scrollToIndex(nextIndex, "smooth");
+
+      emblaApi.scrollTo(nextIndex);
       pauseAutoscroll();
     },
-    [maxIndex, pauseAutoscroll, scrollToIndex]
+    [emblaApi, pauseAutoscroll]
   );
 
-  const getSpringOffset = useCallback((overflow: number) => {
-    if (overflow === 0) return 0;
-    const sign = Math.sign(overflow);
-    const absOverflow = Math.abs(overflow);
-    const viewportWidth = viewportRef.current?.clientWidth ?? 0;
-    const maxOffset =
-      viewportWidth > 0 && viewportWidth < 768
-        ? DRAG_SPRING_MAX_OFFSET_MOBILE
-        : DRAG_SPRING_MAX_OFFSET;
-    const scaled = absOverflow * DRAG_SPRING_FACTOR;
-    const softened =
-      maxOffset *
-      (1 - Math.exp(-scaled / maxOffset));
-    return sign * softened;
-  }, []);
+  const handlePrev = useCallback(() => {
+    if (!canSlide) return;
+    goToIndex(activeIndexRef.current - 1);
+  }, [canSlide, goToIndex]);
 
-  const applyDragPosition = useCallback(
-    (clientX: number) => {
-      const viewport = viewportRef.current;
-      if (!viewport) return;
-
-      const distanceX = clientX - dragStartXRef.current;
-      const nextScrollLeft = dragStartScrollLeftRef.current - distanceX;
-      const maxScrollLeft = Math.max(
-        0,
-        viewport.scrollWidth - viewport.clientWidth
-      );
-      const clampedScrollLeft = Math.max(0, Math.min(nextScrollLeft, maxScrollLeft));
-      viewport.scrollLeft = clampedScrollLeft;
-      dragLastScrollLeftRef.current = clampedScrollLeft;
-
-      const overflow = nextScrollLeft - clampedScrollLeft;
-      const nextOffset =
-        maxScrollLeft === 0 ? getSpringOffset(distanceX) : getSpringOffset(-overflow);
-      setDragOffset(nextOffset);
-    },
-    [getSpringOffset]
-  );
-
-  const handleViewportScroll = useCallback(() => {
-    if (isDraggingRef.current) return;
-    if (scrollFrameRef.current !== null) return;
-
-    scrollFrameRef.current = window.requestAnimationFrame(() => {
-      scrollFrameRef.current = null;
-
-      const viewport = viewportRef.current;
-      if (!viewport) return;
-
-      let nearestIndex = 0;
-      let nearestDistance = Number.POSITIVE_INFINITY;
-
-      for (let currentIndex = 0; currentIndex <= maxIndex; currentIndex += 1) {
-        const slide = slideRefs.current[currentIndex];
-        if (!slide) continue;
-
-        const distance = Math.abs(slide.offsetLeft - viewport.scrollLeft);
-        if (distance < nearestDistance) {
-          nearestDistance = distance;
-          nearestIndex = currentIndex;
-        }
-      }
-
-      const previousIndex = indexRef.current;
-      if (nearestIndex !== previousIndex) {
-        directionRef.current = nearestIndex > previousIndex ? 1 : -1;
-        indexRef.current = nearestIndex;
-        setIndex(nearestIndex);
-      }
-    });
-  }, [maxIndex]);
-
-  const settleToNearestIndex = useCallback(
-    (behavior: ScrollBehavior) => {
-      const viewport = viewportRef.current;
-      if (!viewport) return;
-
-      let nearestIndex = 0;
-      let nearestDistance = Number.POSITIVE_INFINITY;
-
-      for (let currentIndex = 0; currentIndex <= maxIndex; currentIndex += 1) {
-        const slide = slideRefs.current[currentIndex];
-        if (!slide) continue;
-
-        const distance = Math.abs(slide.offsetLeft - viewport.scrollLeft);
-        if (distance < nearestDistance) {
-          nearestDistance = distance;
-          nearestIndex = currentIndex;
-        }
-      }
-
-      directionRef.current = nearestIndex >= indexRef.current ? 1 : -1;
-      indexRef.current = nearestIndex;
-      setIndex(nearestIndex);
-      scrollToIndex(nearestIndex, behavior);
-    },
-    [maxIndex, scrollToIndex]
-  );
-
-  const settleAfterDrag = useCallback(
-    (distance: number) => {
-      if (!canSlide) return;
-
-      const viewport = viewportRef.current;
-      if (!viewport) return;
-
-      const startedAtFirst = dragStartIndexRef.current <= 0;
-      const startedAtLast = dragStartIndexRef.current >= maxIndex;
-      
-      // Порог минимального изменения scrollLeft для определения намерения
-      const significantScroll = Math.abs(distance) > 5;
-
-      // Keep edge overscroll perfectly symmetric: always return to the same edge.
-      // Если на первом и тянули влево (distance < 0) или на последнем и тянули вправо
-      if ((startedAtFirst && distance <= 0) || (startedAtLast && distance >= 0)) {
-        goToIndex(dragStartIndexRef.current);
-        return;
-      }
-      
-      // Если на краях и практически не было скролла - тоже возврат
-      if ((startedAtFirst || startedAtLast) && !significantScroll) {
-        goToIndex(dragStartIndexRef.current);
-        return;
-      }
-
-      settleToNearestIndex("smooth");
-    },
-    [canSlide, goToIndex, maxIndex, settleToNearestIndex]
-  );
-
-  const getSlideTravelDistance = useCallback(
-    (baseIndex: number) => {
-      const viewport = viewportRef.current;
-      if (!viewport) return 1;
-
-      const current = slideRefs.current[baseIndex] || null;
-      const next = slideRefs.current[Math.min(baseIndex + 1, maxIndex)] || null;
-      const prev = slideRefs.current[Math.max(baseIndex - 1, 0)] || null;
-
-      if (current && next && next !== current) {
-        return Math.max(1, Math.abs(next.offsetLeft - current.offsetLeft));
-      }
-      if (current && prev && prev !== current) {
-        return Math.max(1, Math.abs(current.offsetLeft - prev.offsetLeft));
-      }
-
-      return Math.max(1, viewport.clientWidth / Math.max(1, perView));
-    },
-    [maxIndex, perView]
-  );
+  const handleNext = useCallback(() => {
+    if (!canSlide) return;
+    goToIndex(activeIndexRef.current + 1);
+  }, [canSlide, goToIndex]);
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!event.isPrimary || !hasSlides || event.pointerType === "touch") return;
+    if (!event.isPrimary) return;
     beginInteraction(event.clientX, event.clientY);
-
-    const viewport = viewportRef.current;
-    if (!viewport) return;
-
-    dragPointerIdRef.current = event.pointerId;
-    dragStartXRef.current = event.clientX;
-    dragStartYRef.current = event.clientY;
-    dragStartScrollLeftRef.current = viewport.scrollLeft;
-    dragStartIndexRef.current = indexRef.current;
-    dragStartTimeRef.current = performance.now();
-    dragLastScrollLeftRef.current = viewport.scrollLeft;
-    isDraggingRef.current = true;
-    setIsDragging(true);
-    if (typeof viewport.setPointerCapture === "function") {
-      viewport.setPointerCapture(event.pointerId);
-    }
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!event.isPrimary || event.pointerType === "touch") return;
+    if (!event.isPrimary) return;
     moveInteraction(event.clientX, event.clientY);
-    if (dragPointerIdRef.current !== event.pointerId) return;
-    applyDragPosition(event.clientX);
   };
 
   const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.pointerType === "touch") return;
-    if (
-      dragPointerIdRef.current !== null &&
-      dragPointerIdRef.current === event.pointerId
-    ) {
-      const viewport = viewportRef.current;
-      if (
-        viewport &&
-        typeof viewport.hasPointerCapture === "function" &&
-        viewport.hasPointerCapture(event.pointerId) &&
-        typeof viewport.releasePointerCapture === "function"
-      ) {
-        viewport.releasePointerCapture(event.pointerId);
-      }
-      dragPointerIdRef.current = null;
-    }
-
-    isDraggingRef.current = false;
-    setIsDragging(false);
-    
-    // Небольшая задержка для плавного сброса offset
-    requestAnimationFrame(() => {
-      setDragOffset(0);
-    });
-    
-    const distance =
-      dragLastScrollLeftRef.current - dragStartScrollLeftRef.current;
-    settleAfterDrag(distance);
+    if (!event.isPrimary) return;
     endInteraction();
   };
 
-  const handlePrev = () => {
-    if (!canSlide) return;
-    goToIndex(indexRef.current - 1);
+  const handleLinkClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (blockLinkClickRef.current) {
+      event.preventDefault();
+      return;
+    }
+
+    pauseAutoscroll();
   };
 
-  const handleNext = () => {
-    if (!canSlide) return;
-    goToIndex(indexRef.current + 1);
-  };
-
   useEffect(() => {
-    const clampedIndex = Math.min(indexRef.current, maxIndex);
-    indexRef.current = clampedIndex;
-    scrollToIndex(clampedIndex, "auto");
-  }, [items.length, maxIndex, perView, scrollToIndex]);
+    if (!emblaApi) return;
 
-  useEffect(() => {
-    if (!canSlide || isAutoPaused) return;
-
-    const interval = setInterval(() => {
-      setIndex(() => {
-        const currentIndex = Math.min(indexRef.current, maxIndex);
-        const nextRaw = currentIndex + directionRef.current;
-        let nextIndex = nextRaw;
-
-        if (nextRaw > maxIndex) {
-          directionRef.current = -1;
-          nextIndex = Math.max(currentIndex - 1, 0);
-        } else if (nextRaw < 0) {
-          directionRef.current = 1;
-          nextIndex = Math.min(currentIndex + 1, maxIndex);
-        }
-
-        indexRef.current = nextIndex;
-        scrollToIndex(nextIndex, "smooth");
-        return nextIndex;
-      });
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [canSlide, isAutoPaused, maxIndex, scrollToIndex]);
-
-  useEffect(() => {
-    const viewport = viewportRef.current;
-    if (!viewport) return;
-
-    const onTouchStart = (event: TouchEvent) => {
-      if (!hasSlides || event.touches.length !== 1) return;
-      const touch = event.touches[0];
-      beginInteraction(touch.clientX, touch.clientY);
-
-      touchGestureActiveRef.current = true;
-      touchGestureAxisRef.current = null;
-      dragStartXRef.current = touch.clientX;
-      dragStartYRef.current = touch.clientY;
-      dragStartScrollLeftRef.current = viewport.scrollLeft;
-      dragStartIndexRef.current = indexRef.current;
-      dragStartTimeRef.current = performance.now();
-      dragLastScrollLeftRef.current = viewport.scrollLeft;
-    };
-
-    const onTouchMove = (event: TouchEvent) => {
-      if (!touchGestureActiveRef.current || event.touches.length !== 1) return;
-      const touch = event.touches[0];
-      moveInteraction(touch.clientX, touch.clientY);
-
-      if (touchGestureAxisRef.current === null) {
-        const movedX = Math.abs(touch.clientX - dragStartXRef.current);
-        const movedY = Math.abs(touch.clientY - dragStartYRef.current);
-        if (
-          movedX < SWIPE_AXIS_LOCK_THRESHOLD &&
-          movedY < SWIPE_AXIS_LOCK_THRESHOLD
-        ) {
-          return;
-        }
-        touchGestureAxisRef.current = movedX > movedY ? "x" : "y";
-      }
-
-      if (touchGestureAxisRef.current !== "x") return;
-      if (event.cancelable) {
-        event.preventDefault();
-      }
-      if (!isDraggingRef.current) {
-        isDraggingRef.current = true;
-        setIsDragging(true);
-      }
-      applyDragPosition(touch.clientX);
-    };
-
-    const onTouchEnd = () => {
-      if (!touchGestureActiveRef.current) return;
-      const hadHorizontalDrag = touchGestureAxisRef.current === "x";
-      const distance =
-        dragLastScrollLeftRef.current - dragStartScrollLeftRef.current;
-      touchGestureActiveRef.current = false;
-      touchGestureAxisRef.current = null;
-      if (isDraggingRef.current) {
-        isDraggingRef.current = false;
-        setIsDragging(false);
-      }
-      
-      // Небольшая задержка для плавного сброса offset
-      requestAnimationFrame(() => {
-        setDragOffset(0);
-      });
-
-      let switchedBySwipe = false;
-      if (canSlide && hadHorizontalDrag) {
-        const elapsed = Math.max(1, performance.now() - dragStartTimeRef.current);
-        const velocity = distance / elapsed;
-        const stepDistance = getSlideTravelDistance(dragStartIndexRef.current);
-        const swipeThreshold = Math.max(
-          SWIPE_CHANGE_MIN_PX,
-          stepDistance * SWIPE_CHANGE_RATIO
-        );
-        const isFlick =
-          Math.abs(distance) >= SWIPE_FLICK_MIN_PX &&
-          Math.abs(velocity) >= SWIPE_FLICK_VELOCITY;
-
-        if (distance >= swipeThreshold || (distance > 0 && isFlick)) {
-          goToIndex(dragStartIndexRef.current + 1);
-          switchedBySwipe = true;
-        } else if (distance <= -swipeThreshold || (distance < 0 && isFlick)) {
-          goToIndex(dragStartIndexRef.current - 1);
-          switchedBySwipe = true;
-        }
-      }
-
-      if (!switchedBySwipe) {
-        settleAfterDrag(distance);
-      }
-      endInteraction();
-    };
-
-    viewport.addEventListener("touchstart", onTouchStart, { passive: true });
-    window.addEventListener("touchmove", onTouchMove, { passive: false });
-    window.addEventListener("touchend", onTouchEnd, { passive: true });
-    window.addEventListener("touchcancel", onTouchEnd, { passive: true });
+    emblaApi.on("select", syncCarouselState);
+    emblaApi.on("reInit", syncCarouselState);
+    emblaApi.on("pointerDown", pauseAutoscroll);
 
     return () => {
-      viewport.removeEventListener("touchstart", onTouchStart);
-      window.removeEventListener("touchmove", onTouchMove);
-      window.removeEventListener("touchend", onTouchEnd);
-      window.removeEventListener("touchcancel", onTouchEnd);
+      emblaApi.off("select", syncCarouselState);
+      emblaApi.off("reInit", syncCarouselState);
+      emblaApi.off("pointerDown", pauseAutoscroll);
     };
-  }, [
-    applyDragPosition,
-    beginInteraction,
-    canSlide,
-    endInteraction,
-    getSlideTravelDistance,
-    goToIndex,
-    hasSlides,
-    moveInteraction,
-    settleAfterDrag,
-  ]);
+  }, [emblaApi, pauseAutoscroll, syncCarouselState]);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    emblaApi.reInit();
+  }, [emblaApi, items.length]);
+
+  useEffect(() => {
+    if (!emblaApi || !canSlide || isAutoPaused) return;
+
+    const interval = setInterval(() => {
+      const boundedMax = Math.max(0, pageCountRef.current - 1);
+      const currentIndex = Math.min(activeIndexRef.current, boundedMax);
+      const nextRaw = currentIndex + directionRef.current;
+      let nextIndex = nextRaw;
+
+      if (nextRaw > boundedMax) {
+        directionRef.current = -1;
+        nextIndex = Math.max(currentIndex - 1, 0);
+      } else if (nextRaw < 0) {
+        directionRef.current = 1;
+        nextIndex = Math.min(currentIndex + 1, boundedMax);
+      }
+
+      emblaApi.scrollTo(nextIndex);
+    }, AUTO_SCROLL_INTERVAL_MS);
+
+    return () => clearInterval(interval);
+  }, [canSlide, emblaApi, isAutoPaused]);
 
   useEffect(() => {
     return () => {
@@ -564,9 +251,6 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
       }
       if (resetLinkBlockTimerRef.current) {
         clearTimeout(resetLinkBlockTimerRef.current);
-      }
-      if (scrollFrameRef.current !== null) {
-        window.cancelAnimationFrame(scrollFrameRef.current);
       }
     };
   }, []);
@@ -589,46 +273,30 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
 
       <div className="relative mt-5 sm:mt-6">
         <div
-          ref={viewportRef}
-          className="touch-pan-y overscroll-x-contain select-none overflow-x-auto rounded-[28px] border border-white/80 snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-          onScroll={handleViewportScroll}
+          ref={emblaRef}
+          className="touch-pan-y select-none overflow-hidden rounded-[28px] border border-white/80"
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
-          style={{
-            scrollBehavior: isDragging ? "auto" : "smooth",
-            scrollSnapType: isDragging ? "none" : "x mandatory",
-            WebkitOverflowScrolling: "touch",
-          }}
+          onPointerLeave={endInteraction}
         >
-          <div
-            className="flex gap-0 md:gap-4"
-            style={{
-              transform: dragOffset !== 0 ? `translate3d(${dragOffset}px, 0, 0)` : undefined,
-              transition: isDragging
-                ? "none"
-                : "transform 460ms cubic-bezier(0.22, 0.9, 0.24, 1)",
-            }}
-          >
-            {items.map((slide, idx) => (
+          <div className="flex gap-0 md:gap-4">
+            {items.map((slide) => (
               <div
                 key={slide.id}
-                ref={(node) => {
-                  slideRefs.current[idx] = node;
-                }}
-                className="w-full flex-shrink-0 snap-start cursor-grab active:cursor-grabbing md:w-[calc((100%-1rem)/2)] lg:w-[calc((100%-2rem)/3)]"
+                className="w-full min-w-0 flex-shrink-0 snap-start cursor-grab active:cursor-grabbing md:w-[calc((100%-1rem)/2)] lg:w-[calc((100%-2rem)/3)]"
               >
-                <div className="relative w-full overflow-hidden rounded-[24px] border border-white/40 sm:border-white/80 aspect-[9/16] sm:aspect-[9/16] lg:aspect-[9/16]">
+                <div className="relative w-full overflow-hidden rounded-[24px] border border-white/40 aspect-[9/16] sm:border-white/80 sm:aspect-[9/16] lg:aspect-[9/16]">
                   <ImageWithFallback
                     src={slide.image}
                     alt={slide.title || "Promo slide"}
                     width={900}
                     height={1600}
-                    className="h-full w-full object-cover pointer-events-none"
+                    className="pointer-events-none h-full w-full object-cover"
                     draggable={false}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/10 to-transparent pointer-events-none" />
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/50 via-black/10 to-transparent" />
                   {(slide.title || slide.subtitle || slide.link) && (
                     <div className="pointer-events-none absolute left-4 right-4 top-4 text-white sm:left-6 sm:right-auto sm:top-6 sm:max-w-md">
                       {slide.title && (
@@ -650,13 +318,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
                         <Link
                           href={slide.link}
                           className="pointer-events-auto mt-3 inline-flex rounded-full border border-white/60 bg-white/10 px-3 py-1.5 text-[10px] uppercase tracking-[0.24em] text-white backdrop-blur sm:mt-4 sm:px-4 sm:py-2 sm:text-xs sm:tracking-[0.3em]"
-                          onClick={(event) => {
-                            if (blockLinkClickRef.current) {
-                              event.preventDefault();
-                              return;
-                            }
-                            pauseAutoscroll();
-                          }}
+                          onClick={handleLinkClick}
                         >
                           View details
                         </Link>
@@ -673,7 +335,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
           <button
             type="button"
             onClick={handlePrev}
-            disabled={!canSlide}
+            disabled={!canScrollPrev}
             className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/85 text-stone-700 shadow-sm backdrop-blur transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-45 sm:h-11 sm:w-11"
             aria-label="Previous promotion"
           >
@@ -693,7 +355,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
           <button
             type="button"
             onClick={handleNext}
-            disabled={!canSlide}
+            disabled={!canScrollNext}
             className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/85 text-stone-700 shadow-sm backdrop-blur transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-45 sm:h-11 sm:w-11"
             aria-label="Next promotion"
           >
@@ -727,7 +389,9 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
               type="button"
               onClick={() => goToIndex(idx)}
               className={`h-2 w-2 rounded-full transition ${
-                idx === activeIndex ? "bg-[color:var(--brand)]" : "bg-stone-300"
+                idx === clampedActiveIndex
+                  ? "bg-[color:var(--brand)]"
+                  : "bg-stone-300"
               }`}
               aria-label={`Go to page ${idx + 1}`}
             />
@@ -737,4 +401,3 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
     </div>
   );
 }
-
