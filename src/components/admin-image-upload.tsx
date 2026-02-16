@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import ImageWithFallback from "@/components/image-with-fallback";
 import { clientFetch } from "@/lib/api-client";
 
@@ -15,16 +15,23 @@ export default function AdminImageUpload({
   recommendedSize = "600x800",
   isInvalid = false,
 }: AdminImageUploadProps) {
+  const fileInputId = useId();
   const [imageUrl, setImageUrl] = useState(defaultValue);
   const [status, setStatus] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [selectedFileName, setSelectedFileName] = useState("No file chosen");
 
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
   const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      setSelectedFileName("No file chosen");
+      return;
+    }
+
+    setSelectedFileName(file.name);
 
     if (!cloudName || !uploadPreset) {
       setStatus("Cloudinary is not configured.");
@@ -96,14 +103,25 @@ export default function AdminImageUpload({
           }`}
         />
       </label>
-      <label className="flex flex-col gap-2 text-sm text-stone-700">
+      <label className="flex flex-col gap-2 text-sm text-stone-700" htmlFor={fileInputId}>
         Upload image
+        <span
+          className={`flex h-11 w-full min-w-0 items-center justify-between gap-3 rounded-2xl border border-stone-200 bg-white/80 px-4 text-sm text-stone-700 outline-none transition focus-within:border-stone-400 ${
+            uploading ? "cursor-not-allowed opacity-70" : "cursor-pointer"
+          }`}
+        >
+          <span className="min-w-0 truncate">{selectedFileName}</span>
+          <span className="inline-flex h-7 shrink-0 items-center rounded-full border border-stone-300 bg-white px-3 text-[10px] uppercase tracking-[0.2em] text-stone-600">
+            Browse
+          </span>
+        </span>
         <input
+          id={fileInputId}
           type="file"
           accept="image/*"
           onChange={handleFileChange}
           disabled={uploading}
-          className="h-11 w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-0 text-sm text-stone-700 outline-none focus:border-stone-400"
+          className="sr-only"
         />
       </label>
       {status ? (

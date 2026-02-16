@@ -15,6 +15,7 @@ from app.models.order import Order
 from app.schemas.order import (
     OrderCountOut,
     OrderOut,
+    OrderPermanentDeleteOut,
     OrderSoftDeleteOut,
     OrderToggleOut,
     OrdersByDayOut,
@@ -162,6 +163,34 @@ def restore_order(
     order.deleted_at = None
     db.commit()
     return OrderSoftDeleteOut(is_deleted=False)
+
+
+@router.delete(
+    "/admin/orders/{order_id}/permanent-delete",
+    response_model=OrderPermanentDeleteOut,
+)
+def permanently_delete_order(
+    order_id: str,
+    db: Session = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    order = (
+        db.execute(select(Order).where(Order.id == order_id).options(joinedload(Order.items)))
+        .unique()
+        .scalars()
+        .first()
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Not found")
+    if not order.is_deleted:
+        raise HTTPException(
+            status_code=400,
+            detail="Order must be soft-deleted before permanent deletion.",
+        )
+
+    db.delete(order)
+    db.commit()
+    return OrderPermanentDeleteOut(deleted=True)
 
 
 @router.get("/admin/orders/{order_id}/stripe-session", response_model=StripeSessionOut)

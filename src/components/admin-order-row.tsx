@@ -43,7 +43,9 @@ export default function AdminOrderRow({
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [isPermanentDeleting, setIsPermanentDeleting] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const isBusy = isLoading || isDeleting || isRestoring || isPermanentDeleting;
 
   useEffect(() => {
     if (!isMenuOpen) return;
@@ -74,7 +76,7 @@ export default function AdminOrderRow({
   }, [isMenuOpen]);
 
   const toggleRead = async () => {
-    if (isLoading || isDeleting || isRestoring) return;
+    if (isBusy) return;
     setIsLoading(true);
     try {
       const response = await clientFetch(
@@ -96,7 +98,7 @@ export default function AdminOrderRow({
   };
 
   const softDelete = async () => {
-    if (isLoading || isDeleting || isRestoring) return;
+    if (isBusy) return;
     setIsMenuOpen(false);
     const confirmed = window.confirm(
       "Soft delete this order? It will be hidden from admin lists."
@@ -123,7 +125,7 @@ export default function AdminOrderRow({
   };
 
   const restoreOrder = async () => {
-    if (isLoading || isDeleting || isRestoring) return;
+    if (isBusy) return;
     setIsMenuOpen(false);
     const confirmed = window.confirm(
       "Restore this order to active orders?"
@@ -149,6 +151,33 @@ export default function AdminOrderRow({
     }
   };
 
+  const permanentlyDeleteOrder = async () => {
+    if (isBusy) return;
+    setIsMenuOpen(false);
+    const confirmed = window.confirm(
+      "Permanently delete this order? This action cannot be undone."
+    );
+    if (!confirmed) return;
+
+    setIsPermanentDeleting(true);
+    try {
+      const response = await clientFetch(
+        `/api/admin/orders/${order.id}/permanent-delete`,
+        {
+          method: "DELETE",
+        },
+        true
+      );
+      if (!response.ok) {
+        return;
+      }
+      onRemoved(order.id);
+      window.dispatchEvent(new Event(ADMIN_ORDERS_BADGE_EVENT));
+    } finally {
+      setIsPermanentDeleting(false);
+    }
+  };
+
   return (
     <div className="relative rounded-[24px] border border-white/80 bg-white/70 p-4 shadow-sm">
       <div ref={menuRef} className="absolute right-4 top-4 z-20">
@@ -157,7 +186,7 @@ export default function AdminOrderRow({
           aria-label="Order actions"
           aria-expanded={isMenuOpen}
           onClick={() => setIsMenuOpen((current) => !current)}
-          disabled={isLoading || isDeleting || isRestoring}
+          disabled={isBusy}
           className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-stone-200 bg-white/90 transition hover:border-stone-300 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <span className="inline-flex items-center gap-0.5">
@@ -167,25 +196,36 @@ export default function AdminOrderRow({
           </span>
         </button>
         {isMenuOpen ? (
-          <div className="absolute right-0 top-10 min-w-[170px] rounded-2xl border border-stone-200 bg-white p-1.5 shadow-lg">
-            <button
-              type="button"
-              onClick={isDeletedMode ? restoreOrder : softDelete}
-              disabled={isLoading || isDeleting || isRestoring}
-              className={`flex w-full items-center rounded-xl px-3 py-2 text-left text-xs uppercase tracking-[0.18em] transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                isDeletedMode
-                  ? "text-emerald-700 hover:bg-emerald-50"
-                  : "text-rose-700 hover:bg-rose-50"
-              }`}
-            >
-              {isDeletedMode
-                ? isRestoring
-                  ? "Restoring..."
-                  : "Restore"
-                : isDeleting
-                ? "Deleting..."
-                : "Delete"}
-            </button>
+          <div className="absolute right-0 top-10 min-w-[190px] rounded-2xl border border-stone-200 bg-white p-1.5 shadow-lg">
+            {isDeletedMode ? (
+              <>
+                <button
+                  type="button"
+                  onClick={restoreOrder}
+                  disabled={isBusy}
+                  className="flex w-full items-center rounded-xl px-3 py-2 text-left text-xs uppercase tracking-[0.18em] text-emerald-700 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isRestoring ? "Restoring..." : "Restore"}
+                </button>
+                <button
+                  type="button"
+                  onClick={permanentlyDeleteOrder}
+                  disabled={isBusy}
+                  className="flex w-full items-center rounded-xl px-3 py-2 text-left text-xs uppercase tracking-[0.18em] text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isPermanentDeleting ? "Deleting..." : "Delete Forever"}
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={softDelete}
+                disabled={isBusy}
+                className="flex w-full items-center rounded-xl px-3 py-2 text-left text-xs uppercase tracking-[0.18em] text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isDeleting ? "Deleting..." : "Delete"}
+              </button>
+            )}
           </div>
         ) : null}
       </div>
@@ -215,12 +255,14 @@ export default function AdminOrderRow({
           <button
             type="button"
             onClick={toggleRead}
-            disabled={isLoading || isDeleting || isRestoring}
+            disabled={isBusy}
             className={`${orderMetaBadgeClass} transition ${
               isRead
                 ? "border-emerald-200 bg-emerald-100 text-emerald-700"
                 : "border-stone-200 bg-white/80 text-stone-600"
-            } ${isLoading ? "cursor-wait opacity-70" : ""}`}
+            } ${isLoading ? "cursor-wait opacity-70" : ""} ${
+              isBusy && !isLoading ? "opacity-70" : ""
+            }`}
           >
             {isRead ? "Read" : "Unread"}
           </button>
