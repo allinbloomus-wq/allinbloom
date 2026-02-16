@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { formatDateTime, formatMoney, formatOrderStatus } from "@/lib/format";
 import { ADMIN_ORDERS_BADGE_EVENT } from "@/lib/admin-orders";
@@ -39,9 +39,39 @@ export default function AdminOrderRow({
   const statusLabel = formatOrderStatus(order.status);
   const isDeletedMode = mode === "deleted";
   const [isRead, setIsRead] = useState(order.isRead ?? false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isMenuOpen) return;
+
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (
+        menuRef.current &&
+        event.target instanceof Node &&
+        !menuRef.current.contains(event.target)
+      ) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsMenuOpen(false);
+      }
+    };
+
+    window.addEventListener("mousedown", closeOnOutsideClick);
+    window.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      window.removeEventListener("mousedown", closeOnOutsideClick);
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isMenuOpen]);
 
   const toggleRead = async () => {
     if (isLoading || isDeleting || isRestoring) return;
@@ -67,6 +97,7 @@ export default function AdminOrderRow({
 
   const softDelete = async () => {
     if (isLoading || isDeleting || isRestoring) return;
+    setIsMenuOpen(false);
     const confirmed = window.confirm(
       "Soft delete this order? It will be hidden from admin lists."
     );
@@ -93,6 +124,7 @@ export default function AdminOrderRow({
 
   const restoreOrder = async () => {
     if (isLoading || isDeleting || isRestoring) return;
+    setIsMenuOpen(false);
     const confirmed = window.confirm(
       "Restore this order to active orders?"
     );
@@ -118,8 +150,46 @@ export default function AdminOrderRow({
   };
 
   return (
-    <div className="rounded-[24px] border border-white/80 bg-white/70 p-4 shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    <div className="relative rounded-[24px] border border-white/80 bg-white/70 p-4 shadow-sm">
+      <div ref={menuRef} className="absolute right-4 top-4 z-20">
+        <button
+          type="button"
+          aria-label="Order actions"
+          aria-expanded={isMenuOpen}
+          onClick={() => setIsMenuOpen((current) => !current)}
+          disabled={isLoading || isDeleting || isRestoring}
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-stone-200 bg-white/90 transition hover:border-stone-300 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <span className="inline-flex items-center gap-0.5">
+            <span className="h-1 w-1 rounded-full bg-stone-600" />
+            <span className="h-1 w-1 rounded-full bg-stone-600" />
+            <span className="h-1 w-1 rounded-full bg-stone-600" />
+          </span>
+        </button>
+        {isMenuOpen ? (
+          <div className="absolute right-0 top-10 min-w-[170px] rounded-2xl border border-stone-200 bg-white p-1.5 shadow-lg">
+            <button
+              type="button"
+              onClick={isDeletedMode ? restoreOrder : softDelete}
+              disabled={isLoading || isDeleting || isRestoring}
+              className={`flex w-full items-center rounded-xl px-3 py-2 text-left text-xs uppercase tracking-[0.18em] transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                isDeletedMode
+                  ? "text-emerald-700 hover:bg-emerald-50"
+                  : "text-rose-700 hover:bg-rose-50"
+              }`}
+            >
+              {isDeletedMode
+                ? isRestoring
+                  ? "Restoring..."
+                  : "Restore"
+                : isDeleting
+                ? "Deleting..."
+                : "Delete"}
+            </button>
+          </div>
+        ) : null}
+      </div>
+      <div className="flex flex-col gap-4 pr-10">
         <div className="min-w-0">
           <p className="text-xs uppercase tracking-[0.2em] text-stone-500">
             Order {order.id.slice(0, 8)}
@@ -161,33 +231,10 @@ export default function AdminOrderRow({
           </div>
           <Link
             href={`/admin/orders/${order.id}`}
-            className="inline-flex h-11 w-full items-center justify-center rounded-full border border-stone-300 bg-white/80 px-4 text-center text-xs uppercase tracking-[0.3em] text-stone-600 sm:w-auto"
+            className={`${orderMetaBadgeClass} border-stone-300 bg-white/80 text-stone-600 transition hover:border-stone-400`}
           >
             Details
           </Link>
-          {isDeletedMode ? (
-            <button
-              type="button"
-              onClick={restoreOrder}
-              disabled={isLoading || isDeleting || isRestoring}
-              className={`inline-flex h-11 w-full items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 px-4 text-xs uppercase tracking-[0.3em] text-emerald-700 sm:w-auto ${
-                isRestoring ? "cursor-wait opacity-70" : ""
-              }`}
-            >
-              {isRestoring ? "Restoring..." : "Restore"}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={softDelete}
-              disabled={isLoading || isDeleting || isRestoring}
-              className={`inline-flex h-11 w-full items-center justify-center rounded-full border border-rose-200 bg-rose-50 px-4 text-xs uppercase tracking-[0.3em] text-rose-700 sm:w-auto ${
-                isDeleting ? "cursor-wait opacity-70" : ""
-              }`}
-            >
-              {isDeleting ? "Deleting..." : "Delete"}
-            </button>
-          )}
         </div>
       </div>
       <div className="mt-4 grid gap-2 text-sm text-stone-600">

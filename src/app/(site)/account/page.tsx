@@ -104,7 +104,7 @@ export default async function AccountPage() {
               >
                 <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-[color:var(--soft-rose)]/75 blur-2xl" />
                 <div className="relative">
-                  <div className="flex flex-wrap items-start justify-between gap-3 sm:flex-nowrap">
+                  <div className="grid gap-3">
                     <div className="min-w-0">
                       <p className="inline-flex h-8 items-center rounded-full border border-white/80 bg-white/80 px-3 text-[10px] uppercase tracking-[0.24em] text-stone-600">
                         Order {order.id.slice(0, 8)}
@@ -113,7 +113,7 @@ export default async function AccountPage() {
                         {formatDateTime(order.createdAt)}
                       </p>
                     </div>
-                    <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:shrink-0">
+                    <div className="flex w-full flex-wrap items-center justify-start gap-2">
                       <span
                         className={`${orderMetaBadgeClass} ${orderStatusBadgeClass(
                           order.status

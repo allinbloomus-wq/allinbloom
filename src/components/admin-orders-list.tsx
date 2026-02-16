@@ -6,7 +6,9 @@ import { formatDate } from "@/lib/format";
 import {
   addDaysToDayKey,
   addWeeksToWeekStartKey,
+  dayKeyToDate,
   getCurrentWeekStartKey,
+  getDayKey,
   weekStartKeyToDate,
 } from "@/lib/admin-orders";
 import { clientFetch } from "@/lib/api-client";
@@ -14,6 +16,11 @@ import type { Order } from "@/lib/api-types";
 
 type AdminOrdersWeek = {
   weekStartKey: string;
+  orders: Order[];
+};
+
+type AdminOrdersDayGroup = {
+  dayKey: string;
   orders: Order[];
 };
 
@@ -46,6 +53,11 @@ export default function AdminOrdersList({
     () => getCurrentWeekStartKey(new Date()),
     []
   );
+  const todayKey = useMemo(() => getDayKey(new Date()), []);
+  const yesterdayKey = useMemo(
+    () => addDaysToDayKey(todayKey, -1),
+    [todayKey]
+  );
 
   const getLabel = (weekStartKey: string) => {
     const weekEndKey = addDaysToDayKey(weekStartKey, 6);
@@ -56,6 +68,33 @@ export default function AdminOrdersList({
     return `${formatDate(weekStartKeyToDate(weekStartKey))} - ${formatDate(
       weekStartKeyToDate(weekEndKey)
     )}`;
+  };
+
+  const getDayLabel = (dayKey: string) => {
+    if (dayKey === todayKey) return "Today";
+    if (dayKey === yesterdayKey) return "Yesterday";
+    return formatDate(dayKeyToDate(dayKey));
+  };
+
+  const groupOrdersByDay = (orders: Order[]): AdminOrdersDayGroup[] => {
+    const groups = new Map<string, Order[]>();
+
+    for (const order of orders) {
+      const dayKey = getDayKey(new Date(order.createdAt));
+      const bucket = groups.get(dayKey);
+      if (bucket) {
+        bucket.push(order);
+      } else {
+        groups.set(dayKey, [order]);
+      }
+    }
+
+    return [...groups.entries()]
+      .sort(([left], [right]) => right.localeCompare(left))
+      .map(([dayKey, dayOrders]) => ({
+        dayKey,
+        orders: dayOrders,
+      }));
   };
 
   const handleOrderRemoved = (orderId: string) => {
@@ -122,14 +161,28 @@ export default function AdminOrdersList({
             </span>
           </div>
           {week.orders.length ? (
-            <div className="grid gap-4">
-              {week.orders.map((order) => (
-                <AdminOrderRow
-                  key={order.id}
-                  order={order}
-                  onRemoved={handleOrderRemoved}
-                  mode={mode}
-                />
+            <div className="space-y-5">
+              {groupOrdersByDay(week.orders).map((dayGroup) => (
+                <section key={`${week.weekStartKey}-${dayGroup.dayKey}`} className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-stone-600">
+                      {getDayLabel(dayGroup.dayKey)}
+                    </h3>
+                    <span className="text-[10px] uppercase tracking-[0.2em] text-stone-500">
+                      {dayGroup.orders.length} orders
+                    </span>
+                  </div>
+                  <div className="grid gap-4">
+                    {dayGroup.orders.map((order) => (
+                      <AdminOrderRow
+                        key={order.id}
+                        order={order}
+                        onRemoved={handleOrderRemoved}
+                        mode={mode}
+                      />
+                    ))}
+                  </div>
+                </section>
               ))}
             </div>
           ) : (
