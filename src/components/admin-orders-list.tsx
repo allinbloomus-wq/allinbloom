@@ -5,79 +5,88 @@ import AdminOrderRow from "@/components/admin-order-row";
 import { formatDate } from "@/lib/format";
 import {
   addDaysToDayKey,
-  dayKeyToDate,
-  getDayKey,
+  addWeeksToWeekStartKey,
+  getCurrentWeekStartKey,
+  weekStartKeyToDate,
 } from "@/lib/admin-orders";
 import { clientFetch } from "@/lib/api-client";
 import type { Order } from "@/lib/api-types";
 
-type AdminOrdersDay = {
-  dayKey: string;
+type AdminOrdersWeek = {
+  weekStartKey: string;
   orders: Order[];
 };
 
 type AdminOrdersListProps = {
-  initialDays: AdminOrdersDay[];
-  initialOldestDayKey: string;
+  initialWeeks: AdminOrdersWeek[];
+  initialOldestWeekStartKey: string;
   mode?: "active" | "deleted";
 };
 
 export default function AdminOrdersList({
-  initialDays,
-  initialOldestDayKey,
+  initialWeeks,
+  initialOldestWeekStartKey,
   mode = "active",
 }: AdminOrdersListProps) {
-  const [days, setDays] = useState<AdminOrdersDay[]>(initialDays);
-  const [oldestDayKey, setOldestDayKey] = useState(initialOldestDayKey);
+  const [weeks, setWeeks] = useState<AdminOrdersWeek[]>(initialWeeks);
+  const [oldestWeekStartKey, setOldestWeekStartKey] = useState(
+    initialOldestWeekStartKey
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setDays(initialDays);
-    setOldestDayKey(initialOldestDayKey);
+    setWeeks(initialWeeks);
+    setOldestWeekStartKey(initialOldestWeekStartKey);
     setIsLoading(false);
     setError(null);
-  }, [initialDays, initialOldestDayKey]);
+  }, [initialWeeks, initialOldestWeekStartKey]);
 
-  const todayKey = useMemo(() => getDayKey(new Date()), []);
-  const yesterdayKey = useMemo(
-    () => addDaysToDayKey(todayKey, -1),
-    [todayKey]
+  const currentWeekStartKey = useMemo(
+    () => getCurrentWeekStartKey(new Date()),
+    []
   );
 
-  const getLabel = (dayKey: string) => {
-    if (dayKey === todayKey) return "Today";
-    if (dayKey === yesterdayKey) return "Yesterday";
-    return formatDate(dayKeyToDate(dayKey));
+  const getLabel = (weekStartKey: string) => {
+    const weekEndKey = addDaysToDayKey(weekStartKey, 6);
+    if (weekStartKey === currentWeekStartKey) {
+      return "Last 7 days";
+    }
+
+    return `${formatDate(weekStartKeyToDate(weekStartKey))} - ${formatDate(
+      weekStartKeyToDate(weekEndKey)
+    )}`;
   };
 
   const handleOrderRemoved = (orderId: string) => {
-    setDays((current) =>
-      current.map((day) => ({
-        ...day,
-        orders: day.orders.filter((order) => order.id !== orderId),
+    setWeeks((current) =>
+      current.map((week) => ({
+        ...week,
+        orders: week.orders.filter((order) => order.id !== orderId),
       }))
     );
   };
 
   const loadOlderOrders = async () => {
     if (isLoading) return;
-    const targetDayKey = oldestDayKey;
+    const targetWeekStartKey = oldestWeekStartKey;
     setIsLoading(true);
     setError(null);
 
     try {
       const response = await clientFetch(
-        `/api/admin/orders/by-day?date=${targetDayKey}&scope=${mode}`,
+        `/api/admin/orders/by-week?startDate=${targetWeekStartKey}&scope=${mode}`,
         { cache: "no-store" },
         true
       );
       if (!response.ok) {
         throw new Error("Failed to load");
       }
-      const data = (await response.json()) as AdminOrdersDay;
-      setDays((current) => {
-        const existingIndex = current.findIndex((day) => day.dayKey === data.dayKey);
+      const data = (await response.json()) as AdminOrdersWeek;
+      setWeeks((current) => {
+        const existingIndex = current.findIndex(
+          (week) => week.weekStartKey === data.weekStartKey
+        );
         if (existingIndex >= 0) {
           const next = [...current];
           next[existingIndex] = {
@@ -87,9 +96,12 @@ export default function AdminOrdersList({
           return next;
         }
 
-        return [...current, { dayKey: data.dayKey, orders: data.orders || [] }];
+        return [
+          ...current,
+          { weekStartKey: data.weekStartKey, orders: data.orders || [] },
+        ];
       });
-      setOldestDayKey(addDaysToDayKey(targetDayKey, -1));
+      setOldestWeekStartKey(addWeeksToWeekStartKey(targetWeekStartKey, -1));
     } catch {
       setError("Could not load older orders.");
     } finally {
@@ -99,19 +111,19 @@ export default function AdminOrdersList({
 
   return (
     <div className="space-y-8">
-      {days.map((day) => (
-        <section key={day.dayKey} className="space-y-4">
+      {weeks.map((week) => (
+        <section key={week.weekStartKey} className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-lg font-semibold text-stone-900">
-              {getLabel(day.dayKey)}
+              {getLabel(week.weekStartKey)}
             </h2>
             <span className="text-xs uppercase tracking-[0.2em] text-stone-500">
-              {day.orders.length} orders
+              {week.orders.length} orders
             </span>
           </div>
-          {day.orders.length ? (
+          {week.orders.length ? (
             <div className="grid gap-4">
-              {day.orders.map((order) => (
+              {week.orders.map((order) => (
                 <AdminOrderRow
                   key={order.id}
                   order={order}
@@ -123,8 +135,8 @@ export default function AdminOrdersList({
           ) : (
             <div className="glass rounded-[28px] border border-white/80 p-6 text-sm text-stone-600">
               {mode === "deleted"
-                ? "No deleted orders for this day."
-                : "No orders for this day."}
+                ? "No deleted orders for this week."
+                : "No orders for this week."}
             </div>
           )}
         </section>
@@ -139,8 +151,8 @@ export default function AdminOrdersList({
           {isLoading
             ? "Loading..."
             : mode === "deleted"
-            ? "Load older deleted"
-            : "Load older orders"}
+            ? "Load previous deleted week"
+            : "Load previous week"}
         </button>
         {error ? <p className="text-xs text-rose-500">{error}</p> : null}
       </div>

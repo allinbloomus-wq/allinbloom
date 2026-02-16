@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.core.config import settings
 from app.models.order import Order
 from app.models.enums import OrderStatus
-from app.utils.admin_orders import get_day_range
+from app.utils.admin_orders import get_day_range, get_week_range
 
 
 PENDING_EXPIRATION_HOURS = 24
@@ -216,6 +216,37 @@ def get_admin_orders_by_day(
             .where(
                 Order.created_at >= day_range["start"],
                 Order.created_at < day_range["end"],
+                Order.is_deleted.is_(only_deleted),
+            )
+            .options(joinedload(Order.items))
+            .order_by(Order.created_at.desc())
+        )
+        .unique()
+        .scalars()
+        .all()
+    )
+    updates = _sync_with_stripe(db, orders)
+    if not updates:
+        return orders
+    for order in orders:
+        if order.id in updates:
+            order.status = updates[order.id]
+    return orders
+
+
+def get_admin_orders_by_week(
+    db: Session, week_start_key: str, only_deleted: bool = False
+) -> list[Order]:
+    expire_pending_orders(db)
+    week_range = get_week_range(week_start_key)
+    if not week_range:
+        return []
+    orders = (
+        db.execute(
+            select(Order)
+            .where(
+                Order.created_at >= week_range["start"],
+                Order.created_at < week_range["end"],
                 Order.is_deleted.is_(only_deleted),
             )
             .options(joinedload(Order.items))

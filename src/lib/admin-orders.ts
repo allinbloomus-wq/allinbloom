@@ -1,5 +1,6 @@
 export const ADMIN_ORDERS_BADGE_EVENT = "admin-orders-badge-refresh";
 export const ADMIN_TIMEZONE = "America/Chicago";
+export const ADMIN_ORDERS_WEEK_DAYS = 7;
 
 type DayParts = {
   year: number;
@@ -121,4 +122,39 @@ export function dayKeyToDate(dayKey: string, timeZone = ADMIN_TIMEZONE) {
   const parts = parseDayKey(dayKey);
   if (!parts) return new Date(dayKey);
   return makeDateInTimeZone(parts, timeZone, 12, 0, 0, 0);
+}
+
+export function getCurrentWeekStartKey(
+  date: Date,
+  timeZone = ADMIN_TIMEZONE
+) {
+  const todayKey = getDayKey(date, timeZone);
+  return addDaysToDayKey(todayKey, -(ADMIN_ORDERS_WEEK_DAYS - 1));
+}
+
+export function addWeeksToWeekStartKey(weekStartKey: string, delta: number) {
+  return addDaysToDayKey(weekStartKey, delta * ADMIN_ORDERS_WEEK_DAYS);
+}
+
+export function getWeekRange(
+  weekStartKey: string,
+  timeZone = ADMIN_TIMEZONE
+) {
+  const startParts = parseDayKey(weekStartKey);
+  if (!startParts) return null;
+
+  const start = makeDateInTimeZone(startParts, timeZone, 0, 0, 0, 0);
+  const weekEndKey = addDaysToDayKey(weekStartKey, ADMIN_ORDERS_WEEK_DAYS);
+  const endParts = parseDayKey(weekEndKey);
+  if (!endParts) return null;
+
+  const end = makeDateInTimeZone(endParts, timeZone, 0, 0, 0, 0);
+  return { start, end };
+}
+
+export function weekStartKeyToDate(
+  weekStartKey: string,
+  timeZone = ADMIN_TIMEZONE
+) {
+  return dayKeyToDate(weekStartKey, timeZone);
 }

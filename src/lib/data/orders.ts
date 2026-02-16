@@ -23,6 +23,20 @@ export async function getAdminOrdersByDay(
   return data.orders || [];
 }
 
+export async function getAdminOrdersByWeek(
+  weekStartKey: string,
+  scope: AdminOrdersScope = "active"
+): Promise<Order[]> {
+  const response = await apiFetch(
+    `/api/admin/orders/by-week?startDate=${weekStartKey}&scope=${scope}`,
+    {},
+    true
+  );
+  if (!response.ok) return [];
+  const data = (await response.json()) as { orders?: Order[] };
+  return data.orders || [];
+}
+
 export async function getOrderById(id: string): Promise<Order | null> {
   const response = await apiFetch(`/api/orders/${id}`, {}, true);
   if (!response.ok) return null;

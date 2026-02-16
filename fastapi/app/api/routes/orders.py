@@ -18,6 +18,7 @@ from app.schemas.order import (
     OrderSoftDeleteOut,
     OrderToggleOut,
     OrdersByDayOut,
+    OrdersByWeekOut,
     StripeAddressOut,
     StripeSessionOut,
     StripeShippingOut,
@@ -26,6 +27,7 @@ from app.services.orders import (
     expire_pending_orders,
     get_admin_orders,
     get_admin_orders_by_day,
+    get_admin_orders_by_week,
     get_orders_by_email,
     sync_order_with_stripe,
 )
@@ -93,6 +95,21 @@ def orders_by_day(
         raise HTTPException(status_code=400, detail="Invalid scope")
     orders = get_admin_orders_by_day(db, date, only_deleted=scope == "deleted")
     return OrdersByDayOut(day_key=date, orders=orders)
+
+
+@router.get("/admin/orders/by-week", response_model=OrdersByWeekOut)
+def orders_by_week(
+    start_date: str = Query(..., alias="startDate"),
+    scope: str = Query("active"),
+    db: Session = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    if not parse_day_key(start_date):
+        raise HTTPException(status_code=400, detail="Invalid date")
+    if scope not in {"active", "deleted"}:
+        raise HTTPException(status_code=400, detail="Invalid scope")
+    orders = get_admin_orders_by_week(db, start_date, only_deleted=scope == "deleted")
+    return OrdersByWeekOut(week_start_key=start_date, orders=orders)
 
 
 @router.patch("/admin/orders/{order_id}/toggle-read", response_model=OrderToggleOut)

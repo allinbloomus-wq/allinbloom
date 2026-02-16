@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from datetime import datetime, time, timedelta
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 
 ADMIN_TIMEZONE = "America/Chicago"
+DAYS_IN_WEEK = 7
 
 
 def parse_day_key(day_key: str) -> tuple[int, int, int] | None:
@@ -41,6 +42,25 @@ def get_day_range(day_key: str, time_zone: str = ADMIN_TIMEZONE) -> dict[str, da
         return None
     year, month, day = parsed
     zone = ZoneInfo(time_zone)
-    start = datetime(year, month, day, tzinfo=zone)
+    try:
+        start = datetime(year, month, day, tzinfo=zone)
+    except ValueError:
+        return None
     next_day = start + timedelta(days=1)
     return {"start": start, "end": next_day}
+
+
+def get_week_range(
+    week_start_key: str, time_zone: str = ADMIN_TIMEZONE
+) -> dict[str, datetime] | None:
+    parsed = parse_day_key(week_start_key)
+    if not parsed:
+        return None
+    year, month, day = parsed
+    zone = ZoneInfo(time_zone)
+    try:
+        start = datetime(year, month, day, tzinfo=zone)
+    except ValueError:
+        return None
+    end = start + timedelta(days=DAYS_IN_WEEK)
+    return {"start": start, "end": end}

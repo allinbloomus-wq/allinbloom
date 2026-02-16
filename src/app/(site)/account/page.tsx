@@ -31,6 +31,9 @@ const orderStatusBadgeClass = (status: OrderStatus) => {
   }
 };
 
+const orderMetaBadgeClass =
+  "inline-flex h-8 items-center justify-center rounded-full border px-3 text-[10px] uppercase tracking-[0.24em] whitespace-nowrap";
+
 export default async function AccountPage() {
   const { user } = await requireAuth();
   if (!user) {
@@ -110,15 +113,17 @@ export default async function AccountPage() {
                         {formatDateTime(order.createdAt)}
                       </p>
                     </div>
-                    <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:ml-auto sm:w-auto sm:shrink-0">
+                    <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:shrink-0">
                       <span
-                        className={`inline-flex h-8 items-center rounded-full border px-3 text-[10px] uppercase tracking-[0.24em] whitespace-nowrap ${orderStatusBadgeClass(
+                        className={`${orderMetaBadgeClass} ${orderStatusBadgeClass(
                           order.status
                         )}`}
                       >
                         {formatOrderStatus(order.status)}
                       </span>
-                      <span className="inline-flex h-8 items-center rounded-full border border-stone-200 bg-white/80 px-3 text-[10px] uppercase tracking-[0.24em] text-stone-600 whitespace-nowrap">
+                      <span
+                        className={`${orderMetaBadgeClass} border-stone-200 bg-white/80 text-stone-600`}
+                      >
                         {order.items.length} items
                       </span>
                     </div>

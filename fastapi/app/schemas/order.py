@@ -47,6 +47,11 @@ class OrdersByDayOut(SchemaBase):
     orders: list[OrderOut]
 
 
+class OrdersByWeekOut(SchemaBase):
+    week_start_key: str
+    orders: list[OrderOut]
+
+
 class OrdersPageOut(SchemaBase):
     orders: list[OrderOut]
     has_more: bool

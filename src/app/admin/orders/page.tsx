@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { getAdminOrdersByDay } from "@/lib/data/orders";
+import { getAdminOrdersByWeek } from "@/lib/data/orders";
 import {
-  addDaysToDayKey,
-  getDayKey,
+  addWeeksToWeekStartKey,
+  getCurrentWeekStartKey,
 } from "@/lib/admin-orders";
 import AdminOrdersList from "@/components/admin-orders-list";
 
@@ -17,19 +17,20 @@ export default async function AdminOrdersPage({
 }) {
   const params = await searchParams;
   const activeTab = params.tab === "deleted" ? "deleted" : "active";
-  const todayKey = getDayKey(new Date());
-  const yesterdayKey = addDaysToDayKey(todayKey, -1);
+  const latestWeekStartKey = getCurrentWeekStartKey(new Date());
 
-  const [todayOrders, yesterdayOrders] = await Promise.all([
-    getAdminOrdersByDay(todayKey, activeTab),
-    getAdminOrdersByDay(yesterdayKey, activeTab),
-  ]);
+  const latestWeekOrders = await getAdminOrdersByWeek(
+    latestWeekStartKey,
+    activeTab
+  );
 
-  const initialDays = [
-    { dayKey: todayKey, orders: todayOrders },
-    { dayKey: yesterdayKey, orders: yesterdayOrders },
+  const initialWeeks = [
+    { weekStartKey: latestWeekStartKey, orders: latestWeekOrders },
   ];
-  const initialOldestDayKey = addDaysToDayKey(yesterdayKey, -1);
+  const initialOldestWeekStartKey = addWeeksToWeekStartKey(
+    latestWeekStartKey,
+    -1
+  );
 
   return (
     <div className="space-y-6">
@@ -71,8 +72,8 @@ export default async function AdminOrdersPage({
         </h2>
         <AdminOrdersList
           key={activeTab}
-          initialDays={initialDays}
-          initialOldestDayKey={initialOldestDayKey}
+          initialWeeks={initialWeeks}
+          initialOldestWeekStartKey={initialOldestWeekStartKey}
           mode={activeTab}
         />
       </div>
