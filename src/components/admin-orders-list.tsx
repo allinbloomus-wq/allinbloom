@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AdminOrderRow from "@/components/admin-order-row";
 import { formatDate } from "@/lib/format";
 import {
@@ -31,6 +31,13 @@ export default function AdminOrdersList({
   const [oldestDayKey, setOldestDayKey] = useState(initialOldestDayKey);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setDays(initialDays);
+    setOldestDayKey(initialOldestDayKey);
+    setIsLoading(false);
+    setError(null);
+  }, [initialDays, initialOldestDayKey]);
 
   const todayKey = useMemo(() => getDayKey(new Date()), []);
   const yesterdayKey = useMemo(
@@ -69,10 +76,19 @@ export default function AdminOrdersList({
         throw new Error("Failed to load");
       }
       const data = (await response.json()) as AdminOrdersDay;
-      setDays((current) => [
-        ...current,
-        { dayKey: data.dayKey, orders: data.orders || [] },
-      ]);
+      setDays((current) => {
+        const existingIndex = current.findIndex((day) => day.dayKey === data.dayKey);
+        if (existingIndex >= 0) {
+          const next = [...current];
+          next[existingIndex] = {
+            ...next[existingIndex],
+            orders: data.orders || [],
+          };
+          return next;
+        }
+
+        return [...current, { dayKey: data.dayKey, orders: data.orders || [] }];
+      });
       setOldestDayKey(addDaysToDayKey(targetDayKey, -1));
     } catch {
       setError("Could not load older orders.");

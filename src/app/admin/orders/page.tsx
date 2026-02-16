@@ -44,6 +44,7 @@ export default async function AdminOrdersPage({
       <div className="inline-flex rounded-full border border-stone-200 bg-white/80 p-1">
         <Link
           href="/admin/orders?tab=active"
+          prefetch={false}
           className={`inline-flex h-10 items-center justify-center rounded-full px-5 text-xs uppercase tracking-[0.28em] transition ${
             activeTab === "active"
               ? "bg-stone-900 text-white"
@@ -54,6 +55,7 @@ export default async function AdminOrdersPage({
         </Link>
         <Link
           href="/admin/orders?tab=deleted"
+          prefetch={false}
           className={`inline-flex h-10 items-center justify-center rounded-full px-5 text-xs uppercase tracking-[0.28em] transition ${
             activeTab === "deleted"
               ? "bg-stone-900 text-white"
@@ -68,6 +70,7 @@ export default async function AdminOrdersPage({
           {activeTab === "deleted" ? "Deleted orders" : "Active orders"}
         </h2>
         <AdminOrdersList
+          key={activeTab}
           initialDays={initialDays}
           initialOldestDayKey={initialOldestDayKey}
           mode={activeTab}
