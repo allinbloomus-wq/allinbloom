@@ -1,6 +1,6 @@
 """add catalog category image settings
 
-Revision ID: 0005_store_settings_catalog_category_images
+Revision ID: 0005_catalog_category_images
 Revises: 0004_store_settings_home_images
 Create Date: 2026-02-19 00:00:00.000000
 """
@@ -9,7 +9,7 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision = "0005_store_settings_catalog_category_images"
+revision = "0005_catalog_category_images"
 down_revision = "0004_store_settings_home_images"
 branch_labels = None
 depends_on = None
