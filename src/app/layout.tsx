@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Manrope, Sora } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import Providers from "./providers";
 import TelegramWebviewFix from "@/components/telegram-webview-fix";
@@ -11,18 +11,70 @@ import {
   SITE_TAGLINE,
 } from "@/lib/site";
 
-const display = Sora({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
+const display = localFont({
+  src: [
+    {
+      path: "../../public/fonts/Unbounded-Medium.ttf",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/Unbounded-SemiBold.ttf",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/Unbounded-Bold.ttf",
+      weight: "700",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/Unbounded-ExtraBold.ttf",
+      weight: "800",
+      style: "normal",
+    },
+  ],
   variable: "--font-serif",
   display: "swap",
+  fallback: ["Segoe UI", "Trebuchet MS", "Arial", "sans-serif"],
 });
 
-const sans = Manrope({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+const sans = localFont({
+  src: [
+    {
+      path: "../../public/fonts/Unbounded-ExtraLight.ttf",
+      weight: "200",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/Unbounded-Light.ttf",
+      weight: "300",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/Unbounded-Regular.ttf",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/Unbounded-Medium.ttf",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/Unbounded-SemiBold.ttf",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/Unbounded-Bold.ttf",
+      weight: "700",
+      style: "normal",
+    },
+  ],
   variable: "--font-sans",
   display: "swap",
+  fallback: ["Segoe UI", "system-ui", "Arial", "sans-serif"],
 });
 
 export const metadata: Metadata = {
@@ -85,4 +137,3 @@ export default function RootLayout({
     </html>
   );
 }
-

@@ -5,7 +5,7 @@ export default function Footer() {
     <footer className="border-t border-white/60 bg-white/70">
       <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-10 sm:px-6 sm:py-12 lg:px-8 md:grid-cols-[1.2fr_1fr_1fr]">
         <div className="space-y-3">
-          <p className="font-[family-name:var(--font-serif)] text-xl font-semibold tracking-[-0.02em] text-[color:var(--brand)]">
+          <p className="font-[family-name:var(--font-script)] text-[1.75rem] leading-[0.95] text-[color:var(--brand)] sm:text-[1.9rem]">
             All in Bloom Floral Studio
           </p>
           <p className="text-sm text-stone-600">

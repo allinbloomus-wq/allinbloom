@@ -1,6 +1,15 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "SnellRoundhand";
+  src: url("/fonts/SnellRoundhand.ttc") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
 :root {
+  --font-script: "SnellRoundhand", "Snell Roundhand", "Brush Script MT", cursive;
   --brand: #6c140a;
   --brand-dark: #4f0f07;
   --ink: #2a1a18;
