@@ -13,7 +13,7 @@ export default function BouquetCard({
   pricing: BouquetPricing;
 }) {
   return (
-    <div className="glass flex h-full flex-col gap-3 rounded-[24px] border border-white/80 p-4 sm:gap-4 sm:rounded-[28px] sm:p-5">
+    <div className="glass flex h-full flex-col gap-3 rounded-[24px] border border-white/80 p-3 sm:gap-4 sm:rounded-[28px] sm:p-5">
       <div className="overflow-hidden rounded-[18px] border border-white/80 bg-white sm:rounded-[22px]">
         <BouquetImageLightbox
           src={bouquet.image}
@@ -34,9 +34,12 @@ export default function BouquetCard({
           {bouquet.description}
         </p>
       </div>
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
+        <p className="order-1 break-words text-left text-[10px] uppercase tracking-[0.14em] text-stone-500 sm:order-2 sm:text-right sm:text-xs sm:tracking-[0.2em]">
+          {formatLabel(bouquet.flowerType)}
+        </p>
         {pricing.discount ? (
-          <div className="flex items-baseline gap-2">
+          <div className="order-2 flex items-baseline gap-2 sm:order-1">
             <span className="text-xs text-stone-400 line-through sm:text-sm">
               {formatMoney(pricing.originalPriceCents)}
             </span>
@@ -45,13 +48,10 @@ export default function BouquetCard({
             </span>
           </div>
         ) : (
-          <p className="text-base font-semibold text-stone-900 sm:text-lg">
+          <p className="order-2 text-base font-semibold text-stone-900 sm:order-1 sm:text-lg">
             {formatMoney(pricing.originalPriceCents)}
           </p>
         )}
-        <p className="break-words text-right text-[10px] uppercase tracking-[0.14em] text-stone-500 sm:text-xs sm:tracking-[0.2em]">
-          {formatLabel(bouquet.flowerType)}
-        </p>
       </div>
       <AddToCartControls
         item={{
