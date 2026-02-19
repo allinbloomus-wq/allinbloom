@@ -257,7 +257,7 @@ export default function AdminDiscountsForm({
             </select>
           </label>
           <label className="relative z-10 flex flex-col gap-2 text-sm text-stone-700">
-            Mixed / Mono
+            Bouquet type
             <select
               name="categoryMixed"
               defaultValue={settings.categoryMixed || ""}
@@ -265,7 +265,7 @@ export default function AdminDiscountsForm({
                 invalidSet.has("categoryMixed")
               )}`}
             >
-              <option value="">Any</option>
+              <option value="">All bouquets</option>
               <option value="mixed">Mixed</option>
               <option value="mono">Mono</option>
             </select>

@@ -12,6 +12,7 @@ export const BOUQUET_STYLES = [
   "MODERN",
   "GARDEN",
   "MINIMAL",
+  "SEASON",
 ] as const;
 
 export const COLOR_OPTIONS = [

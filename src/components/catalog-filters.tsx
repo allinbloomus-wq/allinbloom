@@ -187,7 +187,7 @@ function CatalogFiltersForm({ initialValues }: CatalogFiltersFormProps) {
         })),
       ],
       mixed: [
-        { value: "", label: "Mixed or mono" },
+        { value: "", label: "All bouquets" },
         { value: "mixed", label: "Mixed bouquet" },
         { value: "mono", label: "Mono bouquet" },
       ],
@@ -212,6 +212,7 @@ function CatalogFiltersForm({ initialValues }: CatalogFiltersFormProps) {
     const { flower, color, style, mixed, min, max } = formValues;
 
     const params = new URLSearchParams();
+    params.set("entry", "1");
     if (flower && flower !== "all") params.set("flower", flower);
     if (color) params.set("color", color);
     if (style) params.set("style", style);
@@ -305,7 +306,7 @@ function CatalogFiltersForm({ initialValues }: CatalogFiltersFormProps) {
         {hasFilters ? (
           <button
             type="button"
-            onClick={() => router.push("/catalog")}
+            onClick={() => router.push("/catalog?entry=1")}
             className="inline-flex h-11 w-full items-center justify-center rounded-full border border-stone-200 bg-white/80 px-5 text-xs uppercase tracking-[0.3em] text-stone-600 sm:w-auto"
           >
             Clear

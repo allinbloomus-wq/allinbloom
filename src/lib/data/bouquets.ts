@@ -3,6 +3,7 @@ import { BOUQUET_STYLES, FLOWER_TYPES } from "@/lib/constants";
 import { apiFetch } from "@/lib/api-server";
 
 export type CatalogSearchParams = {
+  entry?: string;
   flower?: string;
   color?: string;
   style?: string;

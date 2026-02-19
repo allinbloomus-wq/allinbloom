@@ -141,6 +141,9 @@ export default async function HomePage() {
           <div className="inline-flex items-center gap-2 rounded-full bg-white/70 px-4 py-2 text-xs uppercase tracking-[0.24em] text-stone-700 shadow-sm">
             Chicago delivery in 2-4 hours
           </div>
+          <div className="lg:hidden animate-rise [animation-delay:80ms]">
+            <PromoGallery slides={promoSlides} />
+          </div>
           <h1 className="text-3xl font-semibold text-stone-900 text-balance sm:text-5xl lg:text-6xl">
             All in Bloom Floral Studio
           </h1>
@@ -217,6 +220,10 @@ export default async function HomePage() {
         </div>
       </section>
 
+      <section className="hidden lg:block animate-rise [animation-delay:80ms]">
+        <PromoGallery slides={promoSlides} />
+      </section>
+
       <section className="space-y-6 animate-rise [animation-delay:200ms]">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
@@ -243,10 +250,6 @@ export default async function HomePage() {
             />
           ))}
         </div>
-      </section>
-
-      <section className="animate-rise [animation-delay:80ms]">
-        <PromoGallery slides={promoSlides} />
       </section>
 
       <section className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center animate-rise [animation-delay:280ms]">

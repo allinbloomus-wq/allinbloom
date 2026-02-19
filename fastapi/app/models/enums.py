@@ -22,6 +22,7 @@ class BouquetStyle(str, Enum):
     MODERN = "MODERN"
     GARDEN = "GARDEN"
     MINIMAL = "MINIMAL"
+    SEASON = "SEASON"
 
 
 class OrderStatus(str, Enum):
