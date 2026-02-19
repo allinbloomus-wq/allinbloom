@@ -38,6 +38,12 @@ export default function AdminSidebar() {
           Discounts
         </Link>
         <Link
+          href="/admin/home-images"
+          className="flex h-11 items-center rounded-2xl border border-transparent bg-white/70 px-3 transition hover:border-stone-200"
+        >
+          Homepage images
+        </Link>
+        <Link
           href="/catalog"
           className="flex h-11 items-center rounded-2xl border border-transparent bg-white/70 px-3 transition hover:border-stone-200"
         >

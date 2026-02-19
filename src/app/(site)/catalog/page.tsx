@@ -120,7 +120,7 @@ export default async function CatalogPage({
               href={tile.href}
               className="group relative isolate overflow-hidden rounded-[24px] border border-white/80 bg-white/70 shadow-sm transition lg:hover:-translate-y-1 lg:hover:shadow-[0_16px_35px_rgba(108,20,10,0.22)]"
             >
-              <div className="relative aspect-[5/6] w-full">
+              <div className="relative aspect-square w-full">
                 <Image
                   src={tile.image}
                   alt={tile.title}

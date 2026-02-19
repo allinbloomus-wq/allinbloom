@@ -5,15 +5,23 @@ import ImageWithFallback from "@/components/image-with-fallback";
 import { clientFetch } from "@/lib/api-client";
 
 type AdminImageUploadProps = {
+  name?: string;
+  urlLabel?: string;
+  previewAlt?: string;
   defaultValue: string;
   recommendedSize?: string;
   isInvalid?: boolean;
+  required?: boolean;
 };
 
 export default function AdminImageUpload({
+  name = "image",
+  urlLabel = "Image URL",
+  previewAlt = "Image preview",
   defaultValue,
   recommendedSize = "600x800",
   isInvalid = false,
+  required = true,
 }: AdminImageUploadProps) {
   const fileInputId = useId();
   const [imageUrl, setImageUrl] = useState(defaultValue);
@@ -78,7 +86,7 @@ export default function AdminImageUpload({
         <div className="h-32 w-32 overflow-hidden rounded-[22px] border border-white/80 bg-white">
           <ImageWithFallback
             src={imageUrl}
-            alt="Bouquet preview"
+            alt={previewAlt}
             width={160}
             height={160}
             className="h-full w-full object-cover"
@@ -90,12 +98,12 @@ export default function AdminImageUpload({
         </div>
       </div>
       <label className="flex flex-col gap-2 text-sm text-stone-700">
-        Image URL
+        {urlLabel}
         <input
-          name="image"
+          name={name}
           value={imageUrl}
           onChange={(event) => setImageUrl(event.target.value)}
-          required
+          required={required}
           className={`h-11 w-full min-w-0 rounded-2xl bg-white/80 px-4 py-0 text-sm text-stone-800 outline-none ${
             isInvalid
               ? "border border-rose-300 focus:border-rose-500"

@@ -9,6 +9,7 @@ import PromoGallery from "@/components/promo-gallery";
 import { getFeaturedBouquets } from "@/lib/data/bouquets";
 import { getActivePromoSlides } from "@/lib/data/promotions";
 import { getStoreSettings } from "@/lib/data/settings";
+import { getHomeGalleryImages, getHomeHeroImage } from "@/lib/home-images";
 import { getBouquetPricing } from "@/lib/pricing";
 import {
   SITE_CITY,
@@ -42,32 +43,29 @@ export const metadata: Metadata = {
   },
 };
 
-const galleryImages = [
-  "/images/bouquet-1.webp",
-  "/images/bouquet-2.webp",
-  "/images/bouquet-3.webp",
-  "/images/bouquet-4.webp",
-  "/images/bouquet-5.webp",
-  "/images/bouquet-6.webp",
-];
-
-const atelierGalleryItems = galleryImages.map((src, idx) => ({
-  src,
-  alt: `Atelier gallery image ${idx + 1}`,
-  lightboxWidth: 1600,
-  lightboxHeight: 1600,
-}));
-
 export default async function HomePage() {
   const featured = await getFeaturedBouquets();
   const promoSlides = await getActivePromoSlides();
   const settings = await getStoreSettings();
+  const heroImage = getHomeHeroImage(settings);
+  const galleryImages = getHomeGalleryImages(settings);
+  const [mainGalleryImage, ...compactGalleryImages] = galleryImages;
+  const atelierGalleryItems = galleryImages.map((src, idx) => ({
+    src,
+    alt: `Atelier gallery image ${idx + 1}`,
+    lightboxWidth: 1600,
+    lightboxHeight: 1600,
+  }));
+  const localBusinessImage = heroImage.startsWith("http")
+    ? heroImage
+    : `${SITE_ORIGIN}${heroImage.startsWith("/") ? heroImage : `/${heroImage}`}`;
+
   const localBusinessSchema = {
     "@context": "https://schema.org",
     "@type": "Florist",
     name: SITE_NAME,
     url: SITE_ORIGIN,
-    image: `${SITE_ORIGIN}/images/hero-bouquet.webp`,
+    image: localBusinessImage,
     description: SITE_DESCRIPTION,
     telephone: SITE_PHONE,
     email: SITE_EMAIL,
@@ -98,7 +96,7 @@ export default async function HomePage() {
             <div className="relative overflow-hidden rounded-[34px] border border-white/80 bg-[linear-gradient(140deg,rgba(255,255,255,0.9),rgba(248,233,227,0.78))] p-3 shadow-[0_26px_70px_rgba(108,20,10,0.22)]">
               <div className="relative overflow-hidden rounded-[26px] border border-white/70">
                 <Image
-                  src="/images/hero-bouquet.webp"
+                  src={heroImage}
                   alt="Elegant floral bouquet"
                   width={760}
                   height={940}
@@ -208,7 +206,7 @@ export default async function HomePage() {
           </div>
           <div className="glass overflow-hidden rounded-[32px] border border-white/80 p-4">
             <Image
-              src="/images/hero-bouquet.webp"
+              src={heroImage}
               alt="Elegant floral bouquet"
               width={520}
               height={640}
@@ -287,10 +285,43 @@ export default async function HomePage() {
               Wrapped bouquet moments
             </h3>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2.5 sm:hidden">
+            <div className="glass overflow-hidden rounded-[28px] border border-white/80 aspect-[5/4]">
+              <GalleryImageLightbox
+                src={mainGalleryImage}
+                alt="Bouquet gallery preview"
+                className="block h-full w-full"
+                imageClassName="h-full w-full object-cover"
+                previewWidth={520}
+                previewHeight={420}
+                items={atelierGalleryItems}
+                startIndex={0}
+              />
+            </div>
+            <div className="grid grid-cols-5 gap-2">
+              {compactGalleryImages.map((src, idx) => (
+                <div
+                  key={`home-gallery-mobile-${idx + 1}`}
+                  className="glass overflow-hidden rounded-[18px] border border-white/80 aspect-square"
+                >
+                  <GalleryImageLightbox
+                    src={src}
+                    alt="Bouquet gallery preview"
+                    className="block h-full w-full"
+                    imageClassName="h-full w-full object-cover"
+                    previewWidth={180}
+                    previewHeight={180}
+                    items={atelierGalleryItems}
+                    startIndex={idx + 1}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="hidden gap-4 sm:grid sm:grid-cols-2">
             {galleryImages.map((src, idx) => (
               <div
-                key={src}
+                key={`home-gallery-desktop-${idx}`}
                 className="glass overflow-hidden rounded-[28px] border border-white/80 aspect-square"
               >
                 <GalleryImageLightbox

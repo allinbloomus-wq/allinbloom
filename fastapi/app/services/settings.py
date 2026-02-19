@@ -19,6 +19,13 @@ DEFAULT_SETTINGS = {
     "category_max_price_cents": None,
     "first_order_discount_percent": 10,
     "first_order_discount_note": "10% off your first order",
+    "home_hero_image": "/images/hero-bouquet.webp",
+    "home_gallery_image_1": "/images/bouquet-1.webp",
+    "home_gallery_image_2": "/images/bouquet-2.webp",
+    "home_gallery_image_3": "/images/bouquet-3.webp",
+    "home_gallery_image_4": "/images/bouquet-4.webp",
+    "home_gallery_image_5": "/images/bouquet-5.webp",
+    "home_gallery_image_6": "/images/bouquet-6.webp",
 }
 
 

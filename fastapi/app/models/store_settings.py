@@ -25,6 +25,48 @@ class StoreSettings(Base):
         "firstOrderDiscountPercent", Integer, default=10, nullable=False
     )
     first_order_discount_note = Column("firstOrderDiscountNote", String, nullable=True)
+    home_hero_image = Column(
+        "homeHeroImage",
+        String,
+        default="/images/hero-bouquet.webp",
+        nullable=False,
+    )
+    home_gallery_image_1 = Column(
+        "homeGalleryImage1",
+        String,
+        default="/images/bouquet-1.webp",
+        nullable=False,
+    )
+    home_gallery_image_2 = Column(
+        "homeGalleryImage2",
+        String,
+        default="/images/bouquet-2.webp",
+        nullable=False,
+    )
+    home_gallery_image_3 = Column(
+        "homeGalleryImage3",
+        String,
+        default="/images/bouquet-3.webp",
+        nullable=False,
+    )
+    home_gallery_image_4 = Column(
+        "homeGalleryImage4",
+        String,
+        default="/images/bouquet-4.webp",
+        nullable=False,
+    )
+    home_gallery_image_5 = Column(
+        "homeGalleryImage5",
+        String,
+        default="/images/bouquet-5.webp",
+        nullable=False,
+    )
+    home_gallery_image_6 = Column(
+        "homeGalleryImage6",
+        String,
+        default="/images/bouquet-6.webp",
+        nullable=False,
+    )
     updated_at = Column(
         "updatedAt",
         DateTime(timezone=True),

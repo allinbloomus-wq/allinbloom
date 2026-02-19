@@ -19,6 +19,13 @@ class StoreSettingsOut(SchemaBase):
     category_max_price_cents: Optional[int] = None
     first_order_discount_percent: int
     first_order_discount_note: Optional[str] = None
+    home_hero_image: str
+    home_gallery_image_1: str
+    home_gallery_image_2: str
+    home_gallery_image_3: str
+    home_gallery_image_4: str
+    home_gallery_image_5: str
+    home_gallery_image_6: str
 
 
 class StoreSettingsUpdate(SchemaBase):
@@ -34,3 +41,10 @@ class StoreSettingsUpdate(SchemaBase):
     category_max_price_cents: Optional[int] = None
     first_order_discount_percent: Optional[int] = None
     first_order_discount_note: Optional[str] = None
+    home_hero_image: Optional[str] = None
+    home_gallery_image_1: Optional[str] = None
+    home_gallery_image_2: Optional[str] = None
+    home_gallery_image_3: Optional[str] = None
+    home_gallery_image_4: Optional[str] = None
+    home_gallery_image_5: Optional[str] = None
+    home_gallery_image_6: Optional[str] = None

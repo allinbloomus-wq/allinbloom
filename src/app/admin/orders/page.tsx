@@ -46,7 +46,7 @@ export default async function AdminOrdersPage({
         <Link
           href="/admin/orders?tab=active"
           prefetch={false}
-          className={`inline-flex h-10 items-center justify-center rounded-full px-5 text-xs uppercase tracking-[0.28em] transition ${
+          className={`inline-flex h-10 items-center justify-center whitespace-nowrap rounded-full px-3 text-[10px] uppercase tracking-[0.18em] transition sm:px-5 sm:text-xs sm:tracking-[0.28em] ${
             activeTab === "active"
               ? "bg-stone-900 text-white"
               : "text-stone-600 hover:bg-stone-100"
@@ -57,7 +57,7 @@ export default async function AdminOrdersPage({
         <Link
           href="/admin/orders?tab=deleted"
           prefetch={false}
-          className={`inline-flex h-10 items-center justify-center rounded-full px-5 text-xs uppercase tracking-[0.28em] transition ${
+          className={`inline-flex h-10 items-center justify-center whitespace-nowrap rounded-full px-3 text-[10px] uppercase tracking-[0.18em] transition sm:px-5 sm:text-xs sm:tracking-[0.28em] ${
             activeTab === "deleted"
               ? "bg-stone-900 text-white"
               : "text-stone-600 hover:bg-stone-100"

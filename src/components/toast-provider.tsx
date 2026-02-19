@@ -13,6 +13,7 @@ import {
 const URL_TOAST_MESSAGES: Record<string, string> = {
   "bouquet-added": "Bouquet added successfully.",
   "discounts-saved": "Discounts saved successfully.",
+  "home-images-saved": "Homepage images saved successfully.",
   "promotion-added": "Promotion added successfully.",
 };
 

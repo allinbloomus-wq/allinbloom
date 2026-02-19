@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import ContactForm from "@/components/contact-form";
-import { SITE_DESCRIPTION } from "@/lib/site";
+import { SITE_DESCRIPTION, SITE_PHONE } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Contact | Chicago Flower Delivery",
@@ -18,6 +18,8 @@ export const metadata: Metadata = {
 };
 
 export default function ContactPage() {
+  const smsNumber = SITE_PHONE.replace(/[^+\d]/g, "");
+
   return (
     <div className="grid gap-8 sm:gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
       <div className="space-y-4">
@@ -32,7 +34,15 @@ export default function ContactPage() {
           Our concierge team responds within one business day.
         </p>
         <div className="space-y-2 text-sm text-stone-600">
-          <p>Studio hotline: +1 (224) 213-3823</p>
+          <p>
+            Studio hotline:{" "}
+            <a
+              href={`sms:${smsNumber}`}
+              className="font-medium text-stone-700 underline decoration-stone-300 underline-offset-4 transition hover:text-[color:var(--brand)] hover:decoration-[color:var(--brand)]"
+            >
+              +1 (224) 213-3823
+            </a>
+          </p>
           <p>Email: allinbloom.us@gmail.com</p>
           <p>Hours: Mon-Sat 9:00 AM to 7:00 PM</p>
           <a

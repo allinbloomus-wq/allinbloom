@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import type { Bouquet } from "@/lib/api-types";
-import { BOUQUET_STYLES, FLOWER_TYPES } from "@/lib/constants";
+import { BOUQUET_STYLES, COLOR_OPTIONS, FLOWER_TYPES } from "@/lib/constants";
 import { formatLabel } from "@/lib/format";
 import AdminImageUpload from "@/components/admin-image-upload";
 
@@ -26,6 +26,24 @@ const textareaFieldClass = (isInvalid: boolean) =>
   `w-full min-w-0 rounded-2xl bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none ${fieldStateClass(
     isInvalid
   )}`;
+
+const COLOR_OPTIONS_SET = new Set<string>(COLOR_OPTIONS);
+
+const parsePaletteColors = (value: string | undefined) =>
+  String(value || "")
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean)
+    .filter((item, idx, arr) => arr.indexOf(item) === idx);
+
+const sortPaletteColors = (values: string[]) => {
+  const known = COLOR_OPTIONS.filter((color) => values.includes(color));
+  const unknown = values.filter((value) => !COLOR_OPTIONS_SET.has(value));
+  return [...known, ...unknown];
+};
+
+const formatPaletteLabel = (value: string) =>
+  value ? value.charAt(0).toUpperCase() + value.slice(1) : value;
 
 const parseNumber = (value: FormDataEntryValue | null) => {
   const raw = String(value || "").trim();
@@ -53,7 +71,59 @@ export default function AdminBouquetForm({
 }: AdminBouquetFormProps) {
   const [errors, setErrors] = useState<string[]>([]);
   const [invalidFields, setInvalidFields] = useState<string[]>([]);
+  const [selectedColors, setSelectedColors] = useState<string[]>(() =>
+    sortPaletteColors(parsePaletteColors(bouquet?.colors))
+  );
+  const [isColorMenuOpen, setIsColorMenuOpen] = useState(false);
+  const colorMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isColorMenuOpen) return;
+
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      if (
+        colorMenuRef.current &&
+        !colorMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsColorMenuOpen(false);
+      }
+    };
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsColorMenuOpen(false);
+      }
+    };
+
+    window.addEventListener("pointerdown", closeOnOutsideClick);
+    window.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      window.removeEventListener("pointerdown", closeOnOutsideClick);
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isColorMenuOpen]);
+
   const invalidSet = useMemo(() => new Set(invalidFields), [invalidFields]);
+  const selectedColorsValue = useMemo(
+    () => selectedColors.join(", "),
+    [selectedColors]
+  );
+  const selectedColorsLabel = useMemo(() => {
+    if (!selectedColors.length) return "Select colors";
+    const preview = selectedColors.slice(0, 3).map(formatPaletteLabel).join(", ");
+    const hiddenCount = selectedColors.length - 3;
+    return hiddenCount > 0 ? `${preview} +${hiddenCount}` : preview;
+  }, [selectedColors]);
+
+  const toggleColorOption = (color: string) => {
+    setSelectedColors((current) => {
+      if (current.includes(color)) {
+        return current.filter((value) => value !== color);
+      }
+      return sortPaletteColors([...current, color]);
+    });
+  };
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     const formData = new FormData(event.currentTarget);
@@ -171,14 +241,80 @@ export default function AdminBouquetForm({
               />
             </label>
           </div>
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
-            Color palette (comma separated)
-            <input
-              name="colors"
-              defaultValue={bouquet?.colors}
-              className={controlFieldClass(false)}
-            />
-          </label>
+          <div
+            ref={colorMenuRef}
+            className="relative z-20 flex flex-col gap-2 text-sm text-stone-700"
+          >
+            <span>Color palette</span>
+            <input type="hidden" name="colors" value={selectedColorsValue} />
+            <button
+              type="button"
+              onClick={() => setIsColorMenuOpen((current) => !current)}
+              aria-haspopup="true"
+              aria-expanded={isColorMenuOpen}
+              className="flex h-11 w-full items-center justify-between rounded-2xl border border-stone-200 bg-white/80 px-4 text-sm text-stone-800 outline-none transition hover:border-stone-300 focus:border-stone-400"
+            >
+              <span
+                className={`truncate text-left ${
+                  selectedColors.length ? "text-stone-800" : "text-stone-500"
+                }`}
+              >
+                {selectedColorsLabel}
+              </span>
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 20 20"
+                fill="none"
+                className={`h-4 w-4 text-stone-500 transition-transform ${
+                  isColorMenuOpen ? "rotate-180" : ""
+                }`}
+              >
+                <path
+                  d="m5 7 5 6 5-6"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+            {isColorMenuOpen ? (
+              <div className="absolute left-0 right-0 top-full z-30 mt-2 rounded-2xl border border-stone-200 bg-white p-2 shadow-[0_14px_28px_rgba(28,21,18,0.14)]">
+                <div className="max-h-56 space-y-1 overflow-auto pr-1">
+                  {COLOR_OPTIONS.map((color) => (
+                    <label
+                      key={color}
+                      className="flex cursor-pointer items-center gap-2 rounded-xl px-2 py-1.5 text-sm text-stone-700 transition hover:bg-stone-50"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedColors.includes(color)}
+                        onChange={() => toggleColorOption(color)}
+                        className="h-4 w-4 accent-[color:var(--brand)]"
+                      />
+                      <span>{formatPaletteLabel(color)}</span>
+                    </label>
+                  ))}
+                </div>
+                <div className="mt-2 flex items-center justify-between border-t border-stone-100 px-1 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedColors([])}
+                    className="text-[10px] uppercase tracking-[0.2em] text-stone-500 transition hover:text-stone-700"
+                  >
+                    Clear
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsColorMenuOpen(false)}
+                    className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--brand)] transition hover:text-[color:var(--brand-dark)]"
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
         </div>
         <div className="min-w-0 space-y-4">
           <AdminImageUpload

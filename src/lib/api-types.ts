@@ -68,6 +68,13 @@ export type StoreSettings = {
   categoryMaxPriceCents: number | null;
   firstOrderDiscountPercent: number;
   firstOrderDiscountNote: string | null;
+  homeHeroImage: string;
+  homeGalleryImage1: string;
+  homeGalleryImage2: string;
+  homeGalleryImage3: string;
+  homeGalleryImage4: string;
+  homeGalleryImage5: string;
+  homeGalleryImage6: string;
 };
 
 export type DiscountInfo = {
