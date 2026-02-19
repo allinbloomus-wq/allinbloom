@@ -46,7 +46,7 @@ export default function AddToCartControls({ item }: AddToCartControlsProps) {
           });
           showToast("Added to cart.");
         }}
-        className="w-full rounded-full bg-[color:var(--brand)] px-4 py-2 text-xs uppercase tracking-[0.24em] text-white transition hover:bg-[color:var(--brand-dark)] sm:tracking-[0.3em]"
+        className="w-full rounded-full bg-[color:var(--brand)] px-3 py-2 text-[10px] uppercase tracking-[0.16em] text-white transition hover:bg-[color:var(--brand-dark)] sm:px-4 sm:text-xs sm:tracking-[0.3em]"
       >
         Add to cart
       </button>
@@ -54,11 +54,11 @@ export default function AddToCartControls({ item }: AddToCartControlsProps) {
   }
 
   return (
-    <div className="flex items-center justify-between gap-3 rounded-full border border-stone-200 bg-white/80 px-3 py-2 text-xs uppercase tracking-[0.24em] text-stone-700 sm:tracking-[0.3em]">
+    <div className="flex items-center justify-between gap-2 rounded-full border border-stone-200 bg-white/80 px-2.5 py-1.5 text-[10px] uppercase tracking-[0.16em] text-stone-700 sm:gap-3 sm:px-3 sm:py-2 sm:text-xs sm:tracking-[0.3em]">
       <button
         type="button"
         onClick={() => updateQuantity(item.id, existing.quantity - 1)}
-        className="h-7 w-7 rounded-full border border-stone-200 text-sm"
+        className="h-6 w-6 rounded-full border border-stone-200 text-xs sm:h-7 sm:w-7 sm:text-sm"
       >
         -
       </button>
@@ -66,7 +66,7 @@ export default function AddToCartControls({ item }: AddToCartControlsProps) {
       <button
         type="button"
         onClick={() => updateQuantity(item.id, existing.quantity + 1)}
-        className="h-7 w-7 rounded-full border border-stone-200 text-sm"
+        className="h-6 w-6 rounded-full border border-stone-200 text-xs sm:h-7 sm:w-7 sm:text-sm"
       >
         +
       </button>

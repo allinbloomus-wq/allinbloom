@@ -13,42 +13,43 @@ export default function BouquetCard({
   pricing: BouquetPricing;
 }) {
   return (
-    <div className="glass flex h-full flex-col gap-4 rounded-[28px] border border-white/80 p-5">
-      <div className="overflow-hidden rounded-[22px] border border-white/80 bg-white">
+    <div className="glass flex h-full flex-col gap-3 rounded-[24px] border border-white/80 p-4 sm:gap-4 sm:rounded-[28px] sm:p-5">
+      <div className="overflow-hidden rounded-[18px] border border-white/80 bg-white sm:rounded-[22px]">
         <BouquetImageLightbox
           src={bouquet.image}
           alt={bouquet.name}
           className="block w-full"
+          imageClassName="aspect-[4/5] w-full object-cover sm:aspect-square"
         />
       </div>
-      <div className="flex-1 space-y-2">
-        <div className="flex items-center justify-between text-xs uppercase tracking-[0.24em] text-stone-500">
-          <span>{formatLabel(bouquet.style)}</span>
-          <span>{bouquet.isMixed ? "Mixed" : "Mono"}</span>
+      <div className="min-w-0 flex-1 space-y-1.5 sm:space-y-2">
+        <div className="flex items-center justify-between gap-2 text-[10px] uppercase tracking-[0.16em] text-stone-500 sm:text-xs sm:tracking-[0.24em]">
+          <span className="truncate">{formatLabel(bouquet.style)}</span>
+          <span className="shrink-0">{bouquet.isMixed ? "Mixed" : "Mono"}</span>
         </div>
-        <h3 className="text-xl font-semibold text-stone-900">
+        <h3 className="break-words text-base font-semibold leading-tight text-stone-900 sm:text-xl">
           {bouquet.name}
         </h3>
-        <p className="text-sm leading-relaxed text-stone-600">
+        <p className="break-words text-xs leading-snug text-stone-600 sm:text-sm sm:leading-relaxed">
           {bouquet.description}
         </p>
       </div>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         {pricing.discount ? (
           <div className="flex items-baseline gap-2">
-            <span className="text-sm text-stone-400 line-through">
+            <span className="text-xs text-stone-400 line-through sm:text-sm">
               {formatMoney(pricing.originalPriceCents)}
             </span>
-            <span className="text-lg font-semibold text-[color:var(--brand)]">
+            <span className="text-base font-semibold text-[color:var(--brand)] sm:text-lg">
               {formatMoney(pricing.finalPriceCents)}
             </span>
           </div>
         ) : (
-          <p className="text-lg font-semibold text-stone-900">
+          <p className="text-base font-semibold text-stone-900 sm:text-lg">
             {formatMoney(pricing.originalPriceCents)}
           </p>
         )}
-        <p className="text-xs uppercase tracking-[0.2em] text-stone-500">
+        <p className="break-words text-right text-[10px] uppercase tracking-[0.14em] text-stone-500 sm:text-xs sm:tracking-[0.2em]">
           {formatLabel(bouquet.flowerType)}
         </p>
       </div>
