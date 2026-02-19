@@ -18,6 +18,7 @@ class CheckoutRequest(SchemaBase):
     items: list[CheckoutItemIn]
     address: str
     phone: str
+    email: Optional[str] = None
 
 
 class CheckoutResponse(SchemaBase):
@@ -26,6 +27,7 @@ class CheckoutResponse(SchemaBase):
 
 class CheckoutCancelRequest(SchemaBase):
     order_id: str
+    email: Optional[str] = None
 
 
 class CheckoutCancelResponse(SchemaBase):

@@ -80,6 +80,43 @@ def get_current_user(
     return user
 
 
+def get_optional_user(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+    db: Session = Depends(get_db),
+) -> User | None:
+    if not credentials:
+        return None
+    if credentials.scheme.lower() != "bearer":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+    try:
+        payload = decode_access_token(credentials.credentials)
+    except Exception:
+        log_critical_event(
+            domain="auth",
+            event="invalid_optional_access_token",
+            message="Optional auth token failed validation.",
+            request=request,
+            level=logging.WARNING,
+        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+
+    user_id = payload.get("sub") or payload.get("user_id")
+    email = payload.get("email")
+    stmt = None
+    if user_id:
+        stmt = select(User).where(User.id == str(user_id))
+    elif email:
+        stmt = select(User).where(User.email == str(email))
+    if stmt is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+
+    user = db.execute(stmt).scalars().first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+    return user
+
+
 def require_admin(request: Request, user: User = Depends(get_current_user)) -> User:
     if user.role != Role.ADMIN:
         log_critical_event(

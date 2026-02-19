@@ -15,6 +15,7 @@ export const metadata: Metadata = {
 type CartSearchParams = Promise<{
   checkoutCanceled?: string | string[];
   orderId?: string | string[];
+  checkoutEmail?: string | string[];
 }>;
 
 const pickFirst = (value: string | string[] | undefined) =>
@@ -27,15 +28,17 @@ export default async function CartPage({
 }) {
   const params = await searchParams;
   const { user } = await getAuthSession();
+  const email = user?.email || null;
   const checkoutCanceledParam = pickFirst(params.checkoutCanceled);
   const canceledOrderId = pickFirst(params.orderId);
+  const canceledCheckoutEmail = pickFirst(params.checkoutEmail);
+  const checkoutCancelEmail = (email || canceledCheckoutEmail || "").trim().toLowerCase();
   const canceledCheckoutStatus =
-    checkoutCanceledParam === "1" && canceledOrderId && user
-      ? await cancelCheckoutOrder(canceledOrderId)
+    checkoutCanceledParam === "1" && canceledOrderId && checkoutCancelEmail
+      ? await cancelCheckoutOrder(canceledOrderId, checkoutCancelEmail)
       : null;
 
   const settings = await getStoreSettings();
-  const email = user?.email || null;
   const orderCount = email ? await countOrdersByEmail(email) : 0;
   const isFirstOrderEligible = Boolean(email && orderCount === 0);
 
@@ -51,6 +54,7 @@ export default async function CartPage({
       </div>
       <CartView
         isAuthenticated={Boolean(user)}
+        userEmail={email}
         globalDiscount={
           settings.globalDiscountPercent > 0
             ? {

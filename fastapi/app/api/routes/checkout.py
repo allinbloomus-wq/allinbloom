@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import logging
+from urllib.parse import quote_plus
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 import stripe
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, get_db
+from app.api.deps import get_db, get_optional_user
 from app.core.config import settings
 from app.core.critical_logging import log_critical_event
 from app.models.bouquet import Bouquet
@@ -44,22 +45,26 @@ def _set_order_status_safely(db: Session, order: Order, status: OrderStatus) -> 
 async def start_checkout(
     payload: CheckoutRequest,
     request: Request,
-    user=Depends(get_current_user),
+    user=Depends(get_optional_user),
     db: Session = Depends(get_db),
 ):
+    user_id = user.id if user else None
+
     if not settings.stripe_secret_key:
         log_critical_event(
             domain="payment",
             event="stripe_not_configured",
             message="Checkout requested while Stripe is not configured.",
             request=request,
-            context={"user_id": user.id},
+            context={"user_id": user_id},
         )
         raise HTTPException(status_code=400, detail="Stripe is not configured.")
 
     items = payload.items
     address = payload.address.strip()
     raw_phone = payload.phone.strip()
+    payload_email = (payload.email or "").strip().lower()
+    checkout_email = (user.email or "").strip().lower() if user else payload_email
     digits = "".join(char for char in raw_phone if char.isdigit())
     normalized_phone = f"+{digits}" if len(digits) == 11 and digits.startswith("1") else ""
 
@@ -69,17 +74,27 @@ async def start_checkout(
             event="checkout_empty_cart",
             message="Checkout request contains no items.",
             request=request,
-            context={"user_id": user.id},
+            context={"user_id": user_id},
             level=logging.WARNING,
         )
         raise HTTPException(status_code=400, detail="No items provided.")
+    if "@" not in checkout_email:
+        log_critical_event(
+            domain="personal_data",
+            event="checkout_missing_or_invalid_email",
+            message="Checkout request has missing or invalid email.",
+            request=request,
+            context={"user_id": user_id},
+            level=logging.WARNING,
+        )
+        raise HTTPException(status_code=400, detail="A valid email is required.")
     if not address:
         log_critical_event(
             domain="personal_data",
             event="checkout_missing_address",
             message="Checkout request has empty delivery address.",
             request=request,
-            context={"user_id": user.id},
+            context={"user_id": user_id},
             level=logging.WARNING,
         )
         raise HTTPException(status_code=400, detail="Delivery address is required.")
@@ -89,7 +104,7 @@ async def start_checkout(
             event="checkout_invalid_phone",
             message="Checkout request has invalid phone format.",
             request=request,
-            context={"user_id": user.id, "phone_length": len(raw_phone)},
+            context={"user_id": user_id, "phone_length": len(raw_phone)},
             level=logging.WARNING,
         )
         raise HTTPException(status_code=400, detail="Use phone format +1 312 555 0123.")
@@ -102,7 +117,7 @@ async def start_checkout(
             event="delivery_quote_failed",
             message="Delivery quote failed during checkout.",
             request=request,
-            context={"user_id": user.id, "item_count": len(items)},
+            context={"user_id": user_id, "item_count": len(items)},
         )
         raise HTTPException(status_code=400, detail=delivery.error or "Unable to calculate delivery.")
 
@@ -127,7 +142,7 @@ async def start_checkout(
                     event="invalid_custom_item_payload",
                     message="Custom cart item is missing required fields.",
                     request=request,
-                    context={"user_id": user.id, "item_id": item.id},
+                    context={"user_id": user_id, "item_id": item.id},
                     level=logging.WARNING,
                 )
                 raise HTTPException(status_code=400, detail="Some items are unavailable.")
@@ -137,7 +152,7 @@ async def start_checkout(
                     event="invalid_custom_item_price",
                     message="Custom cart item price is out of expected range.",
                     request=request,
-                    context={"user_id": user.id, "item_id": item.id, "price_cents": price_cents},
+                    context={"user_id": user_id, "item_id": item.id, "price_cents": price_cents},
                     level=logging.WARNING,
                 )
                 raise HTTPException(status_code=400, detail="Some items are unavailable.")
@@ -159,7 +174,7 @@ async def start_checkout(
                 event="checkout_item_not_found",
                 message="Checkout item does not exist or is inactive.",
                 request=request,
-                context={"user_id": user.id, "item_id": item.id},
+                context={"user_id": user_id, "item_id": item.id},
                 level=logging.WARNING,
             )
             raise HTTPException(status_code=400, detail="Some items are unavailable.")
@@ -181,15 +196,19 @@ async def start_checkout(
             }
         )
 
-    orders_count = (
-        db.execute(
-            select(func.count())
-            .select_from(Order)
-            .where(Order.email == user.email, Order.status == OrderStatus.PAID)
-        ).scalar_one()
-    )
+    orders_count = 0
+    if user:
+        orders_count = (
+            db.execute(
+                select(func.count())
+                .select_from(Order)
+                .where(Order.email == checkout_email, Order.status == OrderStatus.PAID)
+            ).scalar_one()
+        )
     first_order_discount_percent = (
-        settings_row.first_order_discount_percent if orders_count == 0 and not has_any_discount else 0
+        settings_row.first_order_discount_percent
+        if user and orders_count == 0 and not has_any_discount
+        else 0
     )
 
     discounted_items = []
@@ -225,7 +244,7 @@ async def start_checkout(
         )
 
     order = Order(
-        email=user.email,
+        email=checkout_email,
         phone=normalized_phone,
         total_cents=computed_total,
         items=order_items,
@@ -234,10 +253,12 @@ async def start_checkout(
     db.commit()
     db.refresh(order)
 
-    user.phone = normalized_phone
-    db.commit()
+    if user and user.phone != normalized_phone:
+        user.phone = normalized_phone
+        db.commit()
 
     origin = settings.resolved_site_url()
+    encoded_checkout_email = quote_plus(checkout_email)
     stripe.api_key = settings.stripe_secret_key
     expires_at = int(datetime.now(timezone.utc).timestamp()) + STRIPE_CHECKOUT_SESSION_EXPIRATION_SECONDS
 
@@ -273,9 +294,12 @@ async def start_checkout(
             mode="payment",
             line_items=line_items,
             success_url=f"{origin}/checkout/success",
-            cancel_url=f"{origin}/cart?checkoutCanceled=1&orderId={order.id}",
+            cancel_url=(
+                f"{origin}/cart?checkoutCanceled=1&orderId={order.id}"
+                f"&checkoutEmail={encoded_checkout_email}"
+            ),
             payment_method_types=["card"],
-            customer_email=user.email or None,
+            customer_email=checkout_email or None,
             expires_at=expires_at,
             metadata={
                 "orderId": order.id,
@@ -293,7 +317,7 @@ async def start_checkout(
             event="stripe_checkout_session_failed",
             message="Stripe checkout session creation failed.",
             request=request,
-            context={"order_id": order.id, "user_id": user.id, "item_count": len(discounted_items)},
+            context={"order_id": order.id, "user_id": user_id, "item_count": len(discounted_items)},
             exc=exc,
         )
         _set_order_status_safely(db, order, OrderStatus.FAILED)
@@ -308,7 +332,7 @@ async def start_checkout(
             event="stripe_session_missing_url",
             message="Stripe session was created without redirect URL.",
             request=request,
-            context={"order_id": order.id, "user_id": user.id},
+            context={"order_id": order.id, "user_id": user_id},
         )
         _set_order_status_safely(db, order, OrderStatus.FAILED)
         raise HTTPException(status_code=500, detail="Unable to start checkout.")
@@ -319,11 +343,17 @@ async def start_checkout(
 async def cancel_checkout(
     payload: CheckoutCancelRequest,
     request: Request,
-    user=Depends(get_current_user),
+    user=Depends(get_optional_user),
     db: Session = Depends(get_db),
 ):
+    user_id = user.id if user else None
+    payload_email = (payload.email or "").strip().lower()
+    checkout_email = (user.email or "").strip().lower() if user else payload_email
+
     order = db.get(Order, payload.order_id)
-    if not order or order.email != user.email:
+    if not order:
+        raise HTTPException(status_code=404, detail="Not found")
+    if not checkout_email or (order.email or "").strip().lower() != checkout_email:
         raise HTTPException(status_code=404, detail="Not found")
 
     if order.status == OrderStatus.PAID:
@@ -342,7 +372,7 @@ async def cancel_checkout(
                 event="stripe_session_fetch_failed_during_cancel",
                 message="Failed to fetch Stripe checkout session during cancellation.",
                 request=request,
-                context={"order_id": order.id, "user_id": user.id},
+                context={"order_id": order.id, "user_id": user_id},
                 exc=exc,
                 level=logging.WARNING,
             )
@@ -367,7 +397,7 @@ async def cancel_checkout(
                         event="stripe_session_expire_failed",
                         message="Failed to expire open Stripe checkout session during cancellation.",
                         request=request,
-                        context={"order_id": order.id, "user_id": user.id},
+                        context={"order_id": order.id, "user_id": user_id},
                         exc=exc,
                         level=logging.WARNING,
                     )

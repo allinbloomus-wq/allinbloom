@@ -42,6 +42,7 @@ type GoogleMapsWindow = Window & {
 
 type CartViewProps = {
   isAuthenticated: boolean;
+  userEmail: string | null;
   globalDiscount: DiscountInfo | null;
   firstOrderDiscount: DiscountInfo | null;
   canceledCheckoutStatus: string | null;
@@ -59,12 +60,14 @@ type CartViewProps = {
 
 export default function CartView({
   isAuthenticated,
+  userEmail,
   globalDiscount,
   firstOrderDiscount,
   canceledCheckoutStatus,
   categoryDiscount,
 }: CartViewProps) {
   const { items, updateQuantity, removeItem } = useCart();
+  const [guestEmail, setGuestEmail] = useState(() => userEmail || "");
   const [address, setAddress] = useState("");
   const [phoneLocal, setPhoneLocal] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -77,7 +80,9 @@ export default function CartView({
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const mapsKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-  const deliveryLocked = !isAuthenticated;
+  const checkoutEmail = (isAuthenticated ? userEmail || "" : guestEmail).trim().toLowerCase();
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(checkoutEmail);
+  const showEmailError = !isAuthenticated && guestEmail.trim().length > 0 && !emailValid;
   const formatPhone = (localDigits: string) => {
     const part1 = localDigits.slice(0, 3);
     const part2 = localDigits.slice(3, 6);
@@ -92,7 +97,6 @@ export default function CartView({
   const phoneValue = formatPhone(phoneLocal);
 
   useEffect(() => {
-    if (deliveryLocked) return;
     if (!mapsKey || !inputRef.current) return;
     if (autocompleteRef.current) return;
 
@@ -143,7 +147,7 @@ export default function CartView({
       .catch(() => {
         // Ignore script load errors; user can still type manually.
       });
-  }, [mapsKey, deliveryLocked]);
+  }, [mapsKey]);
 
   const lineItems = useMemo(() => {
     return items.map((item) => {
@@ -212,11 +216,6 @@ export default function CartView({
   );
 
   const requestQuote = async () => {
-    if (deliveryLocked) {
-      setQuote(null);
-      setQuoteError("Please sign in to check delivery.");
-      return;
-    }
     const trimmed = address.trim();
     if (!trimmed) {
       setQuote(null);
@@ -345,6 +344,26 @@ export default function CartView({
         ) : null}
         <div className="space-y-3">
           <label className="flex flex-col gap-2 text-sm text-stone-700">
+            Email for receipt
+            <input
+              value={isAuthenticated ? userEmail || "" : guestEmail}
+              onChange={(event) => {
+                if (isAuthenticated) return;
+                setGuestEmail(event.target.value);
+              }}
+              placeholder="you@example.com"
+              type="email"
+              autoComplete="email"
+              disabled={isAuthenticated}
+              className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400 disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-stone-500"
+            />
+          </label>
+          {showEmailError ? (
+            <p className="text-xs uppercase tracking-[0.24em] text-rose-700">
+              Enter a valid email address.
+            </p>
+          ) : null}
+          <label className="flex flex-col gap-2 text-sm text-stone-700">
             Delivery address
             <input
               ref={inputRef}
@@ -354,12 +373,7 @@ export default function CartView({
                 setQuote(null);
                 setQuoteError(null);
               }}
-              placeholder={
-                deliveryLocked
-                  ? "Sign in to enter a delivery address"
-                  : "Street, city, state, ZIP"
-              }
-              disabled={deliveryLocked}
+              placeholder="Street, city, state, ZIP"
               className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400 disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-stone-400"
             />
           </label>
@@ -373,14 +387,11 @@ export default function CartView({
                   digits.startsWith("1") ? digits.slice(1) : digits;
                 setPhoneLocal(local.slice(0, 10));
               }}
-              placeholder={
-                deliveryLocked ? "Sign in to add a phone number" : "+1 312 555 0123"
-              }
+              placeholder="+1 312 555 0123"
               inputMode="numeric"
               autoComplete="tel"
               maxLength={15}
               pattern="^\\+1 \\d{3} \\d{3} \\d{4}$"
-              disabled={deliveryLocked}
               className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400 disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-stone-400"
             />
           </label>
@@ -392,14 +403,10 @@ export default function CartView({
           <button
             type="button"
             onClick={requestQuote}
-            disabled={deliveryLocked || quoteLoading || !address.trim()}
+            disabled={quoteLoading || !address.trim()}
             className="w-full rounded-full border border-stone-200 bg-white/80 px-4 py-2 text-xs uppercase tracking-[0.3em] text-stone-600 disabled:opacity-50"
           >
-            {deliveryLocked
-              ? "Sign in to check delivery"
-              : quoteLoading
-              ? "Checking..."
-              : "Check delivery"}
+            {quoteLoading ? "Checking..." : "Check delivery"}
           </button>
           <p className="text-xs text-stone-500">
             Delivery pricing: free within 10 miles, $15 within 20 miles, $30
@@ -448,17 +455,18 @@ export default function CartView({
           items={items}
           deliveryAddress={address.trim()}
           phone={phoneValue}
+          email={checkoutEmail}
           disabled={
             !quote ||
             quoteLoading ||
             Boolean(quoteError) ||
-            !isAuthenticated ||
+            !emailValid ||
             !phoneValid
           }
         />
         {!isAuthenticated ? (
-          <p className="text-xs uppercase tracking-[0.24em] text-rose-700">
-            Please sign in to place an order.
+          <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
+            Guest checkout is enabled. Orders will appear in your account if you sign in later with the same email.
           </p>
         ) : null}
         <p className="text-xs uppercase tracking-[0.24em] text-stone-500">

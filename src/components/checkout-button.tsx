@@ -8,6 +8,7 @@ type CheckoutButtonProps = {
   items: CartItem[];
   deliveryAddress: string;
   phone: string;
+  email: string;
   disabled?: boolean;
 };
 
@@ -15,6 +16,7 @@ export default function CheckoutButton({
   items,
   deliveryAddress,
   phone,
+  email,
   disabled,
 }: CheckoutButtonProps) {
   const [loading, setLoading] = useState(false);
@@ -42,6 +44,7 @@ export default function CheckoutButton({
         ),
         address: deliveryAddress,
         phone,
+        email,
       }),
     }, true);
 
