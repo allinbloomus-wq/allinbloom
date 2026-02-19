@@ -200,7 +200,7 @@ export default async function HomePage() {
           </div>
         </div>
         <div className="relative animate-float hidden lg:block">
-          <div className="glass absolute right-6 top-6 z-10 hidden h-14 w-36 rounded-full border border-white/80 text-xs font-semibold uppercase tracking-[0.3em] text-stone-700 sm:flex items-center justify-center">
+          <div className="glass absolute right-6 top-6 z-10 hidden h-14 min-w-[10rem] rounded-full border border-white/80 px-4 text-center text-xs font-semibold uppercase tracking-[0.24em] text-stone-700 sm:flex items-center justify-center">
             New arrivals
           </div>
           <div className="glass overflow-hidden rounded-[32px] border border-white/80 p-4">

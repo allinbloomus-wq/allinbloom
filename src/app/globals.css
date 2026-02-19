@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 
 @font-face {
   font-family: "SnellRoundhand";
@@ -40,7 +40,7 @@
     line-height: 1.55;
     letter-spacing: -0.005em;
     text-rendering: optimizeLegibility;
-    font-feature-settings: "calt" 1, "kern" 1, "ss01" 1;
+    font-feature-settings: "calt" 1, "kern" 1;
     min-height: 100vh;
   }
 
@@ -361,3 +361,4 @@ body[data-lightbox-open="true"] header * {
 .pac-icon {
   display: none !important;
 }
+
