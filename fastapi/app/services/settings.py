@@ -26,6 +26,10 @@ DEFAULT_SETTINGS = {
     "home_gallery_image_4": "/images/bouquet-4.webp",
     "home_gallery_image_5": "/images/bouquet-5.webp",
     "home_gallery_image_6": "/images/bouquet-6.webp",
+    "catalog_category_image_mono": "/images/bouquet-7.webp",
+    "catalog_category_image_mixed": "/images/bouquet-5.webp",
+    "catalog_category_image_season": "/images/bouquet-2.webp",
+    "catalog_category_image_all": "/images/hero-bouquet.webp",
 }
 
 

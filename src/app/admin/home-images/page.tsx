@@ -11,10 +11,10 @@ export default async function AdminHomeImagesPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
-            Homepage images
+            Homepage and catalog images
           </p>
           <h1 className="text-2xl font-semibold text-stone-900 sm:text-3xl">
-            Manage homepage gallery
+            Manage homepage and category tiles
           </h1>
         </div>
         <Link

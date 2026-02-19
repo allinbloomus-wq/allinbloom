@@ -93,10 +93,46 @@ export default function AdminHomeImagesForm({
         </div>
       </div>
 
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold text-stone-900">
+          Catalog category images
+        </h2>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <AdminImageUpload
+            name="catalogCategoryImageMono"
+            urlLabel="Catalog Mono category image URL"
+            previewAlt="Catalog mono category image preview"
+            defaultValue={settings.catalogCategoryImageMono}
+            recommendedSize="1000x1000"
+          />
+          <AdminImageUpload
+            name="catalogCategoryImageMixed"
+            urlLabel="Catalog Mixed category image URL"
+            previewAlt="Catalog mixed category image preview"
+            defaultValue={settings.catalogCategoryImageMixed}
+            recommendedSize="1000x1000"
+          />
+          <AdminImageUpload
+            name="catalogCategoryImageSeason"
+            urlLabel="Catalog Season category image URL"
+            previewAlt="Catalog season category image preview"
+            defaultValue={settings.catalogCategoryImageSeason}
+            recommendedSize="1000x1000"
+          />
+          <AdminImageUpload
+            name="catalogCategoryImageAll"
+            urlLabel="Catalog All category image URL"
+            previewAlt="Catalog all category image preview"
+            defaultValue={settings.catalogCategoryImageAll}
+            recommendedSize="1000x1000"
+          />
+        </div>
+      </div>
+
       <div className="flex flex-wrap gap-3">
         <SubmitButton />
         <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
-          Applies to homepage hero and gallery
+          Applies to homepage and catalog category tiles
         </p>
       </div>
     </form>

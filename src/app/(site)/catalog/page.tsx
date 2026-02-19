@@ -6,6 +6,7 @@ import CatalogGrid from "@/components/catalog-grid";
 import { getBouquets } from "@/lib/data/bouquets";
 import type { CatalogSearchParams } from "@/lib/data/bouquets";
 import { getStoreSettings } from "@/lib/data/settings";
+import { getCatalogCategoryImages } from "@/lib/home-images";
 import { getBouquetPricing } from "@/lib/pricing";
 import { SITE_DESCRIPTION } from "@/lib/site";
 import { headers } from "next/headers";
@@ -15,24 +16,24 @@ const MOBILE_UA =
 
 const CATALOG_CATEGORY_TILES = [
   {
+    key: "mono",
     title: "Mono bouquets",
     href: "/catalog?entry=1&mixed=mono",
-    image: "/images/bouquet-7.webp",
   },
   {
+    key: "mixed",
     title: "Mixed bouquets",
     href: "/catalog?entry=1&mixed=mixed",
-    image: "/images/bouquet-5.webp",
   },
   {
+    key: "season",
     title: "Season bouquets",
     href: "/catalog?entry=1&style=season",
-    image: "/images/bouquet-2.webp",
   },
   {
+    key: "all",
     title: "All bouquets",
     href: "/catalog?entry=1",
-    image: "/images/hero-bouquet.webp",
   },
 ] as const;
 
@@ -99,6 +100,12 @@ export default async function CatalogPage({
 }) {
   const params = await searchParams;
   const hasListingContext = hasCatalogListingContext(params);
+  const settings = await getStoreSettings();
+  const catalogCategoryImages = getCatalogCategoryImages(settings);
+  const catalogCategoryTiles = CATALOG_CATEGORY_TILES.map((tile) => ({
+    ...tile,
+    image: catalogCategoryImages[tile.key],
+  }));
   if (!hasListingContext) {
     return (
       <div className="flex flex-col gap-6 sm:gap-8">
@@ -114,7 +121,7 @@ export default async function CatalogPage({
           </p>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-          {CATALOG_CATEGORY_TILES.map((tile) => (
+          {catalogCategoryTiles.map((tile) => (
             <Link
               key={tile.title}
               href={tile.href}
@@ -155,7 +162,6 @@ export default async function CatalogPage({
   const rawBouquets = await getBouquets(listFilters, { take: pageSize + 1 });
   const hasMore = rawBouquets.length > pageSize;
   const bouquets = hasMore ? rawBouquets.slice(0, pageSize) : rawBouquets;
-  const settings = await getStoreSettings();
   const isFeatured = params.filter === "featured";
   const initialItems = bouquets.map((bouquet) => ({
     bouquet,

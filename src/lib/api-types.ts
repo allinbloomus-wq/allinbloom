@@ -75,6 +75,10 @@ export type StoreSettings = {
   homeGalleryImage4: string;
   homeGalleryImage5: string;
   homeGalleryImage6: string;
+  catalogCategoryImageMono: string;
+  catalogCategoryImageMixed: string;
+  catalogCategoryImageSeason: string;
+  catalogCategoryImageAll: string;
 };
 
 export type DiscountInfo = {

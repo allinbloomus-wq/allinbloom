@@ -9,6 +9,12 @@ export const DEFAULT_HOME_GALLERY_IMAGES = [
   "/images/bouquet-5.webp",
   "/images/bouquet-6.webp",
 ] as const;
+export const DEFAULT_CATALOG_CATEGORY_IMAGES = {
+  mono: "/images/bouquet-7.webp",
+  mixed: "/images/bouquet-5.webp",
+  season: "/images/bouquet-2.webp",
+  all: "/images/hero-bouquet.webp",
+} as const;
 
 const coerceImageUrl = (value: string | null | undefined, fallback: string) => {
   const trimmed = String(value || "").trim();
@@ -26,3 +32,22 @@ export const getHomeGalleryImages = (settings: StoreSettings) => [
   coerceImageUrl(settings.homeGalleryImage5, DEFAULT_HOME_GALLERY_IMAGES[4]),
   coerceImageUrl(settings.homeGalleryImage6, DEFAULT_HOME_GALLERY_IMAGES[5]),
 ];
+
+export const getCatalogCategoryImages = (settings: StoreSettings) => ({
+  mono: coerceImageUrl(
+    settings.catalogCategoryImageMono,
+    DEFAULT_CATALOG_CATEGORY_IMAGES.mono
+  ),
+  mixed: coerceImageUrl(
+    settings.catalogCategoryImageMixed,
+    DEFAULT_CATALOG_CATEGORY_IMAGES.mixed
+  ),
+  season: coerceImageUrl(
+    settings.catalogCategoryImageSeason,
+    DEFAULT_CATALOG_CATEGORY_IMAGES.season
+  ),
+  all: coerceImageUrl(
+    settings.catalogCategoryImageAll,
+    DEFAULT_CATALOG_CATEGORY_IMAGES.all
+  ),
+});

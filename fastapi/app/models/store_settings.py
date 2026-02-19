@@ -67,6 +67,30 @@ class StoreSettings(Base):
         default="/images/bouquet-6.webp",
         nullable=False,
     )
+    catalog_category_image_mono = Column(
+        "catalogCategoryImageMono",
+        String,
+        default="/images/bouquet-7.webp",
+        nullable=False,
+    )
+    catalog_category_image_mixed = Column(
+        "catalogCategoryImageMixed",
+        String,
+        default="/images/bouquet-5.webp",
+        nullable=False,
+    )
+    catalog_category_image_season = Column(
+        "catalogCategoryImageSeason",
+        String,
+        default="/images/bouquet-2.webp",
+        nullable=False,
+    )
+    catalog_category_image_all = Column(
+        "catalogCategoryImageAll",
+        String,
+        default="/images/hero-bouquet.webp",
+        nullable=False,
+    )
     updated_at = Column(
         "updatedAt",
         DateTime(timezone=True),

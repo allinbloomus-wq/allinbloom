@@ -26,6 +26,10 @@ class StoreSettingsOut(SchemaBase):
     home_gallery_image_4: str
     home_gallery_image_5: str
     home_gallery_image_6: str
+    catalog_category_image_mono: str
+    catalog_category_image_mixed: str
+    catalog_category_image_season: str
+    catalog_category_image_all: str
 
 
 class StoreSettingsUpdate(SchemaBase):
@@ -48,3 +52,7 @@ class StoreSettingsUpdate(SchemaBase):
     home_gallery_image_4: Optional[str] = None
     home_gallery_image_5: Optional[str] = None
     home_gallery_image_6: Optional[str] = None
+    catalog_category_image_mono: Optional[str] = None
+    catalog_category_image_mixed: Optional[str] = None
+    catalog_category_image_season: Optional[str] = None
+    catalog_category_image_all: Optional[str] = None
