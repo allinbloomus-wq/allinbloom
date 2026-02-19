@@ -308,8 +308,8 @@ export default async function HomePage() {
 
       <section className="grid gap-6 md:grid-cols-2 animate-rise [animation-delay:360ms]">
         <PromoCard
-          title="Valentine Week Offer"
-          description="Enjoy 15% off romantic rose collections and free delivery on all orders above $120."
+          title="First Order Offer"
+          description="Enjoy 10% off your first order."
           tone="rose"
         />
         <PromoCard
@@ -322,7 +322,7 @@ export default async function HomePage() {
       <section className="grid gap-8 rounded-none border-0 bg-transparent p-0 shadow-none sm:gap-10 sm:rounded-[36px] sm:border sm:border-white/80 sm:bg-white/70 sm:p-8 sm:shadow-sm lg:grid-cols-[1fr_1.1fr] animate-rise [animation-delay:480ms]">
         <div className="space-y-5">
           <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
-            FLORIST CHOICE BOUQUET
+            Build your own bouquet
           </p>
           <h2 className="text-3xl font-semibold text-stone-900 sm:text-4xl">
             Let our florists craft a bouquet just for you
