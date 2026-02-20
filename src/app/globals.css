@@ -75,18 +75,31 @@
     letter-spacing: -0.004em;
   }
 
-  input[type="datetime-local"] {
+  .admin-datetime-input {
     display: block;
     inline-size: 100%;
     max-inline-size: 100%;
     min-inline-size: 0;
   }
 
-  input[type="datetime-local"]::-webkit-date-and-time-value {
-    text-align: left;
+  .admin-datetime-input::-webkit-date-and-time-value {
+    text-align: center;
   }
 
-  input[type="datetime-local"]::-webkit-datetime-edit {
+  .admin-datetime-input::-webkit-datetime-edit {
+    padding: 0;
+  }
+
+  .admin-datetime-input::-webkit-datetime-edit-fields-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .admin-datetime-input::-webkit-calendar-picker-indicator {
+    width: 1rem;
+    min-width: 1rem;
+    margin: 0;
     padding: 0;
   }
 

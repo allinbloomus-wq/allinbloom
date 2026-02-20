@@ -14,8 +14,11 @@ const fieldClass =
 const textareaClass =
   "w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400";
 
+const dateTimeFieldWrapClass =
+  "relative h-11 w-full min-w-0 max-w-full overflow-hidden rounded-2xl border border-stone-200 bg-white/80 transition-colors focus-within:border-stone-400";
+
 const dateTimeFieldClass =
-  "block h-11 w-full min-w-0 max-w-full rounded-2xl border border-stone-200 bg-white/80 px-4 py-0 text-sm text-stone-800 outline-none focus:border-stone-400 [inline-size:100%] [min-inline-size:0] [max-inline-size:100%]";
+  "admin-datetime-input block h-full w-full min-w-0 max-w-full border-0 bg-transparent px-11 py-0 text-center text-sm text-stone-800 outline-none [inline-size:100%] [min-inline-size:0] [max-inline-size:100%]";
 
 const REVIEW_TEXT_MAX_LENGTH = 1024;
 
@@ -100,13 +103,15 @@ export default function AdminReviewForm({ review, action }: AdminReviewFormProps
           </label>
           <label className="flex min-w-0 max-w-full flex-col gap-2 text-sm text-stone-700">
             Created at
-            <input
-              name="createdAt"
-              type="datetime-local"
-              defaultValue={defaultCreatedAt}
-              className={dateTimeFieldClass}
-              lang="en-CA"
-            />
+            <div className={dateTimeFieldWrapClass}>
+              <input
+                name="createdAt"
+                type="datetime-local"
+                defaultValue={defaultCreatedAt}
+                className={dateTimeFieldClass}
+                lang="en-CA"
+              />
+            </div>
           </label>
           <label className="flex min-w-0 flex-col gap-2 text-sm text-stone-700">
             Review text
