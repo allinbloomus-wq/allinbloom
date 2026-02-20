@@ -239,8 +239,11 @@ export default function ReviewsGallery({ reviews }: ReviewsGalleryProps) {
                 key={review.id}
                 className="w-full min-w-0 flex-shrink-0 snap-start cursor-grab active:cursor-grabbing md:w-[calc((100%-1rem)/2)] lg:w-[calc((100%-2rem)/3)]"
               >
-                <article className="flex h-full min-w-0 flex-col rounded-[24px] border border-white/85 bg-white/85 p-4 shadow-[0_12px_26px_rgba(63,40,36,0.12)] sm:p-5">
-                  <div className="mx-auto w-full min-w-0 max-w-[800px] overflow-hidden rounded-[18px] border border-stone-200/80 bg-white aspect-[4/3]">
+                <article className="flex h-full min-w-0 flex-col rounded-[24px] border border-white/85 bg-white/85 p-4 sm:p-5">
+                  <div
+                    className="mx-auto w-full min-w-0 max-w-[800px] min-h-[180px] overflow-hidden rounded-[18px] border border-stone-200/80 bg-white sm:min-h-[210px]"
+                    style={{ aspectRatio: "4 / 3" }}
+                  >
                     <BouquetImageLightbox
                       src={review.image || ""}
                       alt={`${review.name} review photo`}

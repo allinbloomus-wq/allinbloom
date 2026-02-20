@@ -271,8 +271,8 @@ export default async function HomePage() {
               description="New seasonal curation drops every Thursday."
             />
             <PromoCard
-              title="Luxury wraps"
-              description="Matte paper, satin ribbon, and custom wax seal."
+              title="Each bouquet comes in exclusive packaging with branded ribbons and stickers."
+              description="We can also add a card and a festive photo to make your gift truly unforgettable."
             />
           </div>
         </div>

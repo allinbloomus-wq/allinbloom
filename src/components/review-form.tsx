@@ -134,7 +134,10 @@ export default function ReviewForm() {
 
       <div className="grid gap-5 lg:grid-cols-[0.92fr_1.08fr]">
         <div className="min-w-0 space-y-4">
-          <div className="mx-auto w-full min-w-0 max-w-[800px] overflow-hidden rounded-[24px] border border-stone-200/80 bg-white aspect-[4/3]">
+          <div
+            className="mx-auto w-full min-w-0 max-w-[800px] min-h-[180px] overflow-hidden rounded-[24px] border border-stone-200/80 bg-white sm:min-h-[220px]"
+            style={{ aspectRatio: "4 / 3" }}
+          >
             <ImageWithFallback
               src={formState.image}
               alt="Review photo preview"
