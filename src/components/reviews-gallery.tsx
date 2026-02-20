@@ -239,13 +239,13 @@ export default function ReviewsGallery({ reviews }: ReviewsGalleryProps) {
                 key={review.id}
                 className="w-full min-w-0 flex-shrink-0 snap-start cursor-grab active:cursor-grabbing md:w-[calc((100%-1rem)/2)] lg:w-[calc((100%-2rem)/3)]"
               >
-                <article className="flex h-full flex-col overflow-hidden rounded-[24px] border border-white/85 bg-white/85 shadow-[0_12px_26px_rgba(63,40,36,0.12)]">
-                  <div className="overflow-hidden border-b border-white/75">
+                <article className="flex h-full min-w-0 flex-col rounded-[24px] border border-white/85 bg-white/85 p-4 shadow-[0_12px_26px_rgba(63,40,36,0.12)] sm:p-5">
+                  <div className="h-52 overflow-hidden rounded-[18px] border border-stone-200/80 bg-white sm:h-56">
                     <BouquetImageLightbox
                       src={review.image || ""}
                       alt={`${review.name} review photo`}
-                      className="block w-full"
-                      imageClassName="aspect-[4/3] w-full object-cover"
+                      className="block h-full w-full"
+                      imageClassName="h-full w-full object-cover"
                       previewWidth={640}
                       previewHeight={480}
                       lightboxWidth={1600}
@@ -254,7 +254,7 @@ export default function ReviewsGallery({ reviews }: ReviewsGalleryProps) {
                       onOpen={pauseAutoscroll}
                     />
                   </div>
-                  <div className="flex h-full flex-col gap-3 p-4 sm:p-5">
+                  <div className="flex h-full min-w-0 flex-col gap-3 pt-4 sm:pt-5">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-stone-900">

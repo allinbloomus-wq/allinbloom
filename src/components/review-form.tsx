@@ -118,7 +118,7 @@ export default function ReviewForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="glass grid gap-6 rounded-[30px] border border-white/85 p-5 shadow-[0_20px_45px_rgba(63,40,36,0.14)] sm:gap-7 sm:p-8"
+      className="glass max-w-full space-y-6 rounded-[30px] border border-white/85 p-5 shadow-[0_20px_45px_rgba(63,40,36,0.14)] sm:space-y-7 sm:p-8"
     >
       <div className="space-y-1">
         <p className="text-xs uppercase tracking-[0.3em] text-stone-500">
@@ -133,8 +133,8 @@ export default function ReviewForm() {
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[0.92fr_1.08fr]">
-        <div className="space-y-4">
-          <div className="overflow-hidden rounded-[24px] border border-stone-200/80 bg-white">
+        <div className="min-w-0 space-y-4">
+          <div className="w-full min-w-0 overflow-hidden rounded-[24px] border border-stone-200/80 bg-white">
             <ImageWithFallback
               src={formState.image}
               alt="Review photo preview"
@@ -143,10 +143,13 @@ export default function ReviewForm() {
               className="aspect-[4/3] h-auto w-full object-cover"
             />
           </div>
-          <label className="flex flex-col gap-2 text-sm text-stone-700" htmlFor={fileInputId}>
+          <label
+            className="flex min-w-0 flex-col gap-2 text-sm text-stone-700"
+            htmlFor={fileInputId}
+          >
             Upload photo (optional)
             <span
-              className={`flex h-11 w-full items-center justify-between gap-3 rounded-2xl border border-stone-200 bg-white px-4 text-sm text-stone-700 transition ${
+              className={`flex h-11 w-full min-w-0 items-center justify-between gap-3 rounded-2xl border border-stone-200 bg-white px-4 text-sm text-stone-700 transition ${
                 uploading ? "cursor-not-allowed opacity-70" : "cursor-pointer"
               }`}
             >
@@ -171,18 +174,18 @@ export default function ReviewForm() {
           ) : null}
         </div>
 
-        <div className="space-y-4">
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+        <div className="min-w-0 space-y-4">
+          <label className="flex min-w-0 flex-col gap-2 text-sm text-stone-700">
             Name
             <input
               name="name"
               required
               value={formState.name}
               onChange={(event) => updateField("name", event.target.value)}
-              className="h-11 rounded-2xl border border-stone-200 bg-white px-4 text-sm text-stone-800 outline-none focus:border-stone-400"
+              className="h-11 w-full min-w-0 rounded-2xl border border-stone-200 bg-white px-4 text-sm text-stone-800 outline-none focus:border-stone-400"
             />
           </label>
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label className="flex min-w-0 flex-col gap-2 text-sm text-stone-700">
             Email
             <input
               name="email"
@@ -190,10 +193,10 @@ export default function ReviewForm() {
               required
               value={formState.email}
               onChange={(event) => updateField("email", event.target.value)}
-              className="h-11 rounded-2xl border border-stone-200 bg-white px-4 text-sm text-stone-800 outline-none focus:border-stone-400"
+              className="h-11 w-full min-w-0 rounded-2xl border border-stone-200 bg-white px-4 text-sm text-stone-800 outline-none focus:border-stone-400"
             />
           </label>
-          <div className="rounded-2xl border border-stone-200 bg-white px-4 py-3">
+          <div className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white px-4 py-3">
             <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
               Your rating
             </p>
@@ -204,7 +207,7 @@ export default function ReviewForm() {
               className="mt-2"
             />
           </div>
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label className="flex min-w-0 flex-col gap-2 text-sm text-stone-700">
             Review
             <textarea
               name="text"
@@ -213,7 +216,7 @@ export default function ReviewForm() {
               value={formState.text}
               maxLength={512}
               onChange={(event) => updateField("text", event.target.value.slice(0, 512))}
-              className="min-h-[9.5rem] rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+              className="min-h-[9.5rem] w-full min-w-0 rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
             />
           </label>
           <p className="text-right text-xs uppercase tracking-[0.18em] text-stone-500">
