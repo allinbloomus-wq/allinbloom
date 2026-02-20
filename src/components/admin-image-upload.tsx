@@ -10,6 +10,7 @@ type AdminImageUploadProps = {
   previewAlt?: string;
   defaultValue: string;
   recommendedSize?: string;
+  previewClassName?: string;
   isInvalid?: boolean;
   required?: boolean;
 };
@@ -20,6 +21,7 @@ export default function AdminImageUpload({
   previewAlt = "Image preview",
   defaultValue,
   recommendedSize = "600x800",
+  previewClassName = "h-32 w-32",
   isInvalid = false,
   required = true,
 }: AdminImageUploadProps) {
@@ -83,7 +85,9 @@ export default function AdminImageUpload({
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-        <div className="h-32 w-32 overflow-hidden rounded-[22px] border border-white/80 bg-white">
+        <div
+          className={`${previewClassName} overflow-hidden rounded-[22px] border border-white/80 bg-white`}
+        >
           <ImageWithFallback
             src={imageUrl}
             alt={previewAlt}

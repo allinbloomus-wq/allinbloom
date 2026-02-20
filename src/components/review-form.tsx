@@ -13,6 +13,8 @@ type ReviewFormState = {
   image: string;
 };
 
+const REVIEW_TEXT_MAX_LENGTH = 1024;
+
 const initialState: ReviewFormState = {
   name: "",
   email: "",
@@ -98,7 +100,7 @@ export default function ReviewForm() {
       body: JSON.stringify({
         name: formState.name.trim(),
         email: formState.email.trim(),
-        text: formState.text.trim().slice(0, 512),
+        text: formState.text.trim().slice(0, REVIEW_TEXT_MAX_LENGTH),
         rating: formState.rating,
         image: formState.image.trim() || null,
       }),
@@ -214,13 +216,15 @@ export default function ReviewForm() {
               required
               rows={6}
               value={formState.text}
-              maxLength={512}
-              onChange={(event) => updateField("text", event.target.value.slice(0, 512))}
+              maxLength={REVIEW_TEXT_MAX_LENGTH}
+              onChange={(event) =>
+                updateField("text", event.target.value.slice(0, REVIEW_TEXT_MAX_LENGTH))
+              }
               className="min-h-[9.5rem] w-full min-w-0 rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
             />
           </label>
           <p className="text-right text-xs uppercase tracking-[0.18em] text-stone-500">
-            {textLength} / 512
+            {textLength} / {REVIEW_TEXT_MAX_LENGTH}
           </p>
         </div>
       </div>

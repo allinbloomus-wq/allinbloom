@@ -14,6 +14,102 @@ type ReviewsGalleryProps = {
 const AUTO_SCROLL_INTERVAL_MS = 5000;
 const AUTO_SCROLL_PAUSE_MS = 20000;
 const INTERACTION_CLICK_THRESHOLD = 8;
+const REVIEW_TEXT_VISIBLE_LINES = 8;
+
+type ReviewTextBlockProps = {
+  text: string;
+};
+
+function ReviewTextBlock({ text }: ReviewTextBlockProps) {
+  const textRef = useRef<HTMLParagraphElement | null>(null);
+  const [indicator, setIndicator] = useState({
+    hasOverflow: false,
+    thumbSize: 100,
+    thumbOffset: 0,
+  });
+
+  const syncIndicator = useCallback(() => {
+    const node = textRef.current;
+    if (!node) return;
+
+    const maxScrollTop = node.scrollHeight - node.clientHeight;
+    if (maxScrollTop <= 1) {
+      setIndicator((current) =>
+        current.hasOverflow
+          ? { hasOverflow: false, thumbSize: 100, thumbOffset: 0 }
+          : current
+      );
+      return;
+    }
+
+    const thumbSize = Math.max(22, (node.clientHeight / node.scrollHeight) * 100);
+    const thumbOffset = (node.scrollTop / maxScrollTop) * (100 - thumbSize);
+
+    setIndicator((current) => {
+      if (
+        current.hasOverflow &&
+        Math.abs(current.thumbSize - thumbSize) < 0.5 &&
+        Math.abs(current.thumbOffset - thumbOffset) < 0.5
+      ) {
+        return current;
+      }
+      return {
+        hasOverflow: true,
+        thumbSize,
+        thumbOffset,
+      };
+    });
+  }, []);
+
+  useEffect(() => {
+    const node = textRef.current;
+    if (!node) return;
+
+    const syncOnFrame = () => {
+      window.requestAnimationFrame(syncIndicator);
+    };
+
+    syncOnFrame();
+
+    const resizeObserver =
+      typeof ResizeObserver !== "undefined" ? new ResizeObserver(syncOnFrame) : null;
+
+    resizeObserver?.observe(node);
+    window.addEventListener("resize", syncOnFrame);
+
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", syncOnFrame);
+    };
+  }, [syncIndicator, text]);
+
+  return (
+    <div className="relative min-h-0">
+      <p
+        ref={textRef}
+        onScroll={syncIndicator}
+        className="overflow-y-auto pr-4 text-sm leading-relaxed text-stone-700"
+        style={{ height: `calc(${REVIEW_TEXT_VISIBLE_LINES} * 1.625em)` }}
+      >
+        {text}
+      </p>
+      {indicator.hasOverflow ? (
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute right-0 top-1 bottom-1 w-1 rounded-full bg-[#e4b8ad]/55"
+        >
+          <span
+            className="absolute inset-x-0 rounded-full bg-[color:var(--brand)]/45 transition-[top] duration-150"
+            style={{
+              height: `${indicator.thumbSize}%`,
+              top: `${indicator.thumbOffset}%`,
+            }}
+          />
+        </span>
+      ) : null}
+    </div>
+  );
+}
 
 export default function ReviewsGallery({ reviews }: ReviewsGalleryProps) {
   const items = useMemo(() => reviews, [reviews]);
@@ -222,11 +318,11 @@ export default function ReviewsGallery({ reviews }: ReviewsGalleryProps) {
   }
 
   return (
-    <div className="rounded-[28px] border-0 bg-transparent p-0 shadow-none sm:glass sm:rounded-[36px] sm:border sm:border-white/80 sm:p-6">
+    <div className="rounded-[28px] border-0 bg-transparent p-0 shadow-none sm:rounded-[36px] sm:border sm:border-[#f0cdc3]/80 sm:bg-[linear-gradient(168deg,rgba(255,255,255,0.9)_0%,rgba(251,231,223,0.78)_100%)] sm:p-6 sm:shadow-[0_22px_56px_rgba(108,20,10,0.16)] sm:backdrop-blur-[14px]">
       <div className="relative mt-1 sm:mt-2">
         <div
           ref={emblaRef}
-          className="touch-pan-y select-none overflow-hidden rounded-[28px] border border-white/80"
+          className="touch-pan-y select-none overflow-hidden rounded-[28px] border border-[#f0cdc3]/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.82)_0%,rgba(252,230,222,0.72)_100%)]"
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
@@ -239,8 +335,8 @@ export default function ReviewsGallery({ reviews }: ReviewsGalleryProps) {
                 key={review.id}
                 className="w-full min-w-0 flex-shrink-0 snap-start cursor-grab active:cursor-grabbing md:w-[calc((100%-1rem)/2)] lg:w-[calc((100%-2rem)/3)]"
               >
-                <article className="flex h-full min-w-0 flex-col rounded-[24px] border border-white/85 bg-white/85 p-4 sm:p-5">
-                  <div className="w-full min-w-0 overflow-hidden rounded-[18px] border border-stone-200/80 bg-white aspect-[4/3]">
+                <article className="flex h-full min-w-0 flex-col rounded-[24px] border border-[#f2ccc2]/85 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(255,241,236,0.92)_100%)] p-4 shadow-[0_12px_28px_rgba(108,20,10,0.1)] sm:p-5">
+                  <div className="w-full min-w-0 overflow-hidden rounded-[18px] border border-[#edcdc4]/90 bg-white aspect-[4/3]">
                     <BouquetImageLightbox
                       src={review.image || ""}
                       alt={`${review.name} review photo`}
@@ -254,7 +350,7 @@ export default function ReviewsGallery({ reviews }: ReviewsGalleryProps) {
                       onOpen={pauseAutoscroll}
                     />
                   </div>
-                  <div className="flex h-full min-w-0 flex-col gap-3 pt-4 sm:pt-5">
+                  <div className="flex min-w-0 flex-col gap-2.5 pt-3 sm:pt-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-stone-900">
@@ -271,9 +367,7 @@ export default function ReviewsGallery({ reviews }: ReviewsGalleryProps) {
                         className="shrink-0"
                       />
                     </div>
-                    <p className="h-[8.8rem] overflow-y-auto pr-1 text-sm leading-relaxed text-stone-700">
-                      {review.text}
-                    </p>
+                    <ReviewTextBlock text={review.text} />
                   </div>
                 </article>
               </div>
@@ -286,7 +380,7 @@ export default function ReviewsGallery({ reviews }: ReviewsGalleryProps) {
             type="button"
             onClick={handlePrev}
             disabled={!canScrollPrev}
-            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/85 text-stone-700 shadow-sm backdrop-blur transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-45 sm:h-11 sm:w-11"
+            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-[#f1cbc1]/85 bg-white/95 text-[color:var(--brand)] shadow-sm backdrop-blur transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-45 sm:h-11 sm:w-11"
             aria-label="Previous review"
           >
             <svg
@@ -306,7 +400,7 @@ export default function ReviewsGallery({ reviews }: ReviewsGalleryProps) {
             type="button"
             onClick={handleNext}
             disabled={!canScrollNext}
-            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/85 text-stone-700 shadow-sm backdrop-blur transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-45 sm:h-11 sm:w-11"
+            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-[#f1cbc1]/85 bg-white/95 text-[color:var(--brand)] shadow-sm backdrop-blur transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-45 sm:h-11 sm:w-11"
             aria-label="Next review"
           >
             <svg
@@ -336,7 +430,7 @@ export default function ReviewsGallery({ reviews }: ReviewsGalleryProps) {
             type="button"
             onClick={() => goToIndex(idx)}
             className={`h-2 w-2 rounded-full transition ${
-              idx === clampedActiveIndex ? "bg-[color:var(--brand)]" : "bg-stone-300"
+              idx === clampedActiveIndex ? "bg-[color:var(--brand)]" : "bg-[#deb8ae]"
             }`}
             aria-label={`Go to page ${idx + 1}`}
           />

@@ -14,6 +14,11 @@ const fieldClass =
 const textareaClass =
   "w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400";
 
+const dateTimeFieldClass =
+  "block h-11 w-full min-w-0 max-w-full rounded-2xl border border-stone-200 bg-white/80 px-4 py-0 text-sm text-stone-800 outline-none focus:border-stone-400 [inline-size:100%] [min-inline-size:0] [max-inline-size:100%]";
+
+const REVIEW_TEXT_MAX_LENGTH = 1024;
+
 function formatDateTimeLocal(value?: string) {
   if (!value) return "";
   const date = new Date(value);
@@ -93,14 +98,14 @@ export default function AdminReviewForm({ review, action }: AdminReviewFormProps
               className={fieldClass}
             />
           </label>
-          <label className="flex min-w-0 flex-col gap-2 text-sm text-stone-700">
+          <label className="flex min-w-0 max-w-full flex-col gap-2 text-sm text-stone-700">
             Created at
             <input
               name="createdAt"
               type="datetime-local"
               defaultValue={defaultCreatedAt}
-              className={`${fieldClass} text-xs sm:text-sm`}
-              style={{ width: "100%", minWidth: 0 }}
+              className={dateTimeFieldClass}
+              lang="en-CA"
             />
           </label>
           <label className="flex min-w-0 flex-col gap-2 text-sm text-stone-700">
@@ -110,12 +115,12 @@ export default function AdminReviewForm({ review, action }: AdminReviewFormProps
               rows={6}
               defaultValue={review?.text || ""}
               required
-              maxLength={512}
+              maxLength={REVIEW_TEXT_MAX_LENGTH}
               className={textareaClass}
             />
           </label>
           <p className="text-xs text-stone-500">
-            Maximum review length: 512 characters.
+            Maximum review length: 1024 characters.
           </p>
           <div className="grid gap-2">
             <label className="flex items-center gap-2 text-sm text-stone-700">
@@ -142,7 +147,8 @@ export default function AdminReviewForm({ review, action }: AdminReviewFormProps
             required={false}
             urlLabel="Image URL (optional)"
             previewAlt="Review image preview"
-            recommendedSize="800x800"
+            recommendedSize="1200x900"
+            previewClassName="w-full max-w-[17rem] aspect-[4/3]"
           />
           <p className="text-xs text-stone-500">
             Email is only visible in admin. Image is optional for customer cards.

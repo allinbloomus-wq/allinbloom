@@ -75,6 +75,21 @@
     letter-spacing: -0.004em;
   }
 
+  input[type="datetime-local"] {
+    display: block;
+    inline-size: 100%;
+    max-inline-size: 100%;
+    min-inline-size: 0;
+  }
+
+  input[type="datetime-local"]::-webkit-date-and-time-value {
+    text-align: left;
+  }
+
+  input[type="datetime-local"]::-webkit-datetime-edit {
+    padding: 0;
+  }
+
   label {
     letter-spacing: -0.003em;
   }
