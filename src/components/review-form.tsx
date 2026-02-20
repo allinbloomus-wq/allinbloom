@@ -134,13 +134,13 @@ export default function ReviewForm() {
 
       <div className="grid gap-5 lg:grid-cols-[0.92fr_1.08fr]">
         <div className="min-w-0 space-y-4">
-          <div className="mx-auto w-full min-w-0 max-w-[800px] overflow-hidden rounded-[24px] border border-stone-200/80 bg-white">
+          <div className="w-full min-w-0 overflow-hidden rounded-[24px] border border-stone-200/80 bg-white aspect-[4/3]">
             <ImageWithFallback
               src={formState.image}
               alt="Review photo preview"
               width={800}
               height={600}
-              className="h-[190px] w-full object-cover object-center sm:h-[220px]"
+              className="h-full w-full object-cover object-center"
             />
           </div>
           <label

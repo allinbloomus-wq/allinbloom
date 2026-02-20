@@ -9,7 +9,7 @@ type AdminReviewFormProps = {
 const ADMIN_TIMEZONE = "America/Chicago";
 
 const fieldClass =
-  "h-11 w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-0 text-sm text-stone-800 outline-none focus:border-stone-400";
+  "h-11 w-full min-w-0 max-w-full rounded-2xl border border-stone-200 bg-white/80 px-4 py-0 text-sm text-stone-800 outline-none focus:border-stone-400";
 
 const textareaClass =
   "w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400";
@@ -97,10 +97,10 @@ export default function AdminReviewForm({ review, action }: AdminReviewFormProps
             Created at
             <input
               name="createdAt"
-              type="text"
+              type="datetime-local"
               defaultValue={defaultCreatedAt}
-              placeholder="YYYY-MM-DDTHH:mm"
-              className={fieldClass}
+              className={`${fieldClass} text-xs sm:text-sm`}
+              style={{ width: "100%", minWidth: 0 }}
             />
           </label>
           <label className="flex min-w-0 flex-col gap-2 text-sm text-stone-700">
