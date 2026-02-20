@@ -61,8 +61,8 @@ export default function AdminReviewForm({ review, action }: AdminReviewFormProps
       {review ? <input type="hidden" name="id" value={review.id} /> : null}
 
       <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="space-y-4">
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+        <div className="min-w-0 space-y-4">
+          <label className="flex min-w-0 flex-col gap-2 text-sm text-stone-700">
             Name
             <input
               name="name"
@@ -71,7 +71,7 @@ export default function AdminReviewForm({ review, action }: AdminReviewFormProps
               className={fieldClass}
             />
           </label>
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label className="flex min-w-0 flex-col gap-2 text-sm text-stone-700">
             Email
             <input
               name="email"
@@ -81,7 +81,7 @@ export default function AdminReviewForm({ review, action }: AdminReviewFormProps
               className={fieldClass}
             />
           </label>
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label className="flex min-w-0 flex-col gap-2 text-sm text-stone-700">
             Rating
             <input
               name="rating"
@@ -93,7 +93,7 @@ export default function AdminReviewForm({ review, action }: AdminReviewFormProps
               className={fieldClass}
             />
           </label>
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label className="flex min-w-0 flex-col gap-2 text-sm text-stone-700">
             Created at
             <input
               name="createdAt"
@@ -102,7 +102,7 @@ export default function AdminReviewForm({ review, action }: AdminReviewFormProps
               className={fieldClass}
             />
           </label>
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label className="flex min-w-0 flex-col gap-2 text-sm text-stone-700">
             Review text
             <textarea
               name="text"
@@ -135,7 +135,7 @@ export default function AdminReviewForm({ review, action }: AdminReviewFormProps
             </label>
           </div>
         </div>
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <AdminImageUpload
             defaultValue={review?.image || ""}
             required={false}
