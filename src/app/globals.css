@@ -77,12 +77,17 @@
 
   .admin-datetime-input {
     display: block;
+    block-size: 100%;
     inline-size: 100%;
     max-inline-size: 100%;
     min-inline-size: 0;
+    line-height: 2.75rem;
   }
 
   .admin-datetime-input::-webkit-date-and-time-value {
+    display: inline-flex;
+    align-items: center;
+    min-height: 100%;
     text-align: left;
   }
 

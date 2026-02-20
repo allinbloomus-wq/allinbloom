@@ -335,7 +335,7 @@ export default function ReviewsGallery({ reviews }: ReviewsGalleryProps) {
                 key={review.id}
                 className="w-full min-w-0 flex-shrink-0 snap-start cursor-grab active:cursor-grabbing md:w-[calc((100%-1rem)/2)] lg:w-[calc((100%-2rem)/3)]"
               >
-                <article className="flex h-full min-w-0 flex-col rounded-[24px] border border-[#f2ccc2]/85 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(255,241,236,0.92)_100%)] p-4 shadow-[0_12px_28px_rgba(108,20,10,0.1)] sm:p-5">
+                <article className="flex h-full min-w-0 flex-col rounded-[24px] border border-[#f2ccc2]/85 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(255,241,236,0.92)_100%)] p-4 sm:p-5">
                   <div className="w-full min-w-0 overflow-hidden rounded-[18px] border border-[#edcdc4]/90 bg-white aspect-[4/3]">
                     <BouquetImageLightbox
                       src={review.image || ""}

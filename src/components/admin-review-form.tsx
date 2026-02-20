@@ -18,7 +18,7 @@ const dateTimeFieldWrapClass =
   "relative h-11 w-full min-w-0 max-w-full overflow-hidden rounded-2xl border border-stone-200 bg-white/80 transition-colors focus-within:border-stone-400";
 
 const dateTimeFieldClass =
-  "admin-datetime-input block h-full w-full min-w-0 max-w-full border-0 bg-transparent py-0 pl-4 pr-10 text-left text-sm text-stone-800 outline-none [inline-size:100%] [min-inline-size:0] [max-inline-size:100%]";
+  "admin-datetime-input block h-full w-full min-w-0 max-w-full border-0 bg-transparent py-0 pl-4 pr-10 text-left text-sm leading-[2.75rem] text-stone-800 outline-none [inline-size:100%] [min-inline-size:0] [max-inline-size:100%]";
 
 const REVIEW_TEXT_MAX_LENGTH = 1024;
 
