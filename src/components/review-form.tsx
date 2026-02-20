@@ -140,7 +140,7 @@ export default function ReviewForm() {
               alt="Review photo preview"
               width={640}
               height={480}
-              className="aspect-[4/3] h-auto w-full object-cover"
+              className="aspect-[4/3] h-auto w-full object-cover object-center"
             />
           </div>
           <label
