@@ -239,18 +239,15 @@ export default function ReviewsGallery({ reviews }: ReviewsGalleryProps) {
                 key={review.id}
                 className="w-full min-w-0 flex-shrink-0 snap-start cursor-grab active:cursor-grabbing md:w-[calc((100%-1rem)/2)] lg:w-[calc((100%-2rem)/3)]"
               >
-                <article className="flex h-full min-w-0 flex-col rounded-[24px] border border-white/85 bg-white/85 p-4 sm:p-5">
-                  <div
-                    className="mx-auto w-full min-w-0 max-w-[800px] min-h-[180px] overflow-hidden rounded-[18px] border border-stone-200/80 bg-white sm:min-h-[210px]"
-                    style={{ aspectRatio: "4 / 3" }}
-                  >
+                <article className="flex h-full min-w-0 flex-col rounded-[24px] border border-[color:var(--brand)] bg-white/85 p-4 sm:p-5">
+                  <div className="mx-auto w-full min-w-0 max-w-[800px] overflow-hidden rounded-[18px] border border-stone-200/80 bg-white">
                     <BouquetImageLightbox
                       src={review.image || ""}
                       alt={`${review.name} review photo`}
-                      className="block h-full w-full"
-                      imageClassName="h-full w-full object-cover object-center"
-                      previewWidth={640}
-                      previewHeight={480}
+                      className="block w-full"
+                      imageClassName="h-[190px] w-full object-cover object-center sm:h-[210px]"
+                      previewWidth={800}
+                      previewHeight={600}
                       lightboxWidth={1600}
                       lightboxHeight={1200}
                       canOpen={() => !blockImageOpenRef.current}

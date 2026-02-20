@@ -50,18 +50,8 @@ function formatDateTimeLocal(value?: string) {
   return `${values.year}-${values.month}-${values.day}T${values.hour}:${values.minute}`;
 }
 
-function getDatePart(value: string) {
-  return value ? value.slice(0, 10) : "";
-}
-
-function getTimePart(value: string) {
-  return value ? value.slice(11, 16) : "";
-}
-
 export default function AdminReviewForm({ review, action }: AdminReviewFormProps) {
   const defaultCreatedAt = formatDateTimeLocal(review?.createdAt);
-  const defaultCreatedAtDate = getDatePart(defaultCreatedAt);
-  const defaultCreatedAtTime = getTimePart(defaultCreatedAt);
 
   return (
     <form
@@ -103,26 +93,16 @@ export default function AdminReviewForm({ review, action }: AdminReviewFormProps
               className={fieldClass}
             />
           </label>
-          <div className="grid min-w-0 gap-3 sm:grid-cols-2">
-            <label className="flex min-w-0 flex-col gap-2 text-sm text-stone-700">
-              Created date
-              <input
-                name="createdAtDate"
-                type="date"
-                defaultValue={defaultCreatedAtDate}
-                className={fieldClass}
-              />
-            </label>
-            <label className="flex min-w-0 flex-col gap-2 text-sm text-stone-700">
-              Created time
-              <input
-                name="createdAtTime"
-                type="time"
-                defaultValue={defaultCreatedAtTime}
-                className={fieldClass}
-              />
-            </label>
-          </div>
+          <label className="flex min-w-0 flex-col gap-2 text-sm text-stone-700">
+            Created at
+            <input
+              name="createdAt"
+              type="text"
+              defaultValue={defaultCreatedAt}
+              placeholder="YYYY-MM-DDTHH:mm"
+              className={fieldClass}
+            />
+          </label>
           <label className="flex min-w-0 flex-col gap-2 text-sm text-stone-700">
             Review text
             <textarea

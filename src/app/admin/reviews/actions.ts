@@ -10,11 +10,7 @@ const parseReviewForm = (formData: FormData) => {
   const email = String(formData.get("email") || "").trim();
   const text = String(formData.get("text") || "").trim();
   const image = String(formData.get("image") || "").trim();
-  const createdAtDate = String(formData.get("createdAtDate") || "").trim();
-  const createdAtTime = String(formData.get("createdAtTime") || "").trim();
-  const createdAt = createdAtDate
-    ? `${createdAtDate}T${createdAtTime || "12:00"}`
-    : "";
+  const createdAt = String(formData.get("createdAt") || "").trim();
   const rating = Math.min(
     5,
     Math.max(1, Math.round(Number(formData.get("rating") || 5)))
