@@ -10,6 +10,7 @@ const parseReviewForm = (formData: FormData) => {
   const email = String(formData.get("email") || "").trim();
   const text = String(formData.get("text") || "").trim();
   const image = String(formData.get("image") || "").trim();
+  const createdAt = String(formData.get("createdAt") || "").trim();
   const rating = Math.min(
     5,
     Math.max(1, Math.round(Number(formData.get("rating") || 5)))
@@ -20,6 +21,7 @@ const parseReviewForm = (formData: FormData) => {
     email,
     text,
     image: image || null,
+    createdAt: createdAt || null,
     rating,
     isActive: formData.get("isActive") === "on",
     isRead: formData.get("isRead") === "on",

@@ -6,13 +6,53 @@ type AdminReviewFormProps = {
   action: (formData: FormData) => Promise<void>;
 };
 
+const ADMIN_TIMEZONE = "America/Chicago";
+
 const fieldClass =
   "h-11 w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-0 text-sm text-stone-800 outline-none focus:border-stone-400";
 
 const textareaClass =
   "w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400";
 
+function formatDateTimeLocal(value?: string) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: ADMIN_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  });
+
+  const parts = formatter.formatToParts(date);
+  const values: Record<string, string> = {};
+  for (const part of parts) {
+    if (part.type !== "literal") {
+      values[part.type] = part.value;
+    }
+  }
+
+  if (
+    !values.year ||
+    !values.month ||
+    !values.day ||
+    !values.hour ||
+    !values.minute
+  ) {
+    return "";
+  }
+
+  return `${values.year}-${values.month}-${values.day}T${values.hour}:${values.minute}`;
+}
+
 export default function AdminReviewForm({ review, action }: AdminReviewFormProps) {
+  const defaultCreatedAt = formatDateTimeLocal(review?.createdAt);
+
   return (
     <form
       action={action}
@@ -54,15 +94,28 @@ export default function AdminReviewForm({ review, action }: AdminReviewFormProps
             />
           </label>
           <label className="flex flex-col gap-2 text-sm text-stone-700">
+            Created at
+            <input
+              name="createdAt"
+              type="datetime-local"
+              defaultValue={defaultCreatedAt}
+              className={fieldClass}
+            />
+          </label>
+          <label className="flex flex-col gap-2 text-sm text-stone-700">
             Review text
             <textarea
               name="text"
               rows={6}
               defaultValue={review?.text || ""}
               required
+              maxLength={512}
               className={textareaClass}
             />
           </label>
+          <p className="text-xs text-stone-500">
+            Maximum review length: 512 characters.
+          </p>
           <div className="grid gap-2">
             <label className="flex items-center gap-2 text-sm text-stone-700">
               <input

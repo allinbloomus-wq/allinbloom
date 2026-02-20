@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useEmblaCarousel from "embla-carousel-react";
-import ImageWithFallback from "@/components/image-with-fallback";
+import BouquetImageLightbox from "@/components/bouquet-image-lightbox";
 import ReviewStars from "@/components/review-stars";
 import { formatDate } from "@/lib/format";
 import type { Review } from "@/lib/api-types";
@@ -13,6 +13,7 @@ type ReviewsGalleryProps = {
 
 const AUTO_SCROLL_INTERVAL_MS = 5000;
 const AUTO_SCROLL_PAUSE_MS = 20000;
+const INTERACTION_CLICK_THRESHOLD = 8;
 
 export default function ReviewsGallery({ reviews }: ReviewsGalleryProps) {
   const items = useMemo(() => reviews, [reviews]);
@@ -38,6 +39,11 @@ export default function ReviewsGallery({ reviews }: ReviewsGalleryProps) {
   const activeIndexRef = useRef(0);
   const pageCountRef = useRef(1);
   const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const interactionStartRef = useRef<{ x: number; y: number } | null>(null);
+  const blockImageOpenRef = useRef(false);
+  const resetOpenBlockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
 
   const hasSlides = items.length > 0;
   const canSlide = pageCount > 1;
@@ -54,6 +60,42 @@ export default function ReviewsGallery({ reviews }: ReviewsGalleryProps) {
     pauseTimerRef.current = setTimeout(() => {
       setIsAutoPaused(false);
     }, AUTO_SCROLL_PAUSE_MS);
+  }, []);
+
+  const beginInteraction = useCallback(
+    (x: number, y: number) => {
+      interactionStartRef.current = { x, y };
+      blockImageOpenRef.current = false;
+      pauseAutoscroll();
+    },
+    [pauseAutoscroll]
+  );
+
+  const moveInteraction = useCallback((x: number, y: number) => {
+    const start = interactionStartRef.current;
+    if (!start || blockImageOpenRef.current) return;
+
+    const movedFarEnough =
+      Math.abs(x - start.x) > INTERACTION_CLICK_THRESHOLD ||
+      Math.abs(y - start.y) > INTERACTION_CLICK_THRESHOLD;
+
+    if (movedFarEnough) {
+      blockImageOpenRef.current = true;
+    }
+  }, []);
+
+  const endInteraction = useCallback(() => {
+    interactionStartRef.current = null;
+
+    if (!blockImageOpenRef.current) return;
+
+    if (resetOpenBlockTimerRef.current) {
+      clearTimeout(resetOpenBlockTimerRef.current);
+    }
+
+    resetOpenBlockTimerRef.current = setTimeout(() => {
+      blockImageOpenRef.current = false;
+    }, 250);
   }, []);
 
   const syncCarouselState = useCallback(() => {
@@ -103,6 +145,21 @@ export default function ReviewsGallery({ reviews }: ReviewsGalleryProps) {
     goToIndex(activeIndexRef.current + 1);
   }, [canSlide, goToIndex]);
 
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!event.isPrimary) return;
+    beginInteraction(event.clientX, event.clientY);
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!event.isPrimary) return;
+    moveInteraction(event.clientX, event.clientY);
+  };
+
+  const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!event.isPrimary) return;
+    endInteraction();
+  };
+
   useEffect(() => {
     if (!emblaApi) return;
 
@@ -150,6 +207,9 @@ export default function ReviewsGallery({ reviews }: ReviewsGalleryProps) {
       if (pauseTimerRef.current) {
         clearTimeout(pauseTimerRef.current);
       }
+      if (resetOpenBlockTimerRef.current) {
+        clearTimeout(resetOpenBlockTimerRef.current);
+      }
     };
   }, []);
 
@@ -167,6 +227,11 @@ export default function ReviewsGallery({ reviews }: ReviewsGalleryProps) {
         <div
           ref={emblaRef}
           className="touch-pan-y select-none overflow-hidden rounded-[28px] border border-white/80"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          onPointerLeave={endInteraction}
         >
           <div className="flex gap-0 md:gap-4">
             {items.map((review) => (
@@ -174,20 +239,23 @@ export default function ReviewsGallery({ reviews }: ReviewsGalleryProps) {
                 key={review.id}
                 className="w-full min-w-0 flex-shrink-0 snap-start cursor-grab active:cursor-grabbing md:w-[calc((100%-1rem)/2)] lg:w-[calc((100%-2rem)/3)]"
               >
-                <article className="relative h-full overflow-hidden rounded-[24px] border border-white/80 bg-[linear-gradient(165deg,rgba(255,255,255,0.95)_0%,rgba(252,242,238,0.9)_100%)] p-4 sm:p-5">
-                  <div className="pointer-events-none absolute -right-12 -top-12 h-28 w-28 rounded-full bg-[color:var(--soft-rose)]/70 blur-2xl" />
-                  <div className="pointer-events-none absolute -bottom-10 -left-10 h-28 w-28 rounded-full bg-[color:var(--accent)]/60 blur-2xl" />
-                  <div className="relative flex h-full flex-col gap-4">
-                    <div className="flex items-start gap-3">
-                      <div className="h-14 w-14 overflow-hidden rounded-2xl border border-white/80 bg-white/80">
-                        <ImageWithFallback
-                          src={review.image || ""}
-                          alt={`${review.name} review photo`}
-                          width={120}
-                          height={120}
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
+                <article className="flex h-full flex-col overflow-hidden rounded-[24px] border border-white/85 bg-white/85 shadow-[0_12px_26px_rgba(63,40,36,0.12)]">
+                  <div className="overflow-hidden border-b border-white/75">
+                    <BouquetImageLightbox
+                      src={review.image || ""}
+                      alt={`${review.name} review photo`}
+                      className="block w-full"
+                      imageClassName="aspect-[4/3] w-full object-cover"
+                      previewWidth={640}
+                      previewHeight={480}
+                      lightboxWidth={1600}
+                      lightboxHeight={1200}
+                      canOpen={() => !blockImageOpenRef.current}
+                      onOpen={pauseAutoscroll}
+                    />
+                  </div>
+                  <div className="flex h-full flex-col gap-3 p-4 sm:p-5">
+                    <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-stone-900">
                           {review.name}
@@ -195,15 +263,15 @@ export default function ReviewsGallery({ reviews }: ReviewsGalleryProps) {
                         <p className="text-[10px] uppercase tracking-[0.2em] text-stone-500">
                           {formatDate(review.createdAt)}
                         </p>
-                        <ReviewStars
-                          value={review.rating}
-                          size="sm"
-                          readOnly
-                          className="mt-1"
-                        />
                       </div>
+                      <ReviewStars
+                        value={review.rating}
+                        size="sm"
+                        readOnly
+                        className="shrink-0"
+                      />
                     </div>
-                    <p className="text-sm leading-relaxed text-stone-700">
+                    <p className="h-[8.8rem] overflow-y-auto pr-1 text-sm leading-relaxed text-stone-700">
                       {review.text}
                     </p>
                   </div>

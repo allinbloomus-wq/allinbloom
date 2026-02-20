@@ -42,6 +42,7 @@ class ReviewCreateAdmin(SchemaBase):
     rating: int
     text: str
     image: Optional[str] = None
+    created_at: Optional[datetime] = None
     is_active: bool = True
     is_read: bool = True
 
@@ -52,6 +53,7 @@ class ReviewUpdateAdmin(SchemaBase):
     rating: Optional[int] = None
     text: Optional[str] = None
     image: Optional[str] = None
+    created_at: Optional[datetime] = None
     is_active: Optional[bool] = None
     is_read: Optional[bool] = None
 

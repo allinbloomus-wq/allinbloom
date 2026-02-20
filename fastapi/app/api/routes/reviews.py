@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 import re
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func, select
@@ -29,8 +30,9 @@ PUBLIC_RATE_WINDOW = timedelta(minutes=30)
 PUBLIC_RATE_LIMIT = 8
 NAME_MAX_LENGTH = 80
 EMAIL_MAX_LENGTH = 254
-TEXT_MAX_LENGTH = 1800
+TEXT_MAX_LENGTH = 512
 IMAGE_URL_MAX_LENGTH = 1200
+ADMIN_TIMEZONE = "America/Chicago"
 
 rate_limit: dict[str, dict[str, object]] = {}
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -98,6 +100,14 @@ def _normalize_rating(value: int | None) -> int:
     if rating < 1 or rating > 5:
         raise HTTPException(status_code=400, detail="Rating must be between 1 and 5.")
     return rating
+
+
+def _normalize_created_at(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=ZoneInfo(ADMIN_TIMEZONE))
+    return value.astimezone(timezone.utc)
 
 
 @router.get("/reviews", response_model=list[ReviewPublicOut])
@@ -198,7 +208,8 @@ def create_admin_review(
     db: Session = Depends(get_db),
     _admin=Depends(require_admin),
 ):
-    review = Review(
+    created_at = _normalize_created_at(payload.created_at)
+    review_data = dict(
         name=_normalize_name(payload.name),
         email=_normalize_email(payload.email),
         rating=_normalize_rating(payload.rating),
@@ -207,6 +218,10 @@ def create_admin_review(
         is_active=bool(payload.is_active),
         is_read=bool(payload.is_read),
     )
+    if created_at is not None:
+        review_data["created_at"] = created_at
+
+    review = Review(**review_data)
     db.add(review)
     db.commit()
     db.refresh(review)
@@ -236,6 +251,10 @@ def update_admin_review(
             review.text = _normalize_text(value)
         elif key == "image":
             review.image = _normalize_image(value)
+        elif key == "created_at":
+            normalized_created_at = _normalize_created_at(value)
+            if normalized_created_at is not None:
+                review.created_at = normalized_created_at
         elif key == "is_active":
             review.is_active = bool(value)
         elif key == "is_read":
