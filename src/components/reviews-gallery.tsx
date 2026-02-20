@@ -318,11 +318,11 @@ export default function ReviewsGallery({ reviews }: ReviewsGalleryProps) {
   }
 
   return (
-    <div className="rounded-[28px] border-0 bg-transparent p-0 shadow-none sm:rounded-[36px] sm:bg-[linear-gradient(168deg,rgba(255,255,255,0.9)_0%,rgba(251,231,223,0.78)_100%)] sm:p-6 sm:shadow-[0_22px_56px_rgba(108,20,10,0.16)] sm:backdrop-blur-[14px]">
-      <div className="relative mt-1 sm:mt-2">
+    <div className="bg-transparent">
+      <div className="relative">
         <div
           ref={emblaRef}
-          className="touch-pan-y select-none overflow-hidden rounded-[28px] bg-[linear-gradient(180deg,rgba(255,255,255,0.82)_0%,rgba(252,230,222,0.72)_100%)]"
+          className="touch-pan-y select-none overflow-hidden"
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
@@ -380,7 +380,7 @@ export default function ReviewsGallery({ reviews }: ReviewsGalleryProps) {
             type="button"
             onClick={handlePrev}
             disabled={!canScrollPrev}
-            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-[#f1cbc1]/85 bg-white/95 text-[color:var(--brand)] shadow-sm backdrop-blur transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-45 sm:h-11 sm:w-11"
+            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-[#f1cbc1]/55 bg-white/60 text-[color:var(--brand)] shadow-sm backdrop-blur-[2px] transition hover:scale-105 hover:bg-white/75 disabled:cursor-not-allowed disabled:opacity-40 sm:h-11 sm:w-11"
             aria-label="Previous review"
           >
             <svg
@@ -400,7 +400,7 @@ export default function ReviewsGallery({ reviews }: ReviewsGalleryProps) {
             type="button"
             onClick={handleNext}
             disabled={!canScrollNext}
-            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-[#f1cbc1]/85 bg-white/95 text-[color:var(--brand)] shadow-sm backdrop-blur transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-45 sm:h-11 sm:w-11"
+            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-[#f1cbc1]/55 bg-white/60 text-[color:var(--brand)] shadow-sm backdrop-blur-[2px] transition hover:scale-105 hover:bg-white/75 disabled:cursor-not-allowed disabled:opacity-40 sm:h-11 sm:w-11"
             aria-label="Next review"
           >
             <svg

@@ -121,29 +121,35 @@ export default async function CatalogPage({
           </p>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-          {catalogCategoryTiles.map((tile) => (
-            <Link
-              key={tile.title}
-              href={tile.href}
-              className="group relative isolate overflow-hidden rounded-[24px] border border-white/80 bg-white/70 shadow-sm transition lg:hover:-translate-y-1 lg:hover:shadow-[0_16px_35px_rgba(108,20,10,0.22)]"
-            >
-              <div className="relative aspect-square w-full">
-                <Image
-                  src={tile.image}
-                  alt={tile.title}
-                  fill
-                  sizes="(max-width: 639px) 48vw, (max-width: 1023px) 30vw, 22vw"
-                  className="object-cover transition duration-500 lg:group-hover:scale-110"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[rgba(26,11,8,0.72)] via-[rgba(26,11,8,0.28)] to-transparent transition lg:group-hover:from-[rgba(26,11,8,0.82)]" />
-                <div className="absolute inset-x-2 bottom-2 rounded-2xl border border-white/40 bg-white/18 px-3 py-2 backdrop-blur">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white sm:text-xs sm:tracking-[0.24em]">
-                    {tile.title}
-                  </p>
+          {catalogCategoryTiles.map((tile) => {
+            const [firstWord, ...restWords] = tile.title.split(" ");
+            return (
+              <Link
+                key={tile.title}
+                href={tile.href}
+                className="group relative isolate overflow-hidden rounded-[24px] border border-white/80 bg-white/70 shadow-sm transition lg:hover:-translate-y-1 lg:hover:shadow-[0_16px_35px_rgba(108,20,10,0.22)]"
+              >
+                <div className="relative aspect-square w-full">
+                  <Image
+                    src={tile.image}
+                    alt={tile.title}
+                    fill
+                    sizes="(max-width: 639px) 48vw, (max-width: 1023px) 30vw, 22vw"
+                    className="object-cover transition duration-500 lg:group-hover:scale-110"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[rgba(26,11,8,0.72)] via-[rgba(26,11,8,0.28)] to-transparent transition lg:group-hover:from-[rgba(26,11,8,0.82)]" />
+                  <div className="absolute inset-x-2 bottom-2 rounded-2xl border border-white/40 bg-white/18 px-3 py-2 backdrop-blur">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white sm:text-xs sm:tracking-[0.24em]">
+                      <span className="block leading-tight">{firstWord}</span>
+                      <span className="mt-0.5 block leading-tight">
+                        {restWords.join(" ")}
+                      </span>
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       </div>
     );
