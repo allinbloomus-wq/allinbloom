@@ -11,6 +11,7 @@ if str(ROOT) not in sys.path:
 from app.core.database import SessionLocal
 from app.models.bouquet import Bouquet
 from app.models.promo_slide import PromoSlide
+from app.models.review import Review
 from app.models.user import User
 from app.models.enums import FlowerType, BouquetStyle, Role
 
@@ -130,6 +131,36 @@ promo_slides = [
     },
 ]
 
+reviews = [
+    {
+        "name": "Emma L.",
+        "email": "emma@example.com",
+        "rating": 5,
+        "text": "Absolutely stunning bouquet and very fast delivery. The colors looked even better in person.",
+        "image": "/images/bouquet-2.webp",
+        "is_active": True,
+        "is_read": True,
+    },
+    {
+        "name": "Mia R.",
+        "email": "mia@example.com",
+        "rating": 5,
+        "text": "Beautiful wrapping, fresh flowers, and a lovely handwritten note. Perfect gift experience.",
+        "image": "/images/bouquet-4.webp",
+        "is_active": True,
+        "is_read": True,
+    },
+    {
+        "name": "Sophie K.",
+        "email": "sophie@example.com",
+        "rating": 4,
+        "text": "Great quality and elegant style. Will definitely order again for special occasions.",
+        "image": None,
+        "is_active": True,
+        "is_read": True,
+    },
+]
+
 
 def main():
     admin_email = os.environ.get("ADMIN_EMAIL") or "allinbloom.us@gmail.com"
@@ -147,6 +178,9 @@ def main():
 
         db.query(PromoSlide).delete()
         db.add_all([PromoSlide(**slide) for slide in promo_slides])
+
+        db.query(Review).delete()
+        db.add_all([Review(**review) for review in reviews])
 
         db.commit()
     finally:

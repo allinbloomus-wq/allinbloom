@@ -1,25 +1,56 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from datetime import datetime, timedelta
+import logging
+
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 import httpx
 
 from app.api.deps import require_admin
 from app.core.config import settings
+from app.core.critical_logging import log_critical_event
 from app.schemas.upload import UploadResponse
 
 router = APIRouter(prefix="/api/upload", tags=["upload"])
 
+ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024
+REVIEW_UPLOAD_WINDOW = timedelta(minutes=30)
+REVIEW_UPLOAD_LIMIT = 20
+review_upload_rate_limit: dict[str, dict[str, object]] = {}
 
-@router.post("", response_model=UploadResponse)
-async def upload_image(file: UploadFile = File(...), _admin=Depends(require_admin)):
-    allowed = {"image/jpeg", "image/png", "image/webp", "image/gif"}
-    if file.content_type not in allowed:
+
+def _get_client_key(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.headers.get("x-real-ip") or "unknown"
+
+
+def _allow_review_upload(key: str) -> bool:
+    now = datetime.utcnow()
+    entry = review_upload_rate_limit.get(key)
+    if not entry or entry["reset_at"] <= now:
+        review_upload_rate_limit[key] = {"count": 1, "reset_at": now + REVIEW_UPLOAD_WINDOW}
+        return True
+    if entry["count"] >= REVIEW_UPLOAD_LIMIT:
+        return False
+    entry["count"] += 1
+    return True
+
+
+async def _read_and_validate_file(file: UploadFile) -> bytes:
+    if file.content_type not in ALLOWED_CONTENT_TYPES:
         raise HTTPException(status_code=400, detail="Unsupported file type")
 
     content = await file.read()
-    if len(content) > 5 * 1024 * 1024:
+    if len(content) > MAX_IMAGE_SIZE_BYTES:
         raise HTTPException(status_code=400, detail="File is too large")
 
+    return content
+
+
+async def _upload_to_cloudinary(file: UploadFile, content: bytes) -> UploadResponse:
     if not settings.cloudinary_cloud_name or not settings.cloudinary_upload_preset:
         raise HTTPException(status_code=500, detail="Cloudinary not configured")
 
@@ -37,4 +68,33 @@ async def upload_image(file: UploadFile = File(...), _admin=Depends(require_admi
             detail=(payload.get("error") or {}).get("message", "Upload failed"),
         )
 
-    return UploadResponse(url=payload.get("secure_url") or payload.get("url"), public_id=payload.get("public_id"))
+    return UploadResponse(
+        url=payload.get("secure_url") or payload.get("url"),
+        public_id=payload.get("public_id"),
+    )
+
+
+@router.post("", response_model=UploadResponse)
+async def upload_image(file: UploadFile = File(...), _admin=Depends(require_admin)):
+    content = await _read_and_validate_file(file)
+    return await _upload_to_cloudinary(file, content)
+
+
+@router.post("/review", response_model=UploadResponse)
+async def upload_review_image(request: Request, file: UploadFile = File(...)):
+    key = _get_client_key(request)
+    if not _allow_review_upload(key):
+        log_critical_event(
+            domain="personal_data",
+            event="review_image_upload_rate_limited",
+            message="Review image upload blocked by rate limit.",
+            request=request,
+            level=logging.WARNING,
+        )
+        raise HTTPException(
+            status_code=429,
+            detail="Too many uploads. Please try again later.",
+        )
+
+    content = await _read_and_validate_file(file)
+    return await _upload_to_cloudinary(file, content)

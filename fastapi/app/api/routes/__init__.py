@@ -6,6 +6,7 @@ from app.api.routes.contact import router as contact_router
 from app.api.routes.delivery import router as delivery_router
 from app.api.routes.orders import router as orders_router
 from app.api.routes.promotions import router as promotions_router
+from app.api.routes.reviews import router as reviews_router
 from app.api.routes.settings import router as settings_router
 from app.api.routes.stripe_webhook import router as stripe_webhook_router
 from app.api.routes.upload import router as upload_router
@@ -20,6 +21,7 @@ __all__ = [
     "delivery_router",
     "orders_router",
     "promotions_router",
+    "reviews_router",
     "settings_router",
     "stripe_webhook_router",
     "upload_router",

@@ -15,6 +15,7 @@ const URL_TOAST_MESSAGES: Record<string, string> = {
   "discounts-saved": "Discounts saved successfully.",
   "home-images-saved": "Homepage images saved successfully.",
   "promotion-added": "Promotion added successfully.",
+  "review-added": "Review added successfully.",
 };
 
 type ToastContextValue = {

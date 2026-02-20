@@ -7,6 +7,8 @@ import { getOrdersByEmail } from "@/lib/data/orders";
 import type { OrderStatus } from "@/lib/api-types";
 import { formatDateTime, formatMoney, formatOrderStatus } from "@/lib/format";
 import { getCurrentUser } from "@/lib/data/users";
+import AdminAlertsBadge from "@/components/admin-alerts-badge";
+import AdminReviewsBadge from "@/components/admin-reviews-badge";
 
 export const metadata: Metadata = {
   title: "Account",
@@ -71,12 +73,22 @@ export default async function AccountPage() {
       {user.role === "ADMIN" ? (
         <div className="glass rounded-[28px] border border-white/80 p-5 text-sm text-stone-600 sm:p-6">
           <p>You have admin access.</p>
-          <Link
-            href="/admin"
-            className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-full border border-stone-300 bg-white/80 px-4 text-center text-xs uppercase tracking-[0.3em] text-stone-600 sm:w-auto"
-          >
-            Open admin panel
-          </Link>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link
+              href="/admin"
+              className="relative inline-flex h-11 w-full items-center justify-center rounded-full border border-stone-300 bg-white/80 px-4 text-center text-xs uppercase tracking-[0.3em] text-stone-600 sm:w-auto"
+            >
+              Open admin panel
+              <AdminAlertsBadge />
+            </Link>
+            <Link
+              href="/admin/reviews"
+              className="relative inline-flex h-11 w-full items-center justify-center rounded-full border border-stone-300 bg-white/80 px-4 text-center text-xs uppercase tracking-[0.3em] text-stone-600 sm:w-auto"
+            >
+              Reviews
+              <AdminReviewsBadge />
+            </Link>
+          </div>
         </div>
       ) : null}
       <div className="glass rounded-[28px] border border-white/80 p-5 text-sm text-stone-600 sm:p-6">

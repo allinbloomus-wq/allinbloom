@@ -20,6 +20,9 @@ export default function Footer() {
           <Link href="/catalog" className="block hover:text-stone-800">
             Catalog
           </Link>
+          <Link href="/reviews" className="block hover:text-stone-800">
+            Reviews
+          </Link>
           <Link href="/contact" className="block hover:text-stone-800">
             Contact
           </Link>

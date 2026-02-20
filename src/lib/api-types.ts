@@ -31,6 +31,22 @@ export type PromoSlide = {
   position: number;
 };
 
+export type Review = {
+  id: string;
+  name: string;
+  rating: number;
+  text: string;
+  image: string | null;
+  createdAt: string;
+};
+
+export type AdminReview = Review & {
+  email: string;
+  isActive: boolean;
+  isRead: boolean;
+  updatedAt: string;
+};
+
 export type OrderItem = {
   id: string;
   orderId: string;

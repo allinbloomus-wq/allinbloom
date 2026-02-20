@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { getAuthSession } from "@/lib/auth-session";
 import CartBadge from "@/components/cart-badge";
-import AdminOrdersBadge from "@/components/admin-orders-badge";
+import AdminAlertsBadge from "@/components/admin-alerts-badge";
 
 export default async function Header() {
   const { user } = await getAuthSession();
@@ -29,6 +29,9 @@ export default async function Header() {
               <Link href="/catalog" className="hover:text-stone-700">
                 Catalog
               </Link>
+              <Link href="/reviews" className="hover:text-stone-700">
+                Reviews
+              </Link>
               <Link href="/contact" className="hover:text-stone-700">
                 Contact
               </Link>
@@ -38,7 +41,7 @@ export default async function Header() {
                   className="relative inline-flex items-center hover:text-stone-700"
                 >
                   Admin
-                  <AdminOrdersBadge />
+                  <AdminAlertsBadge />
                 </Link>
               ) : null}
             </nav>
@@ -57,6 +60,9 @@ export default async function Header() {
           <Link href="/catalog" className="hover:text-stone-700">
             Catalog
           </Link>
+          <Link href="/reviews" className="hover:text-stone-700">
+            Reviews
+          </Link>
           <Link href="/contact" className="hover:text-stone-700">
             Contact
           </Link>
@@ -66,7 +72,7 @@ export default async function Header() {
               className="relative inline-flex items-center hover:text-stone-700"
             >
               Admin
-              <AdminOrdersBadge />
+              <AdminAlertsBadge />
             </Link>
           ) : null}
         </nav>
