@@ -1,12 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { clearCartStorage, useCart } from "@/lib/cart";
 import { clientFetch } from "@/lib/api-client";
 
 export default function CheckoutSuccessPage() {
+  return (
+    <Suspense fallback={<CheckoutSuccessFallback />}>
+      <CheckoutSuccessContent />
+    </Suspense>
+  );
+}
+
+function CheckoutSuccessContent() {
   const { clear } = useCart();
   const searchParams = useSearchParams();
   const paypalToken = searchParams.get("token");
@@ -91,6 +99,22 @@ export default function CheckoutSuccessPage() {
       >
         {status === "error" ? "Return to cart" : "Continue shopping"}
       </Link>
+    </div>
+  );
+}
+
+function CheckoutSuccessFallback() {
+  return (
+    <div className="mx-auto flex max-w-2xl flex-col items-center gap-4 text-center sm:gap-6">
+      <div className="rounded-full bg-white/80 px-5 py-2 text-xs uppercase tracking-[0.32em] text-stone-500">
+        Finalizing payment
+      </div>
+      <h1 className="text-4xl font-semibold text-stone-900 sm:text-5xl">
+        Checking your order
+      </h1>
+      <p className="text-sm leading-relaxed text-stone-600">
+        Please wait while we load your payment confirmation.
+      </p>
     </div>
   );
 }
