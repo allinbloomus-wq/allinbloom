@@ -25,7 +25,15 @@ from app.schemas.checkout import (
 from app.services.delivery import get_delivery_quote
 from app.services.orders import (
     STRIPE_CHECKOUT_SESSION_EXPIRATION_SECONDS,
+    resolve_order_status_from_paypal_order,
     resolve_order_status_from_session,
+)
+from app.services.paypal import (
+    PayPalApiError,
+    paypal_create_order,
+    paypal_get_order,
+    paypal_is_configured,
+    paypal_void_order,
 )
 from app.services.pricing import apply_percent_discount, get_bouquet_discount
 from app.services.settings import get_store_settings
@@ -50,15 +58,38 @@ async def start_checkout(
 ):
     user_id = user.id if user else None
 
-    if not settings.stripe_secret_key:
+    payment_method = (payload.payment_method or "stripe").strip().lower()
+    if payment_method not in {"stripe", "paypal"}:
         log_critical_event(
             domain="payment",
-            event="stripe_not_configured",
-            message="Checkout requested while Stripe is not configured.",
+            event="checkout_invalid_payment_method",
+            message="Checkout requested with unsupported payment method.",
             request=request,
-            context={"user_id": user_id},
+            context={"user_id": user_id, "payment_method": payment_method},
+            level=logging.WARNING,
         )
-        raise HTTPException(status_code=400, detail="Stripe is not configured.")
+        raise HTTPException(status_code=400, detail="Unsupported payment method.")
+
+    if payment_method == "stripe":
+        if not settings.stripe_secret_key:
+            log_critical_event(
+                domain="payment",
+                event="stripe_not_configured",
+                message="Checkout requested while Stripe is not configured.",
+                request=request,
+                context={"user_id": user_id},
+            )
+            raise HTTPException(status_code=400, detail="Stripe is not configured.")
+    else:
+        if not paypal_is_configured():
+            log_critical_event(
+                domain="payment",
+                event="paypal_not_configured",
+                message="Checkout requested while PayPal is not configured.",
+                request=request,
+                context={"user_id": user_id},
+            )
+            raise HTTPException(status_code=400, detail="PayPal is not configured.")
 
     items = payload.items
     address = payload.address.strip()
@@ -248,6 +279,10 @@ async def start_checkout(
         phone=normalized_phone,
         total_cents=computed_total,
         items=order_items,
+        delivery_address=address,
+        delivery_miles=f"{delivery.miles:.1f}" if delivery.miles is not None else None,
+        delivery_fee_cents=delivery.fee_cents,
+        first_order_discount_percent=first_order_discount_percent,
     )
     db.add(order)
     db.commit()
@@ -259,6 +294,35 @@ async def start_checkout(
 
     origin = settings.resolved_site_url()
     encoded_checkout_email = quote_plus(checkout_email)
+
+    if payment_method == "paypal":
+        try:
+            paypal_order = paypal_create_order(
+                order_id=order.id,
+                total_cents=computed_total,
+                currency=order.currency,
+                return_url=f"{origin}/checkout/success?provider=paypal",
+                cancel_url=(
+                    f"{origin}/cart?checkoutCanceled=1&orderId={order.id}"
+                    f"&checkoutEmail={encoded_checkout_email}&provider=paypal"
+                ),
+            )
+        except PayPalApiError as exc:
+            log_critical_event(
+                domain="payment",
+                event="paypal_order_create_failed",
+                message="PayPal order creation failed.",
+                request=request,
+                context={"order_id": order.id, "user_id": user_id, "item_count": len(discounted_items)},
+                exc=exc,
+            )
+            _set_order_status_safely(db, order, OrderStatus.FAILED)
+            raise HTTPException(status_code=502, detail="Unable to start checkout.")
+
+        order.paypal_order_id = paypal_order.order_id
+        db.commit()
+        return CheckoutResponse(url=paypal_order.approve_url)
+
     stripe.api_key = settings.stripe_secret_key
     expires_at = int(datetime.now(timezone.utc).timestamp()) + STRIPE_CHECKOUT_SESSION_EXPIRATION_SECONDS
 
@@ -310,6 +374,7 @@ async def start_checkout(
                 "phone": normalized_phone,
             },
             payment_intent_data={"metadata": {"orderId": order.id}},
+            idempotency_key=f"stripe-checkout-{order.id}",
         )
     except Exception as exc:
         log_critical_event(
@@ -396,6 +461,53 @@ async def cancel_checkout(
                         domain="payment",
                         event="stripe_session_expire_failed",
                         message="Failed to expire open Stripe checkout session during cancellation.",
+                        request=request,
+                        context={"order_id": order.id, "user_id": user_id},
+                        exc=exc,
+                        level=logging.WARNING,
+                    )
+
+    if order.paypal_order_id and paypal_is_configured():
+        paypal_order_payload = None
+        try:
+            paypal_order_payload = paypal_get_order(order.paypal_order_id)
+        except PayPalApiError as exc:
+            log_critical_event(
+                domain="payment",
+                event="paypal_order_fetch_failed_during_cancel",
+                message="Failed to fetch PayPal order during cancellation.",
+                request=request,
+                context={"order_id": order.id, "user_id": user_id},
+                exc=exc,
+                level=logging.WARNING,
+            )
+        if paypal_order_payload:
+            resolved_status, _capture_id = resolve_order_status_from_paypal_order(
+                order, paypal_order_payload
+            )
+            if resolved_status == OrderStatus.PAID:
+                _set_order_status_safely(db, order, OrderStatus.PAID)
+                return CheckoutCancelResponse(canceled=False, status=OrderStatus.PAID.value)
+            if resolved_status == OrderStatus.FAILED:
+                _set_order_status_safely(db, order, OrderStatus.FAILED)
+                return CheckoutCancelResponse(canceled=True, status=OrderStatus.FAILED.value)
+
+            paypal_order_status = (
+                paypal_order_payload.get("status") if isinstance(paypal_order_payload, dict) else None
+            )
+            if isinstance(paypal_order_status, str) and paypal_order_status.upper() in {
+                "CREATED",
+                "SAVED",
+                "APPROVED",
+                "PAYER_ACTION_REQUIRED",
+            }:
+                try:
+                    paypal_void_order(order.paypal_order_id)
+                except PayPalApiError as exc:
+                    log_critical_event(
+                        domain="payment",
+                        event="paypal_order_void_failed",
+                        message="Failed to void PayPal order during cancellation.",
                         request=request,
                         context={"order_id": order.id, "user_id": user_id},
                         exc=exc,

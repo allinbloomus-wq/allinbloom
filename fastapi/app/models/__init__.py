@@ -7,6 +7,7 @@ from app.models.review import Review
 from app.models.store_settings import StoreSettings
 from app.models.user import User
 from app.models.verification_code import VerificationCode
+from app.models.webhook_event import WebhookEvent
 
 __all__ = [
     "Bouquet",
@@ -21,4 +22,5 @@ __all__ = [
     "StoreSettings",
     "User",
     "VerificationCode",
+    "WebhookEvent",
 ]

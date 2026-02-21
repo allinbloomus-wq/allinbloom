@@ -19,6 +19,7 @@ class CheckoutRequest(SchemaBase):
     address: str
     phone: str
     email: Optional[str] = None
+    payment_method: Optional[str] = None
 
 
 class CheckoutResponse(SchemaBase):

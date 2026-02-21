@@ -10,6 +10,10 @@ type CheckoutButtonProps = {
   phone: string;
   email: string;
   disabled?: boolean;
+  paymentMethod?: "stripe" | "paypal";
+  label?: string;
+  className?: string;
+  onBusyChange?: (busy: boolean) => void;
 };
 
 export default function CheckoutButton({
@@ -18,13 +22,20 @@ export default function CheckoutButton({
   phone,
   email,
   disabled,
+  paymentMethod,
+  label,
+  className,
+  onBusyChange,
 }: CheckoutButtonProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const method = paymentMethod ?? "stripe";
+  const buttonLabel = label ?? (method === "paypal" ? "Pay with PayPal" : "Checkout");
 
   const handleCheckout = async () => {
     setLoading(true);
     setError(null);
+    onBusyChange?.(true);
 
     const response = await clientFetch("/api/checkout", {
       method: "POST",
@@ -45,6 +56,7 @@ export default function CheckoutButton({
         address: deliveryAddress,
         phone,
         email,
+        paymentMethod: method,
       }),
     }, true);
 
@@ -55,6 +67,7 @@ export default function CheckoutButton({
 
     if (!response.ok) {
       setLoading(false);
+      onBusyChange?.(false);
       setError(data.error || "Unable to start checkout.");
       return;
     }
@@ -65,6 +78,7 @@ export default function CheckoutButton({
     }
 
     setLoading(false);
+    onBusyChange?.(false);
     setError("Unable to start checkout.");
   };
 
@@ -74,9 +88,9 @@ export default function CheckoutButton({
         type="button"
         onClick={handleCheckout}
         disabled={loading || disabled}
-        className="w-full rounded-full bg-[color:var(--brand)] px-6 py-3 text-xs uppercase tracking-[0.3em] text-white transition hover:bg-[color:var(--brand-dark)] disabled:opacity-60"
+        className={`w-full rounded-full px-6 py-3 text-xs uppercase tracking-[0.3em] text-white transition disabled:opacity-60 ${className || "bg-[color:var(--brand)] hover:bg-[color:var(--brand-dark)]"}`}
       >
-        {loading ? "Redirecting..." : "Checkout"}
+        {loading ? "Redirecting..." : buttonLabel}
       </button>
       {error ? (
         <p className="text-xs uppercase tracking-[0.24em] text-rose-700">

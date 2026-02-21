@@ -21,93 +21,13 @@ type ReviewTextBlockProps = {
 };
 
 function ReviewTextBlock({ text }: ReviewTextBlockProps) {
-  const textRef = useRef<HTMLParagraphElement | null>(null);
-  const [indicator, setIndicator] = useState({
-    hasOverflow: false,
-    thumbSize: 100,
-    thumbOffset: 0,
-  });
-
-  const syncIndicator = useCallback(() => {
-    const node = textRef.current;
-    if (!node) return;
-
-    const maxScrollTop = node.scrollHeight - node.clientHeight;
-    if (maxScrollTop <= 1) {
-      setIndicator((current) =>
-        current.hasOverflow
-          ? { hasOverflow: false, thumbSize: 100, thumbOffset: 0 }
-          : current
-      );
-      return;
-    }
-
-    const thumbSize = Math.max(22, (node.clientHeight / node.scrollHeight) * 100);
-    const thumbOffset = (node.scrollTop / maxScrollTop) * (100 - thumbSize);
-
-    setIndicator((current) => {
-      if (
-        current.hasOverflow &&
-        Math.abs(current.thumbSize - thumbSize) < 0.5 &&
-        Math.abs(current.thumbOffset - thumbOffset) < 0.5
-      ) {
-        return current;
-      }
-      return {
-        hasOverflow: true,
-        thumbSize,
-        thumbOffset,
-      };
-    });
-  }, []);
-
-  useEffect(() => {
-    const node = textRef.current;
-    if (!node) return;
-
-    const syncOnFrame = () => {
-      window.requestAnimationFrame(syncIndicator);
-    };
-
-    syncOnFrame();
-
-    const resizeObserver =
-      typeof ResizeObserver !== "undefined" ? new ResizeObserver(syncOnFrame) : null;
-
-    resizeObserver?.observe(node);
-    window.addEventListener("resize", syncOnFrame);
-
-    return () => {
-      resizeObserver?.disconnect();
-      window.removeEventListener("resize", syncOnFrame);
-    };
-  }, [syncIndicator, text]);
-
   return (
-    <div className="relative min-h-0">
-      <p
-        ref={textRef}
-        onScroll={syncIndicator}
-        className="overflow-y-auto pr-4 text-sm leading-relaxed text-stone-700"
-        style={{ height: `calc(${REVIEW_TEXT_VISIBLE_LINES} * 1.625em)` }}
-      >
-        {text}
-      </p>
-      {indicator.hasOverflow ? (
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute right-0 top-1 bottom-1 w-1 rounded-full bg-[#e4b8ad]/55"
-        >
-          <span
-            className="absolute inset-x-0 rounded-full bg-[color:var(--brand)]/45 transition-[top] duration-150"
-            style={{
-              height: `${indicator.thumbSize}%`,
-              top: `${indicator.thumbOffset}%`,
-            }}
-          />
-        </span>
-      ) : null}
-    </div>
+    <p
+      className="reviews-text-scroll overflow-y-auto pr-2 text-sm leading-relaxed text-stone-700"
+      style={{ height: `calc(${REVIEW_TEXT_VISIBLE_LINES} * 1.625em)` }}
+    >
+      {text}
+    </p>
   );
 }
 

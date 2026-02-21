@@ -318,7 +318,7 @@ export default function AdminBouquetForm({
         </div>
         <div className="min-w-0 space-y-4">
           <AdminImageUpload
-            defaultValue={bouquet?.image || "/images/bouquet-0.webp"}
+            defaultValue={bouquet?.image || "/images/mock.webp"}
             recommendedSize="1000x1000"
             isInvalid={invalidSet.has("image")}
           />

@@ -117,23 +117,12 @@ export default async function HomePage() {
                   </p>
                 </div>
               </div>
-              <div className="mt-3 grid grid-cols-3 gap-2">
-                {[
-                  { label: "Stems", value: "125+" },
-                  { label: "Rating", value: "4.9" },
-                  { label: "Delivery", value: "2-4h" },
-                ].map((item) => (
-                  <div
-                    key={item.label}
-                    className="rounded-2xl border border-white/80 bg-white/75 px-2 py-2 text-center"
-                  >
-                    <p className="text-sm font-semibold text-stone-900">{item.value}</p>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-stone-500">
-                      {item.label}
-                    </p>
-                  </div>
-                ))}
-              </div>
+              <Link
+                href="/catalog"
+                className="mt-3 inline-flex w-full items-center justify-center rounded-2xl bg-[color:var(--brand)] px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-white transition hover:bg-[color:var(--brand-dark)]"
+              >
+                Shop all
+              </Link>
             </div>
           </div>
           <div className="inline-flex items-center gap-2 rounded-full bg-white/70 px-4 py-2 text-xs uppercase tracking-[0.24em] text-stone-700 shadow-sm">
@@ -153,9 +142,9 @@ export default async function HomePage() {
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
             <Link
               href="/catalog"
-              className="rounded-full bg-[color:var(--brand)] px-6 py-3 text-center text-sm font-semibold uppercase tracking-[0.2em] text-white transition hover:bg-[color:var(--brand-dark)]"
+              className="hidden items-center justify-center rounded-full bg-[color:var(--brand)] px-6 py-3 text-center text-sm font-semibold uppercase tracking-[0.2em] text-white transition hover:bg-[color:var(--brand-dark)] lg:inline-flex"
             >
-              Shop bouquets
+              Shop all
             </Link>
             <Link
               href="/catalog?filter=featured"
@@ -180,25 +169,6 @@ export default async function HomePage() {
               className="h-4 w-4 object-contain"
             />
           </a>
-          <div className="hidden gap-4 sm:grid-cols-3 lg:grid">
-            {[
-              { label: "Seasonal stems", value: "125+" },
-              { label: "Happy clients", value: "4.9/5" },
-              { label: "Chicago neighborhoods", value: "18" },
-            ].map((item) => (
-              <div
-                key={item.label}
-                className="rounded-3xl border border-white/80 bg-white/70 px-4 py-3 text-center shadow-sm"
-              >
-                <p className="text-xl font-semibold text-stone-900">
-                  {item.value}
-                </p>
-                <p className="text-xs uppercase tracking-[0.22em] text-stone-500">
-                  {item.label}
-                </p>
-              </div>
-            ))}
-          </div>
         </div>
         <div className="relative animate-float hidden lg:block">
           <div className="glass absolute right-6 top-6 z-10 hidden h-14 min-w-[10rem] rounded-full border border-white/80 px-4 text-center text-xs font-semibold uppercase tracking-[0.24em] text-stone-700 sm:flex items-center justify-center">

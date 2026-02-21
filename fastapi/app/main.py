@@ -11,6 +11,7 @@ from app.api.routes import (
     contact_router,
     delivery_router,
     orders_router,
+    paypal_router,
     promotions_router,
     reviews_router,
     settings_router,
@@ -45,6 +46,7 @@ app.include_router(checkout_router)
 app.include_router(contact_router)
 app.include_router(delivery_router)
 app.include_router(orders_router)
+app.include_router(paypal_router)
 app.include_router(promotions_router)
 app.include_router(reviews_router)
 app.include_router(settings_router)

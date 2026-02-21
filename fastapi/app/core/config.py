@@ -42,6 +42,10 @@ class Settings(BaseSettings):
     stripe_webhook_secret: str | None = Field(
         default=None, alias="STRIPE_WEBHOOK_SECRET"
     )
+    paypal_client_id: str | None = Field(default=None, alias="PAYPAL_CLIENT_ID")
+    paypal_client_secret: str | None = Field(default=None, alias="PAYPAL_CLIENT_SECRET")
+    paypal_webhook_id: str | None = Field(default=None, alias="PAYPAL_WEBHOOK_ID")
+    paypal_env: str = Field(default="sandbox", alias="PAYPAL_ENV")
 
     site_url: str = Field(default="http://localhost:3000", alias="SITE_URL")
 

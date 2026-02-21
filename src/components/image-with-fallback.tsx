@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Image, { type ImageProps } from "next/image";
-import BouquetPlaceholder from "@/components/bouquet-placeholder";
 
 type ImageWithFallbackProps = Omit<ImageProps, "src" | "alt"> & {
   src: string;
@@ -18,34 +17,19 @@ export default function ImageWithFallback({
   ...props
 }: ImageWithFallbackProps) {
   const [hasError, setHasError] = useState(false);
-  const isFill = Boolean("fill" in props && props.fill);
-  const fallbackStyle =
-    !isFill &&
-    typeof props.width === "number" &&
-    typeof props.height === "number"
-      ? { width: props.width, height: props.height }
-      : undefined;
-
-  if (!src || hasError) {
-    return (
-      <div
-        className={`${isFill ? "absolute inset-0" : ""} flex items-center justify-center bg-white/70 text-[color:var(--brand)] opacity-40 ${className || ""} ${fallbackClassName || ""}`}
-        role="img"
-        aria-label={alt}
-        style={fallbackStyle}
-      >
-        <BouquetPlaceholder className="h-12 w-12" />
-      </div>
-    );
-  }
+  const isFallback = !src || hasError;
+  const resolvedSrc = isFallback ? "/images/mock.webp" : src;
+  const resolvedClassName =
+    `${className || ""} ${isFallback ? fallbackClassName || "" : ""}`.trim() ||
+    undefined;
 
   return (
     <Image
       {...props}
-      src={src}
+      src={resolvedSrc}
       alt={alt}
-      className={className}
-      onError={() => setHasError(true)}
+      className={resolvedClassName}
+      onError={isFallback ? undefined : () => setHasError(true)}
     />
   );
 }

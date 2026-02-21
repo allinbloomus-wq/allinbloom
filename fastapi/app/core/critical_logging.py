@@ -211,7 +211,7 @@ def infer_domain_from_path(path: str) -> str:
         return "admin"
     if normalized.startswith("/api/orders"):
         return "payment"
-    if normalized.startswith("/api/checkout") or normalized.startswith("/api/stripe"):
+    if normalized.startswith("/api/checkout") or normalized.startswith("/api/stripe") or normalized.startswith("/api/paypal"):
         return "payment"
     if normalized.startswith("/api/contact"):
         return "messaging"

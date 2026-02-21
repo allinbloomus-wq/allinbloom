@@ -79,6 +79,7 @@ export default function CartView({
   } | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
+  const [checkoutBusy, setCheckoutBusy] = useState(false);
   const mapsKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   const checkoutEmail = (isAuthenticated ? userEmail || "" : guestEmail).trim().toLowerCase();
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(checkoutEmail);
@@ -214,6 +215,13 @@ export default function CartView({
     0,
     subtotalCents - firstOrderDiscountCents + shippingCents
   );
+  const checkoutDisabled =
+    !quote ||
+    quoteLoading ||
+    Boolean(quoteError) ||
+    !emailValid ||
+    !phoneValid ||
+    checkoutBusy;
 
   const requestQuote = async () => {
     const trimmed = address.trim();
@@ -456,13 +464,28 @@ export default function CartView({
           deliveryAddress={address.trim()}
           phone={phoneValue}
           email={checkoutEmail}
-          disabled={
-            !quote ||
-            quoteLoading ||
-            Boolean(quoteError) ||
-            !emailValid ||
-            !phoneValid
-          }
+          disabled={checkoutDisabled}
+          onBusyChange={setCheckoutBusy}
+          label="Checkout"
+          paymentMethod="stripe"
+        />
+        <div className="flex items-center gap-3">
+          <span className="h-px flex-1 bg-stone-200" />
+          <span className="text-[10px] uppercase tracking-[0.3em] text-stone-400">
+            or
+          </span>
+          <span className="h-px flex-1 bg-stone-200" />
+        </div>
+        <CheckoutButton
+          items={items}
+          deliveryAddress={address.trim()}
+          phone={phoneValue}
+          email={checkoutEmail}
+          disabled={checkoutDisabled}
+          onBusyChange={setCheckoutBusy}
+          label="Pay with PayPal"
+          paymentMethod="paypal"
+          className="bg-[#003087] hover:bg-[#001c64]"
         />
         {!isAuthenticated ? (
           <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
@@ -470,7 +493,7 @@ export default function CartView({
           </p>
         ) : null}
         <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
-          Secure checkout with Stripe
+          Secure checkout with Stripe or PayPal
         </p>
       </div>
     </div>

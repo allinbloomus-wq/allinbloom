@@ -30,6 +30,7 @@ from app.services.orders import (
     get_admin_orders_by_day,
     get_admin_orders_by_week,
     get_orders_by_email,
+    sync_order_with_paypal,
     sync_order_with_stripe,
 )
 from app.utils.admin_orders import parse_day_key
@@ -65,6 +66,7 @@ def get_order(order_id: str, db: Session = Depends(get_db), _admin=Depends(requi
         raise HTTPException(status_code=404, detail="Not found")
     if order.status == OrderStatus.PENDING:
         sync_order_with_stripe(db, order)
+        sync_order_with_paypal(db, order)
     return order
 
 

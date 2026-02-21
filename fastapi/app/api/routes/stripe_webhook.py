@@ -14,6 +14,10 @@ from app.models.order import Order
 from app.models.enums import OrderStatus
 from app.services.email import send_admin_order_email, send_customer_order_email
 from app.services.orders import resolve_order_status_from_session
+from app.services.webhook_events import (
+    is_webhook_event_processed,
+    mark_webhook_event_processed,
+)
 
 router = APIRouter(prefix="/api/stripe", tags=["stripe"])
 
@@ -87,6 +91,20 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         )
         raise HTTPException(status_code=400, detail="Invalid signature.")
 
+    event_id = event.get("id")
+    if not isinstance(event_id, str) or not event_id.strip():
+        log_critical_event(
+            domain="payment",
+            event="stripe_event_missing_id",
+            message="Stripe webhook rejected: missing event id.",
+            request=request,
+            level=logging.WARNING,
+        )
+        raise HTTPException(status_code=400, detail="Invalid Stripe event.")
+
+    if is_webhook_event_processed(db, provider="stripe", event_id=event_id):
+        return {"received": True}
+
     if event["type"] in ["checkout.session.completed", "checkout.session.async_payment_succeeded"]:
         session = event["data"]["object"]
         metadata = session.get("metadata") or {}
@@ -141,10 +159,14 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                             }
                             for item in order.items
                         ],
-                        "delivery_address": metadata.get("deliveryAddress"),
-                        "delivery_miles": metadata.get("deliveryMiles"),
-                        "delivery_fee": metadata.get("deliveryFeeCents"),
-                        "first_order_discount": metadata.get("firstOrderDiscountPercent"),
+                        "delivery_address": metadata.get("deliveryAddress")
+                        or order.delivery_address,
+                        "delivery_miles": metadata.get("deliveryMiles")
+                        or order.delivery_miles,
+                        "delivery_fee": metadata.get("deliveryFeeCents")
+                        or order.delivery_fee_cents,
+                        "first_order_discount": metadata.get("firstOrderDiscountPercent")
+                        or order.first_order_discount_percent,
                     }
                     try:
                         await send_admin_order_email(email_payload)
@@ -212,4 +234,5 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                 context={"order_id": order_id, "stripe_session_id": session_id},
             )
 
+    mark_webhook_event_processed(db, provider="stripe", event_id=event_id)
     return {"received": True}

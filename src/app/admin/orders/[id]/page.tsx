@@ -19,8 +19,11 @@ export default async function AdminOrderDetailPage({
   }
 
   const verifiedDeliveryAddress = stripeSession?.deliveryAddress?.trim() || "";
-  const deliveryMiles = stripeSession?.deliveryMiles;
-  const deliveryFeeCents = stripeSession?.deliveryFeeCents ?? null;
+  const fallbackDeliveryAddress = order.deliveryAddress?.trim() || "";
+  const deliveryAddress = verifiedDeliveryAddress || fallbackDeliveryAddress;
+  const deliveryMiles = stripeSession?.deliveryMiles || order.deliveryMiles;
+  const deliveryFeeCents =
+    stripeSession?.deliveryFeeCents ?? order.deliveryFeeCents ?? null;
   const shipping = stripeSession?.shipping;
   const address = shipping?.address;
   const hasStripeSession = Boolean(
@@ -29,6 +32,12 @@ export default async function AdminOrderDetailPage({
       shipping ||
       verifiedDeliveryAddress
   );
+  const hasPayPalOrder = Boolean(order.paypalOrderId);
+  const paymentProvider = hasPayPalOrder
+    ? "PayPal"
+    : order.stripeSessionId
+    ? "Stripe"
+    : "Unknown";
 
   return (
     <div className="space-y-6">
@@ -92,14 +101,20 @@ export default async function AdminOrderDetailPage({
               <p>Created: {formatDateTime(order.createdAt)}</p>
               {order.email ? <p className="break-all">Email: {order.email}</p> : null}
               {order.phone ? <p>Phone: {order.phone}</p> : null}
+              <p>Payment method: {paymentProvider}</p>
               {hasStripeSession ? (
                 <p>
                   Stripe payment: {stripeSession?.paymentStatus || "unknown"} (
                   {stripeSession?.status || "unknown"})
                 </p>
+              ) : hasPayPalOrder ? (
+                <p>PayPal order: {order.paypalOrderId}</p>
               ) : (
                 <p>Stripe session: not linked yet.</p>
               )}
+              {order.paypalCaptureId ? (
+                <p>PayPal capture: {order.paypalCaptureId}</p>
+              ) : null}
             </div>
           </div>
 
@@ -108,9 +123,9 @@ export default async function AdminOrderDetailPage({
               Delivery address
             </h2>
             <div className="mt-3 space-y-2">
-              {verifiedDeliveryAddress ? (
+              {deliveryAddress ? (
                 <>
-                  <p className="break-words">{verifiedDeliveryAddress}</p>
+                  <p className="break-words">{deliveryAddress}</p>
                   {deliveryMiles ? <p>Distance: {deliveryMiles} miles</p> : null}
                   {deliveryFeeCents !== null ? (
                     <p>

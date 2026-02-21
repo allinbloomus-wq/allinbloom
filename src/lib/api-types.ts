@@ -62,10 +62,16 @@ export type Order = {
   email: string | null;
   phone: string | null;
   stripeSessionId: string | null;
+  paypalOrderId: string | null;
+  paypalCaptureId: string | null;
   totalCents: number;
   currency: string;
   status: OrderStatus;
   isRead: boolean;
+  deliveryAddress: string | null;
+  deliveryMiles: string | null;
+  deliveryFeeCents: number | null;
+  firstOrderDiscountPercent: number | null;
   createdAt: string;
   items: OrderItem[];
 };

@@ -5,6 +5,7 @@ from app.api.routes.checkout import router as checkout_router
 from app.api.routes.contact import router as contact_router
 from app.api.routes.delivery import router as delivery_router
 from app.api.routes.orders import router as orders_router
+from app.api.routes.paypal import router as paypal_router
 from app.api.routes.promotions import router as promotions_router
 from app.api.routes.reviews import router as reviews_router
 from app.api.routes.settings import router as settings_router
@@ -20,6 +21,7 @@ __all__ = [
     "contact_router",
     "delivery_router",
     "orders_router",
+    "paypal_router",
     "promotions_router",
     "reviews_router",
     "settings_router",

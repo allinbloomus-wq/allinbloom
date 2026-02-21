@@ -4,12 +4,19 @@ from datetime import datetime, timedelta, timezone
 from typing import Iterable
 
 import stripe
-from sqlalchemy import select, update
+from sqlalchemy import or_, select, update
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.config import settings
 from app.models.order import Order
 from app.models.enums import OrderStatus
+from app.services.paypal import (
+    PayPalApiError,
+    paypal_capture_order,
+    paypal_extract_order_metadata,
+    paypal_get_order,
+    paypal_is_configured,
+)
 from app.utils.admin_orders import get_day_range, get_week_range
 
 
@@ -103,7 +110,10 @@ def expire_pending_orders(db: Session) -> None:
         update(Order)
         .where(
             Order.status == OrderStatus.PENDING,
-            Order.stripe_session_id.is_not(None),
+            or_(
+                Order.stripe_session_id.is_not(None),
+                Order.paypal_order_id.is_not(None),
+            ),
             Order.is_deleted.is_(False),
             Order.created_at < cutoff_with_session,
         )
@@ -114,6 +124,7 @@ def expire_pending_orders(db: Session) -> None:
         .where(
             Order.status == OrderStatus.PENDING,
             Order.stripe_session_id.is_(None),
+            Order.paypal_order_id.is_(None),
             Order.is_deleted.is_(False),
             Order.created_at < cutoff_without_session,
         )
@@ -153,6 +164,65 @@ def _sync_with_stripe(db: Session, orders: Iterable[Order]) -> dict[str, OrderSt
     return updates
 
 
+def resolve_order_status_from_paypal_order(
+    order: Order, payload: dict
+) -> tuple[OrderStatus | None, str | None]:
+    metadata = paypal_extract_order_metadata(payload)
+    amount_cents = metadata.get("amount_cents")
+    currency = metadata.get("currency")
+    status = metadata.get("status")
+    capture_id = metadata.get("capture_id")
+
+    if isinstance(amount_cents, int) and amount_cents != order.total_cents:
+        return None, None
+    if currency and currency.upper() != order.currency.upper():
+        return None, None
+
+    if status == "COMPLETED":
+        return OrderStatus.PAID, capture_id
+    if status == "VOIDED":
+        return OrderStatus.FAILED, capture_id
+    return None, None
+
+
+def _sync_with_paypal(db: Session, orders: Iterable[Order]) -> dict[str, OrderStatus]:
+    if not paypal_is_configured():
+        return {}
+
+    updates: dict[str, OrderStatus] = {}
+
+    for order in orders:
+        if order.status != OrderStatus.PENDING or not order.paypal_order_id:
+            continue
+        try:
+            payload = paypal_get_order(order.paypal_order_id)
+        except PayPalApiError:
+            continue
+
+        status = (payload.get("status") or "").upper()
+        if status == "APPROVED":
+            try:
+                payload = paypal_capture_order(order.paypal_order_id)
+            except PayPalApiError:
+                continue
+
+        next_status, capture_id = resolve_order_status_from_paypal_order(order, payload)
+        if next_status and next_status != order.status:
+            db.execute(
+                update(Order)
+                .where(Order.id == order.id, Order.status == OrderStatus.PENDING)
+                .values(
+                    status=next_status,
+                    paypal_capture_id=capture_id or order.paypal_capture_id,
+                )
+            )
+            updates[order.id] = next_status
+
+    if updates:
+        db.commit()
+    return updates
+
+
 def sync_order_with_stripe(db: Session, order: Order) -> OrderStatus | None:
     if (
         order.status != OrderStatus.PENDING
@@ -181,6 +251,43 @@ def sync_order_with_stripe(db: Session, order: Order) -> OrderStatus | None:
     return next_status
 
 
+def sync_order_with_paypal(db: Session, order: Order) -> OrderStatus | None:
+    if (
+        order.status != OrderStatus.PENDING
+        or not order.paypal_order_id
+        or not paypal_is_configured()
+    ):
+        return None
+
+    try:
+        payload = paypal_get_order(order.paypal_order_id)
+    except PayPalApiError:
+        return None
+
+    status = (payload.get("status") or "").upper()
+    if status == "APPROVED":
+        try:
+            payload = paypal_capture_order(order.paypal_order_id)
+        except PayPalApiError:
+            return None
+
+    next_status, capture_id = resolve_order_status_from_paypal_order(order, payload)
+    if not next_status or next_status == order.status:
+        return None
+
+    db.execute(
+        update(Order)
+        .where(Order.id == order.id, Order.status == OrderStatus.PENDING)
+        .values(
+            status=next_status,
+            paypal_capture_id=capture_id or order.paypal_capture_id,
+        )
+    )
+    db.commit()
+    order.status = next_status
+    return next_status
+
+
 def get_admin_orders(db: Session) -> list[Order]:
     expire_pending_orders(db)
     orders = (
@@ -194,7 +301,9 @@ def get_admin_orders(db: Session) -> list[Order]:
         .scalars()
         .all()
     )
-    updates = _sync_with_stripe(db, orders)
+    stripe_updates = _sync_with_stripe(db, orders)
+    paypal_updates = _sync_with_paypal(db, orders)
+    updates = {**stripe_updates, **paypal_updates}
     if not updates:
         return orders
     for order in orders:
@@ -225,7 +334,9 @@ def get_admin_orders_by_day(
         .scalars()
         .all()
     )
-    updates = _sync_with_stripe(db, orders)
+    stripe_updates = _sync_with_stripe(db, orders)
+    paypal_updates = _sync_with_paypal(db, orders)
+    updates = {**stripe_updates, **paypal_updates}
     if not updates:
         return orders
     for order in orders:
@@ -256,7 +367,9 @@ def get_admin_orders_by_week(
         .scalars()
         .all()
     )
-    updates = _sync_with_stripe(db, orders)
+    stripe_updates = _sync_with_stripe(db, orders)
+    paypal_updates = _sync_with_paypal(db, orders)
+    updates = {**stripe_updates, **paypal_updates}
     if not updates:
         return orders
     for order in orders:
@@ -306,7 +419,9 @@ def get_admin_orders_page(
         for order_id in page_order_ids
         if order_id in orders_by_id
     ]
-    updates = _sync_with_stripe(db, sorted_orders)
+    stripe_updates = _sync_with_stripe(db, sorted_orders)
+    paypal_updates = _sync_with_paypal(db, sorted_orders)
+    updates = {**stripe_updates, **paypal_updates}
     if updates:
         for order in sorted_orders:
             if order.id in updates:
@@ -329,7 +444,9 @@ def get_orders_by_email(db: Session, email: str) -> list[Order]:
         .scalars()
         .all()
     )
-    updates = _sync_with_stripe(db, orders)
+    stripe_updates = _sync_with_stripe(db, orders)
+    paypal_updates = _sync_with_paypal(db, orders)
+    updates = {**stripe_updates, **paypal_updates}
     if not updates:
         return orders
     for order in orders:

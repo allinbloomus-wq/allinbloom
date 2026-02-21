@@ -22,10 +22,16 @@ class OrderOut(SchemaBase):
     email: Optional[str] = None
     phone: Optional[str] = None
     stripe_session_id: Optional[str] = None
+    paypal_order_id: Optional[str] = None
+    paypal_capture_id: Optional[str] = None
     total_cents: int
     currency: str
     status: OrderStatus
     is_read: bool
+    delivery_address: Optional[str] = None
+    delivery_miles: Optional[str] = None
+    delivery_fee_cents: Optional[int] = None
+    first_order_discount_percent: Optional[int] = None
     created_at: datetime
     items: list[OrderItemOut]
 
