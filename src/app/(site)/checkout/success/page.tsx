@@ -21,24 +21,20 @@ function CheckoutSuccessContent() {
   const isPaypalReturn =
     searchParams.get("provider") === "paypal" || Boolean(paypalToken);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">(
-    isPaypalReturn ? "loading" : "success"
+    !isPaypalReturn ? "success" : paypalToken ? "loading" : "error"
   );
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    isPaypalReturn && !paypalToken ? "Missing PayPal approval token." : null
+  );
 
   useEffect(() => {
     if (isPaypalReturn) return;
     clearCartStorage();
     clear();
-    setStatus("success");
   }, [clear, isPaypalReturn]);
 
   useEffect(() => {
-    if (!isPaypalReturn) return;
-    if (!paypalToken) {
-      setStatus("error");
-      setError("Missing PayPal approval token.");
-      return;
-    }
+    if (!isPaypalReturn || !paypalToken) return;
 
     let isMounted = true;
     const capture = async () => {
@@ -53,12 +49,27 @@ function CheckoutSuccessContent() {
         },
         true
       );
+      const payload = (await response.json().catch(() => ({}))) as {
+        status?: string;
+        detail?: string;
+      };
 
       if (!isMounted) return;
 
       if (!response.ok) {
         setStatus("error");
-        setError("Unable to confirm PayPal payment.");
+        setError(payload?.detail || "Unable to confirm PayPal payment.");
+        return;
+      }
+
+      const paymentStatus = (payload?.status || "").toUpperCase();
+      if (paymentStatus !== "PAID") {
+        setStatus("error");
+        setError(
+          paymentStatus === "PENDING"
+            ? "PayPal payment is still pending. Please try again from cart or use another payment method."
+            : "PayPal payment was not completed."
+        );
         return;
       }
 

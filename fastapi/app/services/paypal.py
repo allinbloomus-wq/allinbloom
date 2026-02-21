@@ -20,7 +20,9 @@ class PayPalOrderResponse:
 
 
 class PayPalApiError(RuntimeError):
-    pass
+    def __init__(self, message: str, *, status_code: int | None = None):
+        super().__init__(message)
+        self.status_code = status_code
 
 
 _token_cache: dict[str, Any] = {"access_token": None, "expires_at": 0.0}
@@ -101,6 +103,25 @@ def _extract_capture_id(order: dict[str, Any]) -> str | None:
     return None
 
 
+def _extract_capture_status(order: dict[str, Any]) -> str | None:
+    unit = _extract_purchase_unit(order)
+    if not unit:
+        return None
+    payments = unit.get("payments")
+    if not isinstance(payments, dict):
+        return None
+    captures = payments.get("captures")
+    if not isinstance(captures, list) or not captures:
+        return None
+    capture = captures[0]
+    if not isinstance(capture, dict):
+        return None
+    status = capture.get("status")
+    if isinstance(status, str) and status.strip():
+        return status.strip().upper()
+    return None
+
+
 def _extract_custom_id(order: dict[str, Any]) -> str | None:
     unit = _extract_purchase_unit(order)
     if not unit:
@@ -150,7 +171,10 @@ def _get_access_token() -> str:
         )
 
     if response.status_code >= 400:
-        raise PayPalApiError(f"PayPal token request failed: HTTP {response.status_code}")
+        raise PayPalApiError(
+            f"PayPal token request failed: HTTP {response.status_code}",
+            status_code=response.status_code,
+        )
 
     payload = response.json()
     token = payload.get("access_token")
@@ -185,7 +209,10 @@ def _paypal_request(
         )
 
     if response.status_code >= 400:
-        raise PayPalApiError(f"PayPal API error: HTTP {response.status_code}")
+        raise PayPalApiError(
+            f"PayPal API error: HTTP {response.status_code}",
+            status_code=response.status_code,
+        )
 
     if response.status_code == 204 or not response.content:
         return {}
@@ -264,6 +291,7 @@ def paypal_extract_order_metadata(order: dict[str, Any]) -> dict[str, Any]:
         "currency": currency,
         "status": (order.get("status") or "").upper() if isinstance(order.get("status"), str) else None,
         "capture_id": _extract_capture_id(order),
+        "capture_status": _extract_capture_status(order),
     }
 
 

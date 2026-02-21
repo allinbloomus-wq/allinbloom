@@ -172,15 +172,16 @@ def resolve_order_status_from_paypal_order(
     currency = metadata.get("currency")
     status = metadata.get("status")
     capture_id = metadata.get("capture_id")
+    capture_status = metadata.get("capture_status")
 
     if isinstance(amount_cents, int) and amount_cents != order.total_cents:
         return None, None
     if currency and currency.upper() != order.currency.upper():
         return None, None
 
-    if status == "COMPLETED":
+    if status == "COMPLETED" or capture_status == "COMPLETED":
         return OrderStatus.PAID, capture_id
-    if status == "VOIDED":
+    if status == "VOIDED" or capture_status in {"DECLINED", "DENIED", "FAILED"}:
         return OrderStatus.FAILED, capture_id
     return None, None
 

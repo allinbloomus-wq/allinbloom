@@ -64,6 +64,25 @@ def _build_email_payload(order: Order) -> dict:
     }
 
 
+def _set_order_failed(
+    db: Session,
+    *,
+    order: Order,
+    paypal_order_id: str,
+    capture_id: str | None,
+) -> None:
+    db.execute(
+        update(Order)
+        .where(Order.id == order.id, Order.status != OrderStatus.PAID)
+        .values(
+            status=OrderStatus.FAILED,
+            paypal_order_id=paypal_order_id,
+            paypal_capture_id=capture_id or order.paypal_capture_id,
+        )
+    )
+    db.commit()
+
+
 def _find_order_for_paypal(db: Session, *, order_id: str | None, paypal_order_id: str | None) -> Order | None:
     order = _load_order_by_id(db, order_id)
     if order:
@@ -109,6 +128,8 @@ def _is_paypal_event_type_supported(event_type: str) -> bool:
         "CHECKOUT.ORDER.COMPLETED",
         "CHECKOUT.ORDER.VOIDED",
         "PAYMENT.CAPTURE.COMPLETED",
+        "PAYMENT.CAPTURE.DECLINED",
+        "PAYMENT.CAPTURE.DENIED",
     }
 
 
@@ -218,6 +239,19 @@ async def capture_paypal_order(
                 context={"order_id": order.id, "paypal_order_id": paypal_order_id},
                 exc=exc,
             )
+            if exc.status_code is not None and 400 <= exc.status_code < 500:
+                _set_order_failed(
+                    db,
+                    order=order,
+                    paypal_order_id=paypal_order_id,
+                    capture_id=metadata.get("capture_id")
+                    if isinstance(metadata.get("capture_id"), str)
+                    else None,
+                )
+                raise HTTPException(
+                    status_code=400,
+                    detail="PayPal payment was declined or canceled.",
+                )
             raise HTTPException(status_code=502, detail="Unable to capture PayPal order.")
         metadata = paypal_extract_order_metadata(order_payload)
         status = metadata.get("status") or ""
@@ -288,16 +322,21 @@ async def capture_paypal_order(
         return PayPalCaptureResponse(status=OrderStatus.PAID.value)
 
     if resolved_status == OrderStatus.FAILED:
-        db.execute(
-            update(Order)
-            .where(Order.id == order.id, Order.status != OrderStatus.PAID)
-            .values(
-                status=OrderStatus.FAILED,
-                paypal_order_id=paypal_order_id,
-                paypal_capture_id=capture_id,
-            )
+        _set_order_failed(
+            db,
+            order=order,
+            paypal_order_id=paypal_order_id,
+            capture_id=capture_id,
         )
-        db.commit()
+        return PayPalCaptureResponse(status=OrderStatus.FAILED.value)
+
+    if status in {"CREATED", "SAVED", "PAYER_ACTION_REQUIRED"}:
+        _set_order_failed(
+            db,
+            order=order,
+            paypal_order_id=paypal_order_id,
+            capture_id=capture_id,
+        )
         return PayPalCaptureResponse(status=OrderStatus.FAILED.value)
 
     if not order.paypal_order_id:

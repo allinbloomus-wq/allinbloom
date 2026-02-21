@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { setAuthSession } from "@/lib/auth-client";
 import { clientFetch } from "@/lib/api-client";
@@ -42,6 +42,78 @@ export default function AuthPanel() {
   const googleEnabled =
     process.env.NEXT_PUBLIC_GOOGLE_ENABLED === "true" && Boolean(googleClientId);
 
+  const initializeGoogle = useCallback(() => {
+    const google = (window as GoogleWindow).google;
+    if (!google?.accounts?.id) return false;
+    google.accounts.id.initialize({
+      client_id: googleClientId,
+      use_fedcm_for_prompt: false,
+      callback: async (response: GoogleCredentialResponse) => {
+        if (!response?.credential) {
+          setStatus("Unable to sign in with Google.");
+          return;
+        }
+        setStatus("Signing in...");
+        const verify = await clientFetch("/api/auth/google", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ idToken: response.credential }),
+        });
+        const payload = await verify.json().catch(() => ({}));
+        if (!verify.ok) {
+          setStatus(payload?.detail || "Unable to sign in with Google.");
+          return;
+        }
+        const token = payload?.accessToken || payload?.access_token;
+        const user = payload?.user;
+        if (!token || !user) {
+          setStatus("Unable to sign in with Google.");
+          return;
+        }
+        setAuthSession(token, user);
+        window.location.href = "/";
+      },
+    });
+    return true;
+  }, [googleClientId]);
+
+  useEffect(() => {
+    if (!googleEnabled || !googleClientId) return;
+
+    const onLoaded = () => {
+      initializeGoogle();
+    };
+
+    const onLoadFailed = () => {
+      setStatus(
+        "Unable to load Google sign-in. Disable blockers and refresh the page."
+      );
+    };
+
+    const existing = document.getElementById("google-identity") as HTMLScriptElement | null;
+    if (existing) {
+      if ((window as GoogleWindow).google?.accounts?.id) {
+        onLoaded();
+        return;
+      }
+      existing.addEventListener("load", onLoaded, { once: true });
+      existing.addEventListener("error", onLoadFailed, { once: true });
+      return () => {
+        existing.removeEventListener("load", onLoaded);
+        existing.removeEventListener("error", onLoadFailed);
+      };
+    }
+
+    const script = document.createElement("script");
+    script.id = "google-identity";
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = onLoaded;
+    script.onerror = onLoadFailed;
+    document.head.appendChild(script);
+  }, [googleEnabled, googleClientId, initializeGoogle]);
+
   useEffect(() => {
     if (!retryAfter) return;
     const timer = setInterval(() => {
@@ -55,51 +127,6 @@ export default function AuthPanel() {
     }, 1000);
     return () => clearInterval(timer);
   }, [retryAfter]);
-
-  useEffect(() => {
-    if (!googleEnabled || !googleClientId) return;
-    if (document.getElementById("google-identity")) return;
-
-    const script = document.createElement("script");
-    script.id = "google-identity";
-    script.src = "https://accounts.google.com/gsi/client";
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
-      const google = (window as GoogleWindow).google;
-      if (!google?.accounts?.id) return;
-      google.accounts.id.initialize({
-        client_id: googleClientId,
-        use_fedcm_for_prompt: false,
-        callback: async (response: GoogleCredentialResponse) => {
-          if (!response?.credential) {
-            setStatus("Unable to sign in with Google.");
-            return;
-          }
-          setStatus("Signing in...");
-          const verify = await clientFetch("/api/auth/google", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ idToken: response.credential }),
-          });
-          const payload = await verify.json().catch(() => ({}));
-          if (!verify.ok) {
-            setStatus(payload?.detail || "Unable to sign in with Google.");
-            return;
-          }
-          const token = payload?.accessToken || payload?.access_token;
-          const user = payload?.user;
-          if (!token || !user) {
-            setStatus("Unable to sign in with Google.");
-            return;
-          }
-          setAuthSession(token, user);
-          window.location.href = "/";
-        },
-      });
-    };
-    document.head.appendChild(script);
-  }, [googleEnabled, googleClientId]);
 
   const requestCode = async () => {
     setStatus("Sending code...");
@@ -254,7 +281,9 @@ export default function AuthPanel() {
             onClick={() => {
               const google = (window as GoogleWindow).google;
               if (!google?.accounts?.id) {
-                setStatus("Google sign-in is not ready yet.");
+                setStatus(
+                  "Google sign-in is loading or unavailable in this browser. Use email code or try another browser."
+                );
                 return;
               }
               google.accounts.id.prompt((notification: GooglePromptMomentNotification) => {
