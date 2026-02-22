@@ -37,49 +37,65 @@ export default function CheckoutButton({
     setError(null);
     onBusyChange?.(true);
 
-    const response = await clientFetch("/api/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        items: items.map((item) =>
-          item.meta?.isCustom
-            ? {
-                id: item.id,
-                quantity: item.quantity,
-                name: item.name,
-                priceCents: item.priceCents,
-                image: item.image,
-                isCustom: true,
-              }
-            : { id: item.id, quantity: item.quantity }
-        ),
-        address: deliveryAddress,
-        phone: phone || "",
-        email,
-        paymentMethod: method,
-      }),
-    }, true);
+    try {
+      const response = await clientFetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: items.map((item) =>
+            item.meta?.isCustom
+              ? {
+                  id: item.id,
+                  quantity: item.quantity,
+                  name: item.name,
+                  priceCents: item.priceCents,
+                  price_cents: item.priceCents,
+                  image: item.image,
+                  isCustom: true,
+                  is_custom: true,
+                }
+              : {
+                  id: item.id,
+                  quantity: item.quantity,
+                  isCustom: false,
+                  is_custom: false,
+                }
+          ),
+          address: deliveryAddress,
+          phone: phone || "",
+          email,
+          paymentMethod: method,
+          payment_method: method,
+        }),
+      }, true);
 
-    const data = (await response.json().catch(() => ({}))) as {
-      url?: string;
-      error?: string;
-    };
+      const data = (await response.json().catch(() => ({}))) as {
+        url?: string;
+        error?: string;
+        detail?: string;
+        message?: string;
+      };
 
-    if (!response.ok) {
+      if (!response.ok) {
+        setLoading(false);
+        onBusyChange?.(false);
+        setError(data.error || data.detail || data.message || "Unable to start checkout.");
+        return;
+      }
+
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+
       setLoading(false);
       onBusyChange?.(false);
-      setError(data.error || "Unable to start checkout.");
-      return;
+      setError("Unable to start checkout.");
+    } catch {
+      setLoading(false);
+      onBusyChange?.(false);
+      setError("Unable to start checkout.");
     }
-
-    if (data.url) {
-      window.location.href = data.url;
-      return;
-    }
-
-    setLoading(false);
-    onBusyChange?.(false);
-    setError("Unable to start checkout.");
   };
 
   return (

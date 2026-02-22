@@ -59,6 +59,22 @@ def _order_email(order: Order) -> str:
     return (order.email or "").strip().lower()
 
 
+def _normalize_payment_method(value: str | None) -> str:
+    normalized = (value or "").strip().lower().replace("-", "_")
+    if not normalized:
+        return "stripe"
+
+    aliases = {
+        "card": "stripe",
+        "credit": "stripe",
+        "credit_card": "stripe",
+        "stripe_card": "stripe",
+        "pay_pal": "paypal",
+        "paypal_checkout": "paypal",
+    }
+    return aliases.get(normalized, normalized)
+
+
 def _is_order_access_allowed(order: Order, *, user, cancel_token: str | None) -> bool:
     order_email = _order_email(order)
     if not order_email:
@@ -91,14 +107,19 @@ async def start_checkout(
 ):
     user_id = user.id if user else None
 
-    payment_method = (payload.payment_method or "stripe").strip().lower()
+    raw_payment_method = payload.payment_method
+    payment_method = _normalize_payment_method(raw_payment_method)
     if payment_method not in {"stripe", "paypal"}:
         log_critical_event(
             domain="payment",
             event="checkout_invalid_payment_method",
             message="Checkout requested with unsupported payment method.",
             request=request,
-            context={"user_id": user_id, "payment_method": payment_method},
+            context={
+                "user_id": user_id,
+                "payment_method": payment_method,
+                "raw_payment_method": (raw_payment_method or "").strip(),
+            },
             level=logging.WARNING,
         )
         raise HTTPException(status_code=400, detail="Unsupported payment method.")
