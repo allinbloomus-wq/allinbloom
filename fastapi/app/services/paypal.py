@@ -223,11 +223,36 @@ def _paypal_request(
     return payload
 
 
+def _build_payer_payload(
+    *,
+    email: str | None,
+    full_name: str | None,
+) -> dict[str, Any] | None:
+    payer: dict[str, Any] = {}
+
+    clean_email = (email or "").strip().lower()
+    if clean_email and "@" in clean_email:
+        payer["email_address"] = clean_email
+
+    clean_name = (full_name or "").strip()
+    if clean_name:
+        name_parts = [part for part in clean_name.split() if part]
+        if name_parts:
+            payer_name: dict[str, str] = {"given_name": name_parts[0]}
+            if len(name_parts) > 1:
+                payer_name["surname"] = " ".join(name_parts[1:])
+            payer["name"] = payer_name
+
+    return payer or None
+
+
 def paypal_create_order(
     *,
     order_id: str,
     total_cents: int,
     currency: str,
+    payer_email: str | None = None,
+    payer_name: str | None = None,
     return_url: str,
     cancel_url: str,
 ) -> PayPalOrderResponse:
@@ -253,6 +278,9 @@ def paypal_create_order(
             "shipping_preference": "NO_SHIPPING",
         },
     }
+    payer = _build_payer_payload(email=payer_email, full_name=payer_name)
+    if payer:
+        payload["payer"] = payer
 
     response = _paypal_request(
         "POST",

@@ -40,9 +40,17 @@ type GoogleMapsWindow = Window & {
   };
 };
 
+const toLocalPhoneDigits = (value: string | null | undefined) => {
+  const digits = (value || "").replace(/\D/g, "");
+  if (!digits) return "";
+  const local = digits.startsWith("1") ? digits.slice(1) : digits;
+  return local.slice(0, 10);
+};
+
 type CartViewProps = {
   isAuthenticated: boolean;
   userEmail: string | null;
+  userPhone: string | null;
   globalDiscount: DiscountInfo | null;
   firstOrderDiscount: DiscountInfo | null;
   canceledCheckoutStatus: string | null;
@@ -61,6 +69,7 @@ type CartViewProps = {
 export default function CartView({
   isAuthenticated,
   userEmail,
+  userPhone,
   globalDiscount,
   firstOrderDiscount,
   canceledCheckoutStatus,
@@ -69,7 +78,7 @@ export default function CartView({
   const { items, updateQuantity, removeItem } = useCart();
   const [guestEmail, setGuestEmail] = useState(() => userEmail || "");
   const [address, setAddress] = useState("");
-  const [phoneLocal, setPhoneLocal] = useState("");
+  const [phoneLocal, setPhoneLocal] = useState(() => toLocalPhoneDigits(userPhone));
   const inputRef = useRef<HTMLInputElement | null>(null);
   const autocompleteRef = useRef<GoogleAutocompleteInstance | null>(null);
   const [quote, setQuote] = useState<{
@@ -215,13 +224,20 @@ export default function CartView({
     0,
     subtotalCents - firstOrderDiscountCents + shippingCents
   );
-  const checkoutDisabled =
+  const stripeCheckoutDisabled =
     !quote ||
     quoteLoading ||
     Boolean(quoteError) ||
     !emailValid ||
     !phoneValid ||
     checkoutBusy;
+  const paypalCheckoutDisabled =
+    !quote ||
+    quoteLoading ||
+    Boolean(quoteError) ||
+    !emailValid ||
+    checkoutBusy;
+  const checkoutPhone = phoneValid ? phoneValue : "";
 
   const requestQuote = async () => {
     const trimmed = address.trim();
@@ -462,9 +478,9 @@ export default function CartView({
         <CheckoutButton
           items={items}
           deliveryAddress={address.trim()}
-          phone={phoneValue}
+          phone={checkoutPhone}
           email={checkoutEmail}
-          disabled={checkoutDisabled}
+          disabled={stripeCheckoutDisabled}
           onBusyChange={setCheckoutBusy}
           label="Checkout"
           paymentMethod="stripe"
@@ -479,9 +495,9 @@ export default function CartView({
         <CheckoutButton
           items={items}
           deliveryAddress={address.trim()}
-          phone={phoneValue}
+          phone={checkoutPhone}
           email={checkoutEmail}
-          disabled={checkoutDisabled}
+          disabled={paypalCheckoutDisabled}
           onBusyChange={setCheckoutBusy}
           label="Pay with PayPal"
           paymentMethod="paypal"

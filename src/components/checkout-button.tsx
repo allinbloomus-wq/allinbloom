@@ -7,7 +7,7 @@ import { clientFetch } from "@/lib/api-client";
 type CheckoutButtonProps = {
   items: CartItem[];
   deliveryAddress: string;
-  phone: string;
+  phone?: string;
   email: string;
   disabled?: boolean;
   paymentMethod?: "stripe" | "paypal";
@@ -54,7 +54,7 @@ export default function CheckoutButton({
             : { id: item.id, quantity: item.quantity }
         ),
         address: deliveryAddress,
-        phone,
+        phone: phone || "",
         email,
         paymentMethod: method,
       }),

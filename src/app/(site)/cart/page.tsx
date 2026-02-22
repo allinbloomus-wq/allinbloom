@@ -29,6 +29,7 @@ export default async function CartPage({
   const params = await searchParams;
   const { user } = await getAuthSession();
   const email = user?.email || null;
+  const phone = user?.phone || null;
   const checkoutCanceledParam = pickFirst(params.checkoutCanceled);
   const canceledOrderId = pickFirst(params.orderId);
   const canceledCheckoutToken = pickFirst(params.cancelToken);
@@ -54,6 +55,7 @@ export default async function CartPage({
       <CartView
         isAuthenticated={Boolean(user)}
         userEmail={email}
+        userPhone={phone}
         globalDiscount={
           settings.globalDiscountPercent > 0
             ? {

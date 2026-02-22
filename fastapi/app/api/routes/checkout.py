@@ -126,10 +126,12 @@ async def start_checkout(
 
     items = payload.items
     address = payload.address.strip()
-    raw_phone = payload.phone.strip()
+    raw_phone = (payload.phone or "").strip()
     payload_email = (payload.email or "").strip().lower()
     checkout_email = (user.email or "").strip().lower() if user else payload_email
-    digits = "".join(char for char in raw_phone if char.isdigit())
+    fallback_phone = (user.phone or "").strip() if user else ""
+    phone_candidate = raw_phone or fallback_phone
+    digits = "".join(char for char in phone_candidate if char.isdigit())
     normalized_phone = f"+{digits}" if len(digits) == 11 and digits.startswith("1") else ""
 
     if not items:
@@ -162,13 +164,13 @@ async def start_checkout(
             level=logging.WARNING,
         )
         raise HTTPException(status_code=400, detail="Delivery address is required.")
-    if not normalized_phone:
+    if payment_method == "stripe" and not normalized_phone:
         log_critical_event(
             domain="personal_data",
             event="checkout_invalid_phone",
-            message="Checkout request has invalid phone format.",
+            message="Stripe checkout request has invalid phone format.",
             request=request,
-            context={"user_id": user_id, "phone_length": len(raw_phone)},
+            context={"user_id": user_id, "phone_length": len(phone_candidate)},
             level=logging.WARNING,
         )
         raise HTTPException(status_code=400, detail="Use phone format +1 312 555 0123.")
@@ -329,7 +331,7 @@ async def start_checkout(
 
     order = Order(
         email=checkout_email,
-        phone=normalized_phone,
+        phone=normalized_phone or None,
         total_cents=computed_total,
         items=order_items,
         delivery_address=address,
@@ -341,7 +343,7 @@ async def start_checkout(
     db.commit()
     db.refresh(order)
 
-    if user and user.phone != normalized_phone:
+    if user and normalized_phone and user.phone != normalized_phone:
         user.phone = normalized_phone
         db.commit()
 
@@ -358,6 +360,8 @@ async def start_checkout(
                 order_id=order.id,
                 total_cents=computed_total,
                 currency=order.currency,
+                payer_email=checkout_email,
+                payer_name=(user.name if user else None),
                 return_url=(
                     f"{origin}/checkout/success?provider=paypal&orderId={encoded_order_id}"
                     f"&cancelToken={encoded_cancel_token}"
