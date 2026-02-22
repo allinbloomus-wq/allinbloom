@@ -52,6 +52,7 @@ class Settings(BaseSettings):
     google_maps_api_key: str | None = Field(
         default=None, alias="GOOGLE_MAPS_API_KEY"
     )
+    trust_proxy_headers: bool = Field(default=False, alias="TRUST_PROXY_HEADERS")
     delivery_base_address: str = Field(
         default="1995 Hicks Rd, Rolling Meadows, IL 60008, USA",
         alias="DELIVERY_BASE_ADDRESS",

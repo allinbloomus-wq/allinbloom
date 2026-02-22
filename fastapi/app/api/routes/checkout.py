@@ -12,21 +12,27 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_db, get_optional_user
 from app.core.config import settings
 from app.core.critical_logging import log_critical_event
+from app.core.security import create_checkout_cancel_token, decode_checkout_cancel_token
 from app.models.bouquet import Bouquet
 from app.models.enums import OrderStatus
 from app.models.order import Order
 from app.models.order_item import OrderItem
+from app.models.user import User
 from app.schemas.checkout import (
     CheckoutCancelRequest,
     CheckoutCancelResponse,
     CheckoutRequest,
     CheckoutResponse,
+    CheckoutStatusRequest,
+    CheckoutStatusResponse,
 )
 from app.services.delivery import get_delivery_quote
 from app.services.orders import (
     STRIPE_CHECKOUT_SESSION_EXPIRATION_SECONDS,
     resolve_order_status_from_paypal_order,
     resolve_order_status_from_session,
+    sync_order_with_paypal,
+    sync_order_with_stripe,
 )
 from app.services.paypal import (
     PayPalApiError,
@@ -47,6 +53,33 @@ def _set_order_status_safely(db: Session, order: Order, status: OrderStatus) -> 
         db.commit()
     except Exception:
         db.rollback()
+
+
+def _order_email(order: Order) -> str:
+    return (order.email or "").strip().lower()
+
+
+def _is_order_access_allowed(order: Order, *, user, cancel_token: str | None) -> bool:
+    order_email = _order_email(order)
+    if not order_email:
+        return False
+
+    user_email = ((getattr(user, "email", None) or "")).strip().lower()
+    if user_email and user_email == order_email:
+        return True
+
+    token_value = (cancel_token or "").strip()
+    if not token_value:
+        return False
+
+    try:
+        token_payload = decode_checkout_cancel_token(token_value)
+    except Exception:
+        return False
+
+    token_order_id = str(token_payload.get("order_id") or "").strip()
+    token_email = str(token_payload.get("email") or "").strip().lower()
+    return token_order_id == order.id and token_email == order_email
 
 
 @router.post("", response_model=CheckoutResponse)
@@ -228,7 +261,10 @@ async def start_checkout(
         )
 
     orders_count = 0
+    has_existing_first_order_discount = False
     if user:
+        # Serialize first-order-discount calculation for the same user.
+        db.execute(select(User.id).where(User.id == user.id).with_for_update()).first()
         orders_count = (
             db.execute(
                 select(func.count())
@@ -236,9 +272,26 @@ async def start_checkout(
                 .where(Order.email == checkout_email, Order.status == OrderStatus.PAID)
             ).scalar_one()
         )
+        has_existing_first_order_discount = (
+            db.execute(
+                select(Order.id)
+                .where(
+                    Order.email == checkout_email,
+                    Order.first_order_discount_percent > 0,
+                    Order.status.in_([OrderStatus.PENDING, OrderStatus.PAID]),
+                )
+                .limit(1)
+            )
+            .scalars()
+            .first()
+            is not None
+        )
     first_order_discount_percent = (
         settings_row.first_order_discount_percent
-        if user and orders_count == 0 and not has_any_discount
+        if user
+        and orders_count == 0
+        and not has_existing_first_order_discount
+        and not has_any_discount
         else 0
     )
 
@@ -293,7 +346,11 @@ async def start_checkout(
         db.commit()
 
     origin = settings.resolved_site_url()
-    encoded_checkout_email = quote_plus(checkout_email)
+    checkout_cancel_token = create_checkout_cancel_token(
+        order_id=order.id, email=checkout_email
+    )
+    encoded_cancel_token = quote_plus(checkout_cancel_token)
+    encoded_order_id = quote_plus(order.id)
 
     if payment_method == "paypal":
         try:
@@ -301,10 +358,13 @@ async def start_checkout(
                 order_id=order.id,
                 total_cents=computed_total,
                 currency=order.currency,
-                return_url=f"{origin}/checkout/success?provider=paypal",
+                return_url=(
+                    f"{origin}/checkout/success?provider=paypal&orderId={encoded_order_id}"
+                    f"&cancelToken={encoded_cancel_token}"
+                ),
                 cancel_url=(
-                    f"{origin}/cart?checkoutCanceled=1&orderId={order.id}"
-                    f"&checkoutEmail={encoded_checkout_email}&provider=paypal"
+                    f"{origin}/cart?checkoutCanceled=1&orderId={encoded_order_id}"
+                    f"&cancelToken={encoded_cancel_token}&provider=paypal"
                 ),
             )
         except PayPalApiError as exc:
@@ -357,10 +417,13 @@ async def start_checkout(
         session = stripe.checkout.Session.create(
             mode="payment",
             line_items=line_items,
-            success_url=f"{origin}/checkout/success",
+            success_url=(
+                f"{origin}/checkout/success?provider=stripe&orderId={encoded_order_id}"
+                f"&cancelToken={encoded_cancel_token}"
+            ),
             cancel_url=(
-                f"{origin}/cart?checkoutCanceled=1&orderId={order.id}"
-                f"&checkoutEmail={encoded_checkout_email}"
+                f"{origin}/cart?checkoutCanceled=1&orderId={encoded_order_id}"
+                f"&cancelToken={encoded_cancel_token}&provider=stripe"
             ),
             payment_method_types=["card"],
             customer_email=checkout_email or None,
@@ -412,13 +475,19 @@ async def cancel_checkout(
     db: Session = Depends(get_db),
 ):
     user_id = user.id if user else None
-    payload_email = (payload.email or "").strip().lower()
-    checkout_email = (user.email or "").strip().lower() if user else payload_email
 
     order = db.get(Order, payload.order_id)
     if not order:
         raise HTTPException(status_code=404, detail="Not found")
-    if not checkout_email or (order.email or "").strip().lower() != checkout_email:
+    if not _is_order_access_allowed(order, user=user, cancel_token=payload.cancel_token):
+        log_critical_event(
+            domain="payment",
+            event="checkout_cancel_unauthorized",
+            message="Checkout cancel denied: invalid user/token for order.",
+            request=request,
+            context={"order_id": payload.order_id, "user_id": user_id},
+            level=logging.WARNING,
+        )
         raise HTTPException(status_code=404, detail="Not found")
 
     if order.status == OrderStatus.PAID:
@@ -516,3 +585,35 @@ async def cancel_checkout(
 
     _set_order_status_safely(db, order, OrderStatus.CANCELED)
     return CheckoutCancelResponse(canceled=True, status=OrderStatus.CANCELED.value)
+
+
+@router.post("/status", response_model=CheckoutStatusResponse)
+async def checkout_status(
+    payload: CheckoutStatusRequest,
+    request: Request,
+    user=Depends(get_optional_user),
+    db: Session = Depends(get_db),
+):
+    user_id = user.id if user else None
+    order = db.get(Order, payload.order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Not found")
+    if not _is_order_access_allowed(order, user=user, cancel_token=payload.cancel_token):
+        log_critical_event(
+            domain="payment",
+            event="checkout_status_unauthorized",
+            message="Checkout status denied: invalid user/token for order.",
+            request=request,
+            context={"order_id": payload.order_id, "user_id": user_id},
+            level=logging.WARNING,
+        )
+        raise HTTPException(status_code=404, detail="Not found")
+
+    if order.status == OrderStatus.PENDING:
+        if order.stripe_session_id and settings.stripe_secret_key:
+            sync_order_with_stripe(db, order)
+        if order.paypal_order_id and paypal_is_configured():
+            sync_order_with_paypal(db, order)
+        db.refresh(order)
+
+    return CheckoutStatusResponse(status=order.status.value)

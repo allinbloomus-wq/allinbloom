@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 type CartSearchParams = Promise<{
   checkoutCanceled?: string | string[];
   orderId?: string | string[];
-  checkoutEmail?: string | string[];
+  cancelToken?: string | string[];
 }>;
 
 const pickFirst = (value: string | string[] | undefined) =>
@@ -31,11 +31,10 @@ export default async function CartPage({
   const email = user?.email || null;
   const checkoutCanceledParam = pickFirst(params.checkoutCanceled);
   const canceledOrderId = pickFirst(params.orderId);
-  const canceledCheckoutEmail = pickFirst(params.checkoutEmail);
-  const checkoutCancelEmail = (email || canceledCheckoutEmail || "").trim().toLowerCase();
+  const canceledCheckoutToken = pickFirst(params.cancelToken);
   const canceledCheckoutStatus =
-    checkoutCanceledParam === "1" && canceledOrderId && checkoutCancelEmail
-      ? await cancelCheckoutOrder(canceledOrderId, checkoutCancelEmail)
+    checkoutCanceledParam === "1" && canceledOrderId
+      ? await cancelCheckoutOrder(canceledOrderId, canceledCheckoutToken)
       : null;
 
   const settings = await getStoreSettings();

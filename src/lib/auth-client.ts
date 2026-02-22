@@ -28,16 +28,68 @@ const getCookie = (name: string) => {
   return match.split("=").slice(1).join("=");
 };
 
+const setStorage = (key: string, value: string) => {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // Ignore storage errors.
+  }
+};
+
+const getStorage = (key: string) => {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
+const removeStorage = (key: string) => {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    // Ignore storage errors.
+  }
+};
+
+const clearLegacyCookie = (name: string) => {
+  if (typeof document === "undefined") return;
+  document.cookie = `${name}=; Path=/; Max-Age=0; SameSite=Lax`;
+};
+
 export const getClientAuthToken = () => {
-  const value = getCookie(AUTH_TOKEN_COOKIE);
-  return value ? decodeURIComponent(value) : null;
+  const stored = getStorage(AUTH_TOKEN_COOKIE);
+  if (stored) return stored;
+
+  const legacy = getCookie(AUTH_TOKEN_COOKIE);
+  if (!legacy) return null;
+  const token = decodeURIComponent(legacy);
+  if (!token) return null;
+  setStorage(AUTH_TOKEN_COOKIE, token);
+  clearLegacyCookie(AUTH_TOKEN_COOKIE);
+  return token;
 };
 
 export const getClientUser = () => {
-  const value = getCookie(AUTH_USER_COOKIE);
-  if (!value) return null;
+  const stored = getStorage(AUTH_USER_COOKIE);
+  if (stored) {
+    try {
+      return JSON.parse(stored) as AuthUser;
+    } catch {
+      removeStorage(AUTH_USER_COOKIE);
+    }
+  }
+
+  const legacy = getCookie(AUTH_USER_COOKIE);
+  if (!legacy) return null;
   try {
-    return JSON.parse(decodeURIComponent(value)) as AuthUser;
+    const user = JSON.parse(decodeURIComponent(legacy)) as AuthUser;
+    setStorage(AUTH_USER_COOKIE, JSON.stringify(user));
+    clearLegacyCookie(AUTH_USER_COOKIE);
+    return user;
   } catch {
     return null;
   }
@@ -70,20 +122,18 @@ export const isTokenExpiringSoon = (token: string, minTtlSec: number = 120) => {
 };
 
 export const setAuthSession = (token: string, user: AuthUser) => {
-  if (typeof document === "undefined") return;
-  const maxAge = 60 * 60 * 24 * 7;
-  document.cookie = `${AUTH_TOKEN_COOKIE}=${encodeURIComponent(
-    token
-  )}; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
-  document.cookie = `${AUTH_USER_COOKIE}=${encodeURIComponent(
-    JSON.stringify(user)
-  )}; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
+  if (typeof window === "undefined") return;
+  setStorage(AUTH_TOKEN_COOKIE, token);
+  setStorage(AUTH_USER_COOKIE, JSON.stringify(user));
+  clearLegacyCookie(AUTH_TOKEN_COOKIE);
+  clearLegacyCookie(AUTH_USER_COOKIE);
 };
 
 export const clearAuthSession = () => {
-  if (typeof document === "undefined") return;
-  document.cookie = `${AUTH_TOKEN_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
-  document.cookie = `${AUTH_USER_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
+  removeStorage(AUTH_TOKEN_COOKIE);
+  removeStorage(AUTH_USER_COOKIE);
+  clearLegacyCookie(AUTH_TOKEN_COOKIE);
+  clearLegacyCookie(AUTH_USER_COOKIE);
 };
 
 export const refreshAuthSession = async () => {

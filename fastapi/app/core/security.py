@@ -13,6 +13,7 @@ from app.core.config import settings
 
 ALGORITHM = "HS256"
 OTP_TTL_MINUTES = 10
+CHECKOUT_CANCEL_TOKEN_TTL_HOURS = 24
 
 
 def _encode_token(subject: dict[str, Any], expires_delta: timedelta, token_type: str) -> str:
@@ -53,6 +54,25 @@ def create_refresh_token(subject: dict[str, Any], expires_days: int | None = Non
 
 def decode_refresh_token(token: str) -> dict[str, Any]:
     return _decode_token(token, "refresh")
+
+
+def create_checkout_cancel_token(
+    *, order_id: str, email: str, expires_hours: int | None = None
+) -> str:
+    ttl_hours = expires_hours or CHECKOUT_CANCEL_TOKEN_TTL_HOURS
+    subject = {"order_id": order_id, "email": email.strip().lower()}
+    return _encode_token(subject, timedelta(hours=ttl_hours), "checkout_cancel")
+
+
+def decode_checkout_cancel_token(token: str) -> dict[str, Any]:
+    payload = _decode_token(token, "checkout_cancel")
+    order_id = payload.get("order_id")
+    email = payload.get("email")
+    if not isinstance(order_id, str) or not order_id.strip():
+        raise ValueError("Invalid checkout token: missing order_id")
+    if not isinstance(email, str) or "@" not in email:
+        raise ValueError("Invalid checkout token: missing email")
+    return {"order_id": order_id.strip(), "email": email.strip().lower()}
 
 
 def generate_otp() -> dict[str, str | datetime]:

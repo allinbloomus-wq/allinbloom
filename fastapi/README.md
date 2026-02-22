@@ -36,6 +36,13 @@
 ## Integration
 Next.js frontend should proxy `/api/*` traffic to this service.
 
+## Tests
+Run backend unit tests from the `fastapi` directory:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
 ## Critical error logging
 Backend includes structured critical logging for:
 - payment

@@ -1,0 +1,201 @@
+import { describe, expect, it } from "vitest";
+
+import type { Bouquet, StoreSettings } from "@/lib/api-types";
+import {
+  applyPercentDiscount,
+  clampPercent,
+  getBouquetDiscount,
+  getBouquetPricing,
+  getCartItemDiscount,
+} from "@/lib/pricing";
+
+const baseSettings: StoreSettings = {
+  id: "default",
+  globalDiscountPercent: 0,
+  globalDiscountNote: null,
+  categoryDiscountPercent: 0,
+  categoryDiscountNote: null,
+  categoryFlowerType: null,
+  categoryStyle: null,
+  categoryMixed: null,
+  categoryColor: null,
+  categoryMinPriceCents: null,
+  categoryMaxPriceCents: null,
+  firstOrderDiscountPercent: 10,
+  firstOrderDiscountNote: "10% off your first order",
+  homeHeroImage: "/images/hero-bouquet.webp",
+  homeGalleryImage1: "/images/bouquet-1.webp",
+  homeGalleryImage2: "/images/bouquet-2.webp",
+  homeGalleryImage3: "/images/bouquet-3.webp",
+  homeGalleryImage4: "/images/bouquet-4.webp",
+  homeGalleryImage5: "/images/bouquet-5.webp",
+  homeGalleryImage6: "/images/bouquet-6.webp",
+  catalogCategoryImageMono: "/images/bouquet-7.webp",
+  catalogCategoryImageMixed: "/images/bouquet-5.webp",
+  catalogCategoryImageSeason: "/images/bouquet-2.webp",
+  catalogCategoryImageAll: "/images/hero-bouquet.webp",
+};
+
+const makeSettings = (overrides: Partial<StoreSettings> = {}): StoreSettings => ({
+  ...baseSettings,
+  ...overrides,
+});
+
+const baseBouquet: Bouquet = {
+  id: "bq_1",
+  name: "Classic Rose",
+  description: "Classic bouquet",
+  priceCents: 10000,
+  currency: "USD",
+  flowerType: "ROSE",
+  style: "ROMANTIC",
+  colors: "Red,White",
+  isMixed: false,
+  isFeatured: true,
+  isActive: true,
+  discountPercent: 0,
+  discountNote: null,
+  image: "/images/bouquet-1.webp",
+};
+
+describe("pricing helpers", () => {
+  it("clamps and rounds discount percent", () => {
+    expect(clampPercent(-3)).toBe(0);
+    expect(clampPercent(12.6)).toBe(13);
+    expect(clampPercent(105)).toBe(90);
+  });
+
+  it("applies percent discounts with clamping", () => {
+    expect(applyPercentDiscount(10000, 25)).toBe(7500);
+    expect(applyPercentDiscount(999, 33)).toBe(669);
+    expect(applyPercentDiscount(10000, 200)).toBe(1000);
+    expect(applyPercentDiscount(10000, -15)).toBe(10000);
+  });
+});
+
+describe("getBouquetDiscount", () => {
+  it("prefers bouquet discount over category and global", () => {
+    const discount = getBouquetDiscount(
+      { ...baseBouquet, discountPercent: 35, discountNote: "VIP" },
+      makeSettings({
+        categoryDiscountPercent: 20,
+        categoryFlowerType: "ROSE",
+        globalDiscountPercent: 5,
+      })
+    );
+
+    expect(discount).toEqual({ percent: 35, note: "VIP", source: "bouquet" });
+  });
+
+  it("uses category discount only when filters are configured and matched", () => {
+    const discount = getBouquetDiscount(
+      baseBouquet,
+      makeSettings({
+        categoryDiscountPercent: 20,
+        categoryDiscountNote: "Category promo",
+        categoryFlowerType: "ROSE",
+        categoryStyle: "ROMANTIC",
+        categoryMixed: "mono",
+        categoryColor: "red",
+        categoryMinPriceCents: 9000,
+        categoryMaxPriceCents: 11000,
+        globalDiscountPercent: 5,
+      })
+    );
+
+    expect(discount).toEqual({
+      percent: 20,
+      note: "Category promo",
+      source: "category",
+    });
+  });
+
+  it("falls back to global discount when category filters are missing", () => {
+    const discount = getBouquetDiscount(
+      baseBouquet,
+      makeSettings({
+        categoryDiscountPercent: 20,
+        globalDiscountPercent: 7,
+        globalDiscountNote: "Global promo",
+      })
+    );
+
+    expect(discount).toEqual({
+      percent: 7,
+      note: "Global promo",
+      source: "global",
+    });
+  });
+
+  it("returns null when no discounts are active", () => {
+    expect(getBouquetDiscount(baseBouquet, makeSettings())).toBeNull();
+  });
+});
+
+describe("pricing composition", () => {
+  it("returns final bouquet pricing with selected discount", () => {
+    const pricing = getBouquetPricing(
+      baseBouquet,
+      makeSettings({
+        globalDiscountPercent: 10,
+        globalDiscountNote: "Weekend",
+      })
+    );
+
+    expect(pricing).toEqual({
+      originalPriceCents: 10000,
+      finalPriceCents: 9000,
+      discount: {
+        percent: 10,
+        note: "Weekend",
+        source: "global",
+      },
+    });
+  });
+
+  it("resolves cart item discount from bouquet fields first", () => {
+    const discount = getCartItemDiscount(
+      {
+        basePriceCents: 12000,
+        bouquetDiscountPercent: 15,
+        bouquetDiscountNote: "Item promo",
+      },
+      makeSettings({
+        categoryDiscountPercent: 30,
+        categoryFlowerType: "ROSE",
+        globalDiscountPercent: 5,
+      })
+    );
+
+    expect(discount).toEqual({
+      percent: 15,
+      note: "Item promo",
+      source: "bouquet",
+    });
+  });
+
+  it("uses category matching for cart item metadata", () => {
+    const discount = getCartItemDiscount(
+      {
+        basePriceCents: 10000,
+        flowerType: "ROSE",
+        style: "ROMANTIC",
+        isMixed: false,
+        colors: "Deep RED",
+      },
+      makeSettings({
+        categoryDiscountPercent: 12,
+        categoryFlowerType: "ROSE",
+        categoryStyle: "ROMANTIC",
+        categoryMixed: "mono",
+        categoryColor: "red",
+      })
+    );
+
+    expect(discount).toEqual({
+      percent: 12,
+      note: "Discount",
+      source: "category",
+    });
+  });
+});

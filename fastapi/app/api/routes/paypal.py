@@ -8,8 +8,9 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session, joinedload
 
-from app.api.deps import get_db
+from app.api.deps import get_db, get_optional_user
 from app.core.critical_logging import log_critical_event
+from app.core.security import decode_checkout_cancel_token
 from app.models.enums import OrderStatus
 from app.models.order import Order
 from app.schemas.paypal import PayPalCaptureRequest, PayPalCaptureResponse
@@ -62,6 +63,35 @@ def _build_email_payload(order: Order) -> dict:
         "delivery_fee": order.delivery_fee_cents,
         "first_order_discount": order.first_order_discount_percent,
     }
+
+
+def _order_email(order: Order) -> str:
+    return (order.email or "").strip().lower()
+
+
+def _is_order_access_allowed(
+    order: Order, *, user, cancel_token: str | None
+) -> bool:
+    order_email = _order_email(order)
+    if not order_email:
+        return False
+
+    user_email = ((getattr(user, "email", None) or "")).strip().lower()
+    if user_email and user_email == order_email:
+        return True
+
+    token_value = (cancel_token or "").strip()
+    if not token_value:
+        return False
+
+    try:
+        token_payload = decode_checkout_cancel_token(token_value)
+    except Exception:
+        return False
+
+    token_order_id = str(token_payload.get("order_id") or "").strip()
+    token_email = str(token_payload.get("email") or "").strip().lower()
+    return token_order_id == order.id and token_email == order_email
 
 
 def _set_order_failed(
@@ -137,6 +167,7 @@ def _is_paypal_event_type_supported(event_type: str) -> bool:
 async def capture_paypal_order(
     payload: PayPalCaptureRequest,
     request: Request,
+    user=Depends(get_optional_user),
     db: Session = Depends(get_db),
 ):
     if not paypal_is_configured():
@@ -194,6 +225,21 @@ async def capture_paypal_order(
             },
         )
         raise HTTPException(status_code=400, detail="PayPal order id mismatch.")
+    if payload.checkout_order_id and payload.checkout_order_id != order.id:
+        raise HTTPException(status_code=404, detail="Order not found.")
+    if not _is_order_access_allowed(order, user=user, cancel_token=payload.cancel_token):
+        log_critical_event(
+            domain="payment",
+            event="paypal_capture_unauthorized",
+            message="PayPal capture denied: invalid user/token for order.",
+            request=request,
+            context={
+                "order_id": order.id,
+                "paypal_order_id": paypal_order_id,
+            },
+            level=logging.WARNING,
+        )
+        raise HTTPException(status_code=404, detail="Order not found.")
 
     amount_cents = metadata.get("amount_cents")
     currency = metadata.get("currency")
@@ -240,19 +286,28 @@ async def capture_paypal_order(
                 exc=exc,
             )
             if exc.status_code is not None and 400 <= exc.status_code < 500:
-                _set_order_failed(
-                    db,
-                    order=order,
-                    paypal_order_id=paypal_order_id,
-                    capture_id=metadata.get("capture_id")
-                    if isinstance(metadata.get("capture_id"), str)
-                    else None,
-                )
-                raise HTTPException(
-                    status_code=400,
-                    detail="PayPal payment was declined or canceled.",
-                )
-            raise HTTPException(status_code=502, detail="Unable to capture PayPal order.")
+                try:
+                    order_payload = paypal_get_order(paypal_order_id)
+                except PayPalApiError:
+                    _set_order_failed(
+                        db,
+                        order=order,
+                        paypal_order_id=paypal_order_id,
+                        capture_id=metadata.get("capture_id")
+                        if isinstance(metadata.get("capture_id"), str)
+                        else None,
+                    )
+                    raise HTTPException(
+                        status_code=400,
+                        detail="PayPal payment was declined or canceled.",
+                    )
+                metadata = paypal_extract_order_metadata(order_payload)
+                status = metadata.get("status") or ""
+                amount_cents = metadata.get("amount_cents")
+                currency = metadata.get("currency")
+            else:
+                raise HTTPException(status_code=502, detail="Unable to capture PayPal order.")
+
         metadata = paypal_extract_order_metadata(order_payload)
         status = metadata.get("status") or ""
         amount_cents = metadata.get("amount_cents")
@@ -438,19 +493,37 @@ async def paypal_webhook(request: Request, db: Session = Depends(get_db)):
         else:
             order_payload = paypal_get_order(paypal_order_id)
     except PayPalApiError as exc:
-        log_critical_event(
-            domain="payment",
-            event="paypal_webhook_order_fetch_failed",
-            message="PayPal webhook failed to fetch/capture order.",
-            request=request,
-            context={
-                "event_type": event_type,
-                "event_id": event_id,
-                "paypal_order_id": paypal_order_id,
-            },
-            exc=exc,
-        )
-        raise HTTPException(status_code=502, detail="Unable to process PayPal webhook.")
+        if event_type == "CHECKOUT.ORDER.APPROVED" and exc.status_code is not None and 400 <= exc.status_code < 500:
+            try:
+                order_payload = paypal_get_order(paypal_order_id)
+            except PayPalApiError as fetch_exc:
+                log_critical_event(
+                    domain="payment",
+                    event="paypal_webhook_order_fetch_failed",
+                    message="PayPal webhook failed to fetch/capture order.",
+                    request=request,
+                    context={
+                        "event_type": event_type,
+                        "event_id": event_id,
+                        "paypal_order_id": paypal_order_id,
+                    },
+                    exc=fetch_exc,
+                )
+                raise HTTPException(status_code=502, detail="Unable to process PayPal webhook.")
+        else:
+            log_critical_event(
+                domain="payment",
+                event="paypal_webhook_order_fetch_failed",
+                message="PayPal webhook failed to fetch/capture order.",
+                request=request,
+                context={
+                    "event_type": event_type,
+                    "event_id": event_id,
+                    "paypal_order_id": paypal_order_id,
+                },
+                exc=exc,
+            )
+            raise HTTPException(status_code=502, detail="Unable to process PayPal webhook.")
 
     metadata = paypal_extract_order_metadata(order_payload)
     custom_id = metadata.get("custom_id")

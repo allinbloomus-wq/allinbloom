@@ -19,10 +19,16 @@ rate_limit: dict[str, dict[str, object]] = {}
 
 
 def _get_client_key(request: Request) -> str:
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.headers.get("x-real-ip") or "unknown"
+    if settings.trust_proxy_headers:
+        forwarded = request.headers.get("x-forwarded-for")
+        if forwarded:
+            first = forwarded.split(",")[0].strip()
+            if first:
+                return first
+        real_ip = (request.headers.get("x-real-ip") or "").strip()
+        if real_ip:
+            return real_ip
+    return request.client.host if request.client and request.client.host else "unknown"
 
 
 def _allow_request(key: str) -> bool:

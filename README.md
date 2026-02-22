@@ -26,6 +26,21 @@ Frontend and backend are fully separated:
 4. Run API:
    - `uvicorn app.main:app --reload --port 8000`
 
+## Tests
+### Frontend
+- Run all frontend unit tests:
+  - `npm run test`
+- Run tests in watch mode:
+  - `npm run test:watch`
+- Generate coverage report:
+  - `npm run test:coverage`
+
+### Backend
+- Open backend directory:
+  - `cd fastapi`
+- Run backend unit tests:
+  - `python -m unittest discover -s tests -v`
+
 ## Docker
 Use `docker-compose.yml` to run:
 - `frontend` (Next.js on `:3000`)

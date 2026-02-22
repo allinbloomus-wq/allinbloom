@@ -57,6 +57,11 @@ export const apiFetch = async (
     const token = await getServerAuthToken();
     if (token) {
       headers.set("Authorization", `Bearer ${token}`);
+    } else {
+      const refreshedToken = await refreshServerAccessToken();
+      if (refreshedToken) {
+        headers.set("Authorization", `Bearer ${refreshedToken}`);
+      }
     }
   }
 

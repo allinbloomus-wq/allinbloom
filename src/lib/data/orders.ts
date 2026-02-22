@@ -52,7 +52,7 @@ export async function getOrdersByEmail(email: string): Promise<Order[]> {
 
 export async function cancelCheckoutOrder(
   orderId: string,
-  email?: string | null
+  cancelToken?: string | null
 ): Promise<string | null> {
   if (!orderId) return null;
   const response = await apiFetch(
@@ -60,7 +60,7 @@ export async function cancelCheckoutOrder(
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orderId, email: email || undefined }),
+      body: JSON.stringify({ orderId, cancelToken: cancelToken || undefined }),
     },
     false
   );

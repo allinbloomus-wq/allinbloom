@@ -18,20 +18,78 @@ function CheckoutSuccessContent() {
   const { clear } = useCart();
   const searchParams = useSearchParams();
   const paypalToken = searchParams.get("token");
+  const checkoutOrderId = searchParams.get("orderId");
+  const cancelToken = searchParams.get("cancelToken");
   const isPaypalReturn =
     searchParams.get("provider") === "paypal" || Boolean(paypalToken);
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">(
-    !isPaypalReturn ? "success" : paypalToken ? "loading" : "error"
+  const hasCheckoutToken = Boolean(checkoutOrderId && cancelToken);
+  const [status, setStatus] = useState<"loading" | "success" | "error" | "pending">(
+    isPaypalReturn ? (paypalToken ? "loading" : "error") : hasCheckoutToken ? "loading" : "pending"
   );
   const [error, setError] = useState<string | null>(
-    isPaypalReturn && !paypalToken ? "Missing PayPal approval token." : null
+    isPaypalReturn
+      ? paypalToken
+        ? null
+        : "Missing PayPal approval token."
+      : hasCheckoutToken
+      ? null
+      : "Missing checkout confirmation token. Open checkout again from cart."
   );
 
   useEffect(() => {
-    if (isPaypalReturn) return;
-    clearCartStorage();
-    clear();
-  }, [clear, isPaypalReturn]);
+    if (isPaypalReturn || !checkoutOrderId || !cancelToken) return;
+
+    let isMounted = true;
+    const verifyOrderStatus = async () => {
+      setStatus("loading");
+      setError(null);
+      const response = await clientFetch(
+        "/api/checkout/status",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            orderId: checkoutOrderId,
+            cancelToken,
+          }),
+        },
+        false
+      );
+      const payload = (await response.json().catch(() => ({}))) as {
+        status?: string;
+        detail?: string;
+      };
+
+      if (!isMounted) return;
+
+      if (!response.ok) {
+        setStatus("pending");
+        setError(payload?.detail || "Payment confirmation is still in progress.");
+        return;
+      }
+
+      const orderStatus = (payload?.status || "").toUpperCase();
+      if (orderStatus === "PAID") {
+        setStatus("success");
+        clearCartStorage();
+        clear();
+        return;
+      }
+      if (orderStatus === "FAILED" || orderStatus === "CANCELED") {
+        setStatus("error");
+        setError("Payment was not completed. Return to cart and try again.");
+        return;
+      }
+
+      setStatus("pending");
+      setError(null);
+    };
+
+    void verifyOrderStatus();
+    return () => {
+      isMounted = false;
+    };
+  }, [cancelToken, checkoutOrderId, clear, isPaypalReturn]);
 
   useEffect(() => {
     if (!isPaypalReturn || !paypalToken) return;
@@ -45,7 +103,11 @@ function CheckoutSuccessContent() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ orderId: paypalToken }),
+          body: JSON.stringify({
+            orderId: paypalToken,
+            checkoutOrderId: checkoutOrderId || undefined,
+            cancelToken: cancelToken || undefined,
+          }),
         },
         true
       );
@@ -63,52 +125,63 @@ function CheckoutSuccessContent() {
       }
 
       const paymentStatus = (payload?.status || "").toUpperCase();
-      if (paymentStatus !== "PAID") {
-        setStatus("error");
-        setError(
-          paymentStatus === "PENDING"
-            ? "PayPal payment is still pending. Please try again from cart or use another payment method."
-            : "PayPal payment was not completed."
-        );
+      if (paymentStatus === "PAID") {
+        setStatus("success");
+        clearCartStorage();
+        clear();
         return;
       }
-
-      setStatus("success");
-      clearCartStorage();
-      clear();
+      if (paymentStatus === "FAILED" || paymentStatus === "CANCELED") {
+        setStatus("error");
+        setError("PayPal payment was not completed.");
+        return;
+      }
+      setStatus("pending");
+      setError(
+        "PayPal payment is still pending. Please refresh this page in a moment."
+      );
     };
 
-    capture();
+    void capture();
     return () => {
       isMounted = false;
     };
-  }, [clear, isPaypalReturn, paypalToken]);
+  }, [cancelToken, checkoutOrderId, clear, isPaypalReturn, paypalToken]);
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col items-center gap-4 text-center sm:gap-6">
       <div className="rounded-full bg-white/80 px-5 py-2 text-xs uppercase tracking-[0.32em] text-stone-500">
         {status === "loading"
-          ? "Finalizing PayPal payment"
+          ? "Confirming payment"
+          : status === "pending"
+          ? "Payment processing"
           : status === "error"
           ? "Payment not confirmed"
           : "Payment confirmed"}
       </div>
       <h1 className="text-4xl font-semibold text-stone-900 sm:text-5xl">
-        {status === "error" ? "We need a quick check" : "Your order is in bloom"}
+        {status === "error"
+          ? "We need a quick check"
+          : status === "success"
+          ? "Your order is in bloom"
+          : "We're confirming your order"}
       </h1>
       <p className="text-sm leading-relaxed text-stone-600">
         {status === "loading"
-          ? "Hang tight while we confirm your PayPal payment."
+          ? "Hang tight while we confirm your payment."
+          : status === "pending"
+          ? error ||
+            "Payment confirmation is still processing. Refresh this page shortly."
           : status === "error"
           ? error ||
-            "We could not confirm your PayPal payment yet. Please return to the cart and try again."
+            "We could not confirm your payment yet. Please return to the cart and try again."
           : "We have received your order and our florists are preparing your bouquet now. You will receive a confirmation email with delivery details shortly."}
       </p>
       <Link
-        href={status === "error" ? "/cart" : "/catalog"}
+        href={status === "success" ? "/catalog" : "/cart"}
         className="rounded-full bg-[color:var(--brand)] px-6 py-3 text-xs uppercase tracking-[0.3em] text-white transition hover:bg-[color:var(--brand-dark)]"
       >
-        {status === "error" ? "Return to cart" : "Continue shopping"}
+        {status === "success" ? "Continue shopping" : "Return to cart"}
       </Link>
     </div>
   );

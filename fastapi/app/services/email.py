@@ -91,7 +91,8 @@ async def send_otp_email(email: str, code: str) -> None:
     if not settings.resend_api_key:
         if is_dev:
             logger.warning("OTP fallback (RESEND_API_KEY is empty): email=%s code=%s", email, code)
-        return
+            return
+        raise EmailDeliveryError("RESEND_API_KEY is not configured.")
 
     try:
         await send_email([email], subject, text, html, _resolve_reply_to())

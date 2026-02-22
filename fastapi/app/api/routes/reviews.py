@@ -10,6 +10,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, require_admin
+from app.core.config import settings
 from app.core.critical_logging import log_critical_event
 from app.models.review import Review
 from app.schemas.review import (
@@ -39,10 +40,16 @@ EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 def _get_client_key(request: Request) -> str:
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.headers.get("x-real-ip") or "unknown"
+    if settings.trust_proxy_headers:
+        forwarded = request.headers.get("x-forwarded-for")
+        if forwarded:
+            first = forwarded.split(",")[0].strip()
+            if first:
+                return first
+        real_ip = (request.headers.get("x-real-ip") or "").strip()
+        if real_ip:
+            return real_ip
+    return request.client.host if request.client and request.client.host else "unknown"
 
 
 def _allow_public_create(key: str) -> bool:

@@ -29,7 +29,8 @@ export const parseBouquetForm = (formData: FormData): BouquetFormPayload => {
   const name = String(formData.get("name") || "").trim();
   const description = String(formData.get("description") || "").trim();
   const price = Number(formData.get("price") || 0);
-  const image = String(formData.get("image") || "/images/bouquet-1.webp").trim();
+  const rawImage = String(formData.get("image") || "").trim();
+  const image = rawImage || "/images/bouquet-1.webp";
   const colors = String(formData.get("colors") || "").toLowerCase().trim();
   const discountPercent = Math.min(
     90,

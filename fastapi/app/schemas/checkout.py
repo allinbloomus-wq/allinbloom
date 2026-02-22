@@ -28,9 +28,18 @@ class CheckoutResponse(SchemaBase):
 
 class CheckoutCancelRequest(SchemaBase):
     order_id: str
-    email: Optional[str] = None
+    cancel_token: Optional[str] = None
 
 
 class CheckoutCancelResponse(SchemaBase):
     canceled: bool
+    status: str
+
+
+class CheckoutStatusRequest(SchemaBase):
+    order_id: str
+    cancel_token: Optional[str] = None
+
+
+class CheckoutStatusResponse(SchemaBase):
     status: str
