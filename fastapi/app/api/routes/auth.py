@@ -5,6 +5,7 @@ import logging
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
+import httpx
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 from sqlalchemy import delete, select
@@ -22,11 +23,12 @@ from app.core.security import (
 )
 from app.models.user import User
 from app.models.verification_code import VerificationCode
-from app.schemas.auth import GoogleSignInIn, RequestCodeIn, VerifyCodeIn
+from app.schemas.auth import GoogleCodeSignInIn, GoogleSignInIn, RequestCodeIn, VerifyCodeIn
 from app.schemas.user import TokenOut, UserOut
 from app.services.email import send_otp_email
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+GOOGLE_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"
 
 
 def _cookie_secure() -> bool:
@@ -57,6 +59,64 @@ def _clear_refresh_cookie(response: Response) -> None:
         httponly=True,
         samesite=settings.resolved_refresh_cookie_samesite(),
     )
+
+
+def _build_auth_response(response: Response, user: User) -> TokenOut:
+    token = create_access_token(
+        {"sub": user.id, "email": user.email, "role": user.role.value, "name": user.name or ""}
+    )
+    refresh_token = create_refresh_token({"sub": user.id, "email": user.email})
+    _set_refresh_cookie(response, refresh_token)
+    return TokenOut(access_token=token, user=UserOut.model_validate(user))
+
+
+def _verify_google_id_token_or_401(raw_id_token: str, request: Request) -> dict:
+    try:
+        return id_token.verify_oauth2_token(
+            raw_id_token,
+            google_requests.Request(),
+            settings.google_client_id,
+        )
+    except Exception:
+        log_critical_event(
+            domain="auth",
+            event="google_token_validation_failed",
+            message="Google ID token validation failed.",
+            request=request,
+            level=logging.WARNING,
+        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token.")
+
+
+def _upsert_google_user_from_profile(
+    profile: dict,
+    request: Request,
+    db: Session,
+) -> User:
+    email = str(profile.get("email") or "").lower().strip()
+    if not email:
+        log_critical_event(
+            domain="auth",
+            event="google_profile_missing_email",
+            message="Google token did not include user email.",
+            request=request,
+            level=logging.WARNING,
+        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token.")
+
+    user = db.execute(select(User).where(User.email == email)).scalars().first()
+    if not user:
+        user = User(email=email, name=profile.get("name"), image=profile.get("picture"))
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    else:
+        if profile.get("name") and not user.name:
+            user.name = profile.get("name")
+        if profile.get("picture") and not user.image:
+            user.image = profile.get("picture")
+        db.commit()
+    return user
 
 
 @router.post("/request-code")
@@ -254,52 +314,96 @@ def google_sign_in(
         )
         raise HTTPException(status_code=400, detail="Google login is not configured.")
 
+    info = _verify_google_id_token_or_401(payload.id_token, request)
+    user = _upsert_google_user_from_profile(info, request, db)
+    return _build_auth_response(response, user)
+
+
+@router.post("/google/code", response_model=TokenOut)
+def google_sign_in_with_code(
+    payload: GoogleCodeSignInIn,
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+):
+    if not settings.google_client_id or not settings.google_client_secret:
+        log_critical_event(
+            domain="auth",
+            event="google_auth_not_configured",
+            message="Google code sign-in requested but integration is not configured.",
+            request=request,
+        )
+        raise HTTPException(status_code=400, detail="Google login is not configured.")
+
+    code = payload.code.strip()
+    if not code:
+        raise HTTPException(status_code=400, detail="Google authorization code is required.")
+
     try:
-        info = id_token.verify_oauth2_token(
-            payload.id_token,
-            google_requests.Request(),
-            settings.google_client_id,
+        exchange_response = httpx.post(
+            GOOGLE_TOKEN_ENDPOINT,
+            data={
+                "code": code,
+                "client_id": settings.google_client_id,
+                "client_secret": settings.google_client_secret,
+                "redirect_uri": "postmessage",
+                "grant_type": "authorization_code",
+            },
+            headers={"Accept": "application/json"},
+            timeout=10.0,
         )
-    except Exception:
+    except Exception as exc:
         log_critical_event(
             domain="auth",
-            event="google_token_validation_failed",
-            message="Google ID token validation failed.",
+            event="google_code_exchange_request_failed",
+            message="Google authorization code exchange request failed.",
+            request=request,
+            exc=exc,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Google sign-in is temporarily unavailable.",
+        )
+
+    try:
+        exchange_payload = exchange_response.json()
+    except ValueError:
+        exchange_payload = {}
+
+    if exchange_response.status_code >= 400:
+        log_critical_event(
+            domain="auth",
+            event="google_code_exchange_failed",
+            message="Google authorization code exchange failed.",
+            request=request,
+            context={
+                "status_code": exchange_response.status_code,
+                "error": exchange_payload.get("error"),
+            },
+            level=logging.WARNING,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Google authorization code.",
+        )
+
+    id_token_value = str(exchange_payload.get("id_token") or "").strip()
+    if not id_token_value:
+        log_critical_event(
+            domain="auth",
+            event="google_code_exchange_missing_id_token",
+            message="Google token exchange did not return an ID token.",
             request=request,
             level=logging.WARNING,
         )
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token.")
-
-    email = str(info.get("email") or "").lower().strip()
-    if not email:
-        log_critical_event(
-            domain="auth",
-            event="google_profile_missing_email",
-            message="Google token did not include user email.",
-            request=request,
-            level=logging.WARNING,
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Google authorization code.",
         )
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token.")
 
-    user = db.execute(select(User).where(User.email == email)).scalars().first()
-    if not user:
-        user = User(email=email, name=info.get("name"), image=info.get("picture"))
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-    else:
-        if info.get("name") and not user.name:
-            user.name = info.get("name")
-        if info.get("picture") and not user.image:
-            user.image = info.get("picture")
-        db.commit()
-
-    token = create_access_token(
-        {"sub": user.id, "email": user.email, "role": user.role.value, "name": user.name or ""}
-    )
-    refresh_token = create_refresh_token({"sub": user.id, "email": user.email})
-    _set_refresh_cookie(response, refresh_token)
-    return TokenOut(access_token=token, user=UserOut.model_validate(user))
+    info = _verify_google_id_token_or_401(id_token_value, request)
+    user = _upsert_google_user_from_profile(info, request, db)
+    return _build_auth_response(response, user)
 
 
 @router.post("/refresh", response_model=TokenOut)

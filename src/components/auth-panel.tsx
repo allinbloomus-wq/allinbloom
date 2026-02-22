@@ -8,6 +8,11 @@ type GoogleCredentialResponse = {
   credential?: string;
 };
 
+type GoogleCodeResponse = {
+  code?: string;
+  error?: string;
+};
+
 type GoogleButtonConfig = Record<string, string | number | boolean>;
 
 type GoogleAccountsId = {
@@ -20,10 +25,25 @@ type GoogleAccountsId = {
   renderButton: (element: HTMLElement, config: GoogleButtonConfig) => void;
 };
 
+type GoogleCodeClient = {
+  requestCode: () => void;
+};
+
+type GoogleAccountsOauth2 = {
+  initCodeClient: (config: {
+    client_id: string;
+    scope: string;
+    ux_mode?: "popup" | "redirect";
+    callback: (response: GoogleCodeResponse) => void;
+    error_callback?: () => void;
+  }) => GoogleCodeClient;
+};
+
 type GoogleWindow = Window & {
   google?: {
     accounts?: {
       id?: GoogleAccountsId;
+      oauth2?: GoogleAccountsOauth2;
     };
   };
 };
@@ -36,10 +56,38 @@ export default function AuthPanel() {
   const [needsName, setNeedsName] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [retryAfter, setRetryAfter] = useState<number | null>(null);
+  const [googlePopupBusy, setGooglePopupBusy] = useState(false);
   const googleButtonRef = useRef<HTMLDivElement | null>(null);
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
   const googleEnabled =
     process.env.NEXT_PUBLIC_GOOGLE_ENABLED === "true" && Boolean(googleClientId);
+
+  const completeGoogleSignIn = useCallback(
+    async (path: string, body: Record<string, string>, fallbackMessage: string) => {
+      setStatus("Signing in...");
+      const verify = await clientFetch(path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const payload = await verify.json().catch(() => ({}));
+      if (!verify.ok) {
+        setStatus(payload?.detail || fallbackMessage);
+        return;
+      }
+
+      const token = payload?.accessToken || payload?.access_token;
+      const user = payload?.user;
+      if (!token || !user) {
+        setStatus(fallbackMessage);
+        return;
+      }
+
+      setAuthSession(token, user);
+      window.location.href = "/";
+    },
+    []
+  );
 
   const onGoogleCredential = useCallback(async (response: GoogleCredentialResponse) => {
     if (!response?.credential) {
@@ -47,28 +95,58 @@ export default function AuthPanel() {
       return;
     }
 
-    setStatus("Signing in...");
-    const verify = await clientFetch("/api/auth/google", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ idToken: response.credential }),
-    });
-    const payload = await verify.json().catch(() => ({}));
-    if (!verify.ok) {
-      setStatus(payload?.detail || "Unable to sign in with Google.");
+    await completeGoogleSignIn(
+      "/api/auth/google",
+      { idToken: response.credential },
+      "Unable to sign in with Google."
+    );
+  }, [completeGoogleSignIn]);
+
+  const onGoogleCode = useCallback(
+    async (response: GoogleCodeResponse) => {
+      if (response?.error || !response?.code) {
+        setStatus("Google fallback sign-in was canceled or blocked.");
+        return;
+      }
+
+      await completeGoogleSignIn(
+        "/api/auth/google/code",
+        { code: response.code },
+        "Unable to sign in with Google fallback."
+      );
+    },
+    [completeGoogleSignIn]
+  );
+
+  const requestGoogleFallback = useCallback(() => {
+    const google = (window as GoogleWindow).google;
+    const googleOauth2 = google?.accounts?.oauth2;
+    if (!googleOauth2) {
+      setStatus("Google sign-in is not ready yet. Refresh and try again.");
       return;
     }
 
-    const token = payload?.accessToken || payload?.access_token;
-    const user = payload?.user;
-    if (!token || !user) {
-      setStatus("Unable to sign in with Google.");
-      return;
+    setGooglePopupBusy(true);
+    try {
+      const codeClient = googleOauth2.initCodeClient({
+        client_id: googleClientId,
+        scope: "openid email profile",
+        ux_mode: "popup",
+        callback: (response) => {
+          setGooglePopupBusy(false);
+          void onGoogleCode(response);
+        },
+        error_callback: () => {
+          setGooglePopupBusy(false);
+          setStatus("Google fallback popup was closed or blocked.");
+        },
+      });
+      codeClient.requestCode();
+    } catch {
+      setGooglePopupBusy(false);
+      setStatus("Unable to open Google fallback sign-in.");
     }
-
-    setAuthSession(token, user);
-    window.location.href = "/";
-  }, []);
+  }, [googleClientId, onGoogleCode]);
 
   const initializeGoogle = useCallback(() => {
     const google = (window as GoogleWindow).google;
@@ -299,8 +377,16 @@ export default function AuthPanel() {
           <div className="flex justify-center">
             <div ref={googleButtonRef} />
           </div>
+          <button
+            type="button"
+            onClick={requestGoogleFallback}
+            disabled={googlePopupBusy}
+            className="w-full rounded-full border border-stone-200 bg-white/80 px-4 py-2 text-xs uppercase tracking-[0.24em] text-stone-600 disabled:opacity-50"
+          >
+            {googlePopupBusy ? "Opening Google..." : "Google fallback sign-in"}
+          </button>
           <p className="text-center text-xs text-stone-500">
-            If the Google button does not appear, disable blockers and refresh this page.
+            If FedCM fails on desktop, use fallback sign-in.
           </p>
         </>
       ) : null}

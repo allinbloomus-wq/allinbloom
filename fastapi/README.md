@@ -30,6 +30,7 @@
 ## Auth
 - Email OTP: `POST /api/auth/request-code` -> `POST /api/auth/verify-code`
 - Google sign-in: `POST /api/auth/google`
+- Google sign-in fallback (OAuth code exchange): `POST /api/auth/google/code`
 - Refresh token: `httpOnly` cookie (`POST /api/auth/refresh`)
 - Logout: `POST /api/auth/logout`
 
