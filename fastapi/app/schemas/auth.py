@@ -19,3 +19,4 @@ class GoogleSignInIn(SchemaBase):
 
 class GoogleCodeSignInIn(SchemaBase):
     code: str
+    redirect_uri: str | None = None

@@ -1,28 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import Image from "next/image";
+import { useCallback, useEffect, useState } from "react";
 import { setAuthSession } from "@/lib/auth-client";
 import { clientFetch } from "@/lib/api-client";
-
-type GoogleCredentialResponse = {
-  credential?: string;
-};
 
 type GoogleCodeResponse = {
   code?: string;
   error?: string;
-};
-
-type GoogleButtonConfig = Record<string, string | number | boolean>;
-
-type GoogleAccountsId = {
-  initialize: (config: {
-    client_id: string;
-    use_fedcm_for_prompt?: boolean;
-    use_fedcm_for_button?: boolean;
-    callback: (response: GoogleCredentialResponse) => void;
-  }) => void;
-  renderButton: (element: HTMLElement, config: GoogleButtonConfig) => void;
 };
 
 type GoogleCodeClient = {
@@ -34,7 +19,8 @@ type GoogleAccountsOauth2 = {
     client_id: string;
     scope: string;
     ux_mode?: "popup" | "redirect";
-    callback: (response: GoogleCodeResponse) => void;
+    callback?: (response: GoogleCodeResponse) => void;
+    redirect_uri?: string;
     error_callback?: () => void;
   }) => GoogleCodeClient;
 };
@@ -42,10 +28,17 @@ type GoogleAccountsOauth2 = {
 type GoogleWindow = Window & {
   google?: {
     accounts?: {
-      id?: GoogleAccountsId;
       oauth2?: GoogleAccountsOauth2;
     };
   };
+};
+
+const GOOGLE_SCOPE = "openid email profile";
+const GOOGLE_REDIRECT_PATH = "/auth/google/callback";
+
+const isMobileBrowser = () => {
+  if (typeof navigator === "undefined") return false;
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || "");
 };
 
 export default function AuthPanel() {
@@ -56,8 +49,8 @@ export default function AuthPanel() {
   const [needsName, setNeedsName] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [retryAfter, setRetryAfter] = useState<number | null>(null);
-  const [googlePopupBusy, setGooglePopupBusy] = useState(false);
-  const googleButtonRef = useRef<HTMLDivElement | null>(null);
+  const [googleBusy, setGoogleBusy] = useState(false);
+  const [googleReady, setGoogleReady] = useState(false);
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
   const googleEnabled =
     process.env.NEXT_PUBLIC_GOOGLE_ENABLED === "true" && Boolean(googleClientId);
@@ -89,100 +82,97 @@ export default function AuthPanel() {
     []
   );
 
-  const onGoogleCredential = useCallback(async (response: GoogleCredentialResponse) => {
-    if (!response?.credential) {
-      setStatus("Unable to sign in with Google.");
+  const getGoogleOauth2 = useCallback(() => {
+    const google = (window as GoogleWindow).google;
+    return google?.accounts?.oauth2 || null;
+  }, []);
+
+  const startGoogleRedirectSignIn = useCallback(() => {
+    const googleOauth2 = getGoogleOauth2();
+    if (!googleOauth2) {
+      setGoogleBusy(false);
+      setStatus("Google sign-in is not ready yet. Refresh and try again.");
       return;
     }
 
-    await completeGoogleSignIn(
-      "/api/auth/google",
-      { idToken: response.credential },
-      "Unable to sign in with Google."
-    );
-  }, [completeGoogleSignIn]);
+    const redirectUri = `${window.location.origin}${GOOGLE_REDIRECT_PATH}`;
+    try {
+      const codeClient = googleOauth2.initCodeClient({
+        client_id: googleClientId,
+        scope: GOOGLE_SCOPE,
+        ux_mode: "redirect",
+        redirect_uri: redirectUri,
+      });
+      codeClient.requestCode();
+    } catch {
+      setGoogleBusy(false);
+      setStatus("Unable to open Google sign-in.");
+    }
+  }, [getGoogleOauth2, googleClientId]);
 
-  const onGoogleCode = useCallback(
-    async (response: GoogleCodeResponse) => {
-      if (response?.error || !response?.code) {
-        setStatus("Google fallback sign-in was canceled or blocked.");
-        return;
-      }
-
-      await completeGoogleSignIn(
-        "/api/auth/google/code",
-        { code: response.code },
-        "Unable to sign in with Google fallback."
-      );
-    },
-    [completeGoogleSignIn]
-  );
-
-  const requestGoogleFallback = useCallback(() => {
-    const google = (window as GoogleWindow).google;
-    const googleOauth2 = google?.accounts?.oauth2;
+  const requestGoogleSignIn = useCallback(() => {
+    const googleOauth2 = getGoogleOauth2();
     if (!googleOauth2) {
       setStatus("Google sign-in is not ready yet. Refresh and try again.");
       return;
     }
 
-    setGooglePopupBusy(true);
+    setGoogleBusy(true);
+    setStatus("Opening Google sign-in...");
+
+    if (isMobileBrowser()) {
+      startGoogleRedirectSignIn();
+      return;
+    }
+
     try {
       const codeClient = googleOauth2.initCodeClient({
         client_id: googleClientId,
-        scope: "openid email profile",
+        scope: GOOGLE_SCOPE,
         ux_mode: "popup",
         callback: (response) => {
-          setGooglePopupBusy(false);
-          void onGoogleCode(response);
+          if (response?.error || !response?.code) {
+            setStatus("Continuing Google sign-in in this tab...");
+            startGoogleRedirectSignIn();
+            return;
+          }
+          setGoogleBusy(false);
+          void completeGoogleSignIn(
+            "/api/auth/google/code",
+            { code: response.code },
+            "Unable to sign in with Google."
+          );
         },
         error_callback: () => {
-          setGooglePopupBusy(false);
-          setStatus("Google fallback popup was closed or blocked.");
+          setStatus("Continuing Google sign-in in this tab...");
+          startGoogleRedirectSignIn();
         },
       });
       codeClient.requestCode();
     } catch {
-      setGooglePopupBusy(false);
-      setStatus("Unable to open Google fallback sign-in.");
+      setStatus("Continuing Google sign-in in this tab...");
+      startGoogleRedirectSignIn();
     }
-  }, [googleClientId, onGoogleCode]);
-
-  const initializeGoogle = useCallback(() => {
-    const google = (window as GoogleWindow).google;
-    const googleAccounts = google?.accounts?.id;
-    if (!googleAccounts) return false;
-
-    googleAccounts.initialize({
-      client_id: googleClientId,
-      use_fedcm_for_prompt: true,
-      use_fedcm_for_button: true,
-      callback: onGoogleCredential,
-    });
-
-    if (googleButtonRef.current) {
-      googleButtonRef.current.innerHTML = "";
-      googleAccounts.renderButton(googleButtonRef.current, {
-        type: "standard",
-        theme: "outline",
-        size: "large",
-        text: "continue_with",
-        shape: "pill",
-        logo_alignment: "left",
-      });
-    }
-
-    return true;
-  }, [googleClientId, onGoogleCredential]);
+  }, [
+    completeGoogleSignIn,
+    getGoogleOauth2,
+    googleClientId,
+    startGoogleRedirectSignIn,
+  ]);
 
   useEffect(() => {
     if (!googleEnabled || !googleClientId) return;
 
     const onLoaded = () => {
-      initializeGoogle();
+      const ready = Boolean(getGoogleOauth2());
+      setGoogleReady(ready);
+      if (!ready) {
+        setStatus("Unable to load Google sign-in right now.");
+      }
     };
 
     const onLoadFailed = () => {
+      setGoogleReady(false);
       setStatus(
         "Unable to load Google sign-in. Disable blockers and refresh the page."
       );
@@ -190,7 +180,7 @@ export default function AuthPanel() {
 
     const existing = document.getElementById("google-identity") as HTMLScriptElement | null;
     if (existing) {
-      if ((window as GoogleWindow).google?.accounts?.id) {
+      if (getGoogleOauth2()) {
         onLoaded();
         return;
       }
@@ -210,7 +200,7 @@ export default function AuthPanel() {
     script.onload = onLoaded;
     script.onerror = onLoadFailed;
     document.head.appendChild(script);
-  }, [googleEnabled, googleClientId, initializeGoogle]);
+  }, [getGoogleOauth2, googleClientId, googleEnabled]);
 
   useEffect(() => {
     if (!retryAfter) return;
@@ -374,19 +364,28 @@ export default function AuthPanel() {
             or
             <div className="h-px flex-1 bg-stone-200" />
           </div>
-          <div className="flex justify-center">
-            <div ref={googleButtonRef} />
-          </div>
           <button
             type="button"
-            onClick={requestGoogleFallback}
-            disabled={googlePopupBusy}
-            className="w-full rounded-full border border-stone-200 bg-white/80 px-4 py-2 text-xs uppercase tracking-[0.24em] text-stone-600 disabled:opacity-50"
+            onClick={requestGoogleSignIn}
+            disabled={!googleReady || googleBusy}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-stone-200 bg-white/80 px-4 py-3 text-xs uppercase tracking-[0.24em] text-stone-600 disabled:opacity-50"
           >
-            {googlePopupBusy ? "Opening Google..." : "Google fallback sign-in"}
+            <Image
+              src="/google.webp"
+              alt=""
+              aria-hidden
+              width={16}
+              height={16}
+              className="h-4 w-4 object-contain"
+            />
+            {googleBusy
+              ? "Opening Google..."
+              : googleReady
+              ? "Continue with Google"
+              : "Loading Google..."}
           </button>
           <p className="text-center text-xs text-stone-500">
-            If FedCM fails on desktop, use fallback sign-in.
+            Sign in with Google in one step.
           </p>
         </>
       ) : null}

@@ -338,6 +338,7 @@ def google_sign_in_with_code(
     code = payload.code.strip()
     if not code:
         raise HTTPException(status_code=400, detail="Google authorization code is required.")
+    redirect_uri = (payload.redirect_uri or "postmessage").strip() or "postmessage"
 
     try:
         exchange_response = httpx.post(
@@ -346,7 +347,7 @@ def google_sign_in_with_code(
                 "code": code,
                 "client_id": settings.google_client_id,
                 "client_secret": settings.google_client_secret,
-                "redirect_uri": "postmessage",
+                "redirect_uri": redirect_uri,
                 "grant_type": "authorization_code",
             },
             headers={"Accept": "application/json"},
