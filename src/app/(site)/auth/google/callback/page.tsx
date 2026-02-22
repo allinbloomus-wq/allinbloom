@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import GoogleAuthCallback from "@/components/google-auth-callback";
 
 export const metadata: Metadata = {
@@ -12,7 +13,9 @@ export const metadata: Metadata = {
 export default function GoogleAuthCallbackPage() {
   return (
     <div className="flex min-h-[70vh] items-center justify-center">
-      <GoogleAuthCallback />
+      <Suspense fallback={<div className="text-sm text-stone-600">Loading...</div>}>
+        <GoogleAuthCallback />
+      </Suspense>
     </div>
   );
 }
