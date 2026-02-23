@@ -1,12 +1,11 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { setAuthSession } from "@/lib/auth-client";
 import { clientFetch } from "@/lib/api-client";
-
-const GOOGLE_REDIRECT_PATH = "/auth/google/callback";
+import { getGoogleRedirectUri } from "@/lib/google-auth";
 
 export default function GoogleAuthCallback() {
   const searchParams = useSearchParams();
@@ -27,7 +26,7 @@ export default function GoogleAuthCallback() {
 
     let canceled = false;
     const complete = async () => {
-      const redirectUri = `${window.location.origin}${GOOGLE_REDIRECT_PATH}`;
+      const redirectUri = getGoogleRedirectUri();
       const response = await clientFetch("/api/auth/google/code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -80,3 +79,5 @@ export default function GoogleAuthCallback() {
     </div>
   );
 }
+
+

@@ -100,25 +100,27 @@ export default function AdminBouquetRow({ bouquet }: { bouquet: Bouquet }) {
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          {bouquet.isFeatured && (
-            <span className="rounded-full bg-rose-100 px-3 py-1 text-rose-700">
-              Featured
-            </span>
-          )}
-          {!bouquet.isActive && (
-            <span className="rounded-full bg-stone-200 px-3 py-1 text-stone-600">
-              Hidden
-            </span>
-          )}
-        </div>
-        <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
-          <Link
-            href={`/admin/bouquets/${bouquet.id}/edit`}
-            className="inline-flex h-11 w-full items-center justify-center rounded-full border border-stone-300 bg-white/80 px-4 text-center text-xs uppercase tracking-[0.3em] text-stone-600 sm:w-auto"
-          >
-            Edit
-          </Link>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:items-end">
+          <div className="flex flex-wrap items-center gap-2 text-xs sm:justify-end">
+            {bouquet.isFeatured && (
+              <span className="rounded-full bg-rose-100 px-3 py-1 text-rose-700">
+                Featured
+              </span>
+            )}
+            {!bouquet.isActive && (
+              <span className="rounded-full bg-stone-200 px-3 py-1 text-stone-600">
+                Hidden
+              </span>
+            )}
+          </div>
+          <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
+            <Link
+              href={`/admin/bouquets/${bouquet.id}/edit`}
+              className="inline-flex h-11 w-full items-center justify-center rounded-full border border-stone-300 bg-white/80 px-4 text-center text-xs uppercase tracking-[0.3em] text-stone-600 sm:w-auto"
+            >
+              Edit
+            </Link>
+          </div>
         </div>
       </div>
     </div>

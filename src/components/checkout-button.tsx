@@ -13,6 +13,9 @@ type CheckoutButtonProps = {
   paymentMethod?: "stripe" | "paypal";
   label?: string;
   className?: string;
+  iconSrc?: string;
+  iconAlt?: string;
+  iconClassName?: string;
   onBusyChange?: (busy: boolean) => void;
 };
 
@@ -25,6 +28,9 @@ export default function CheckoutButton({
   paymentMethod,
   label,
   className,
+  iconSrc,
+  iconAlt,
+  iconClassName,
   onBusyChange,
 }: CheckoutButtonProps) {
   const [loading, setLoading] = useState(false);
@@ -104,8 +110,17 @@ export default function CheckoutButton({
         type="button"
         onClick={handleCheckout}
         disabled={loading || disabled}
-        className={`w-full rounded-full px-6 py-3 text-xs uppercase tracking-[0.3em] text-white transition disabled:opacity-60 ${className || "bg-[color:var(--brand)] hover:bg-[color:var(--brand-dark)]"}`}
+        className={`inline-flex w-full items-center justify-center gap-2 rounded-full px-6 py-3 text-xs uppercase tracking-[0.3em] text-white transition disabled:opacity-60 ${className || "bg-[color:var(--brand)] hover:bg-[color:var(--brand-dark)]"}`}
       >
+        {iconSrc ? (
+          <img
+            src={iconSrc}
+            alt={iconAlt || ""}
+            aria-hidden={iconAlt ? undefined : true}
+            className={iconClassName || "h-4 w-4"}
+            loading="lazy"
+          />
+        ) : null}
         {loading ? "Redirecting..." : buttonLabel}
       </button>
       {error ? (

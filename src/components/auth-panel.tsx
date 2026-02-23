@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { setAuthSession } from "@/lib/auth-client";
 import { clientFetch } from "@/lib/api-client";
+import { getGoogleRedirectUri } from "@/lib/google-auth";
 
 type GoogleCodeResponse = {
   code?: string;
@@ -34,8 +35,6 @@ type GoogleWindow = Window & {
 };
 
 const GOOGLE_SCOPE = "openid email profile";
-const GOOGLE_REDIRECT_PATH = "/auth/google/callback";
-
 const isMobileBrowser = () => {
   if (typeof navigator === "undefined") return false;
   return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || "");
@@ -95,7 +94,7 @@ export default function AuthPanel() {
       return;
     }
 
-    const redirectUri = `${window.location.origin}${GOOGLE_REDIRECT_PATH}`;
+    const redirectUri = getGoogleRedirectUri();
     try {
       const codeClient = googleOauth2.initCodeClient({
         client_id: googleClientId,
@@ -397,3 +396,5 @@ export default function AuthPanel() {
     </div>
   );
 }
+
+

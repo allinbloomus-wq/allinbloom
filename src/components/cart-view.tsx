@@ -157,7 +157,7 @@ export default function CartView({
       .catch(() => {
         // Ignore script load errors; user can still type manually.
       });
-  }, [mapsKey]);
+  }, [mapsKey, items.length]);
 
   const lineItems = useMemo(() => {
     return items.map((item) => {
@@ -485,6 +485,75 @@ export default function CartView({
           label="Checkout"
           paymentMethod="stripe"
         />
+        <div className="flex flex-wrap gap-2">
+          {[
+            {
+              label: "Visa",
+              src: "https://api.iconify.design/fa6-brands/cc-visa.svg?height=18&color=%2378716c",
+            },
+            {
+              label: "Mastercard",
+              src: "https://api.iconify.design/fa6-brands/cc-mastercard.svg?height=18&color=%2378716c",
+            },
+            {
+              label: "Amex",
+              src: "https://api.iconify.design/fa6-brands/cc-amex.svg?height=18&color=%2378716c",
+            },
+            {
+              label: "Discover",
+              src: "https://api.iconify.design/fa6-brands/cc-discover.svg?height=18&color=%2378716c",
+            },
+            {
+              label: "Diners Club",
+              src: "https://api.iconify.design/fa6-brands/cc-diners-club.svg?height=18&color=%2378716c",
+            },
+            {
+              label: "JCB",
+              src: "https://api.iconify.design/fa6-brands/cc-jcb.svg?height=18&color=%2378716c",
+            },
+            {
+              label: "UnionPay",
+              src: "https://api.iconify.design/logos/unionpay.svg?height=18",
+            },
+            {
+              label: "Apple Pay",
+              src: "https://api.iconify.design/fa6-brands/apple-pay.svg?height=18&color=%2378716c",
+            },
+            {
+              label: "Google Pay",
+              src: "https://api.iconify.design/fa6-brands/google-pay.svg?height=18&color=%2378716c",
+            },
+            {
+              label: "Samsung Pay",
+              src: "https://api.iconify.design/simple-icons/samsung.svg?height=18&color=%2378716c",
+            },
+            {
+              label: "Amazon Pay",
+              src: "https://api.iconify.design/fa6-brands/amazon-pay.svg?height=18&color=%2378716c",
+            },
+            {
+              label: "Link",
+              src: "https://api.iconify.design/fa6-brands/stripe.svg?height=18&color=%2378716c",
+            },
+            {
+              label: "Cash App Pay",
+              src: "https://api.iconify.design/lineicons/cash-app.svg?height=18&color=%2378716c",
+            },
+          ].map((icon) => (
+            <span
+              key={icon.label}
+              className="inline-flex items-center justify-center rounded-full border border-stone-200 bg-white/80 px-3 py-1"
+              title={icon.label}
+            >
+              <img
+                src={icon.src}
+                alt={icon.label}
+                loading="lazy"
+                className="h-4 w-auto"
+              />
+            </span>
+          ))}
+        </div>
         <div className="flex items-center gap-3">
           <span className="h-px flex-1 bg-stone-200" />
           <span className="text-[10px] uppercase tracking-[0.3em] text-stone-400">
@@ -502,12 +571,10 @@ export default function CartView({
           label="Pay with PayPal"
           paymentMethod="paypal"
           className="bg-[#003087] hover:bg-[#001c64]"
+          iconSrc="/paypal.webp"
+          iconAlt="PayPal"
+          iconClassName="h-4 w-auto"
         />
-        {!isAuthenticated ? (
-          <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
-            Guest checkout is enabled. Orders will appear in your account if you sign in later with the same email.
-          </p>
-        ) : null}
         <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
           Secure checkout with Stripe or PayPal
         </p>
