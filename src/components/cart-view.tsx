@@ -567,7 +567,7 @@ export default function CartView({
           label="Checkout"
           paymentMethod="stripe"
         />
-        <div className="flex min-w-0 max-w-full items-center gap-3 overflow-x-auto py-1">
+        <div className="flex min-w-0 max-w-full items-center gap-3 overflow-x-auto py-1 lg:justify-center">
           {[
             {
               label: "Visa",
@@ -620,13 +620,13 @@ export default function CartView({
               label: "Amazon Pay",
               src: "/payments/amazon-pay.svg",
               fallbackSrc:
-                "https://api.iconify.design/logos/amazon-pay.svg?height=18",
+                "https://api.iconify.design/fa6-brands/amazon-pay.svg?height=18&color=%23ff9900",
             },
             {
               label: "Samsung Pay",
               src: "/payments/samsung-pay.svg",
               fallbackSrc:
-                "https://api.iconify.design/logos/samsung-pay.svg?height=18",
+                "https://api.iconify.design/fa6-brands/samsung-pay.svg?height=18&color=%231428a0",
             },
             {
               label: "UnionPay",
@@ -643,7 +643,7 @@ export default function CartView({
               label: "Diners Club",
               src: "/payments/diners-club.svg",
               fallbackSrc:
-                "https://api.iconify.design/logos/diners-club.svg?height=18",
+                "https://api.iconify.design/fa6-brands/cc-diners-club.svg?height=18&color=%230079be",
             },
           ].map((icon) => (
             <PaymentIcon key={icon.label} icon={icon} />
