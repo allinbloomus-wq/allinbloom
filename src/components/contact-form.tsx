@@ -17,6 +17,7 @@ export default function ContactForm() {
       name: formData.get("name"),
       email: formData.get("email"),
       message: formData.get("message"),
+      website: formData.get("website"),
     };
 
     const response = await fetch("/api/contact", {
@@ -38,6 +39,20 @@ export default function ContactForm() {
       onSubmit={handleSubmit}
       className="glass max-w-full space-y-4 rounded-[28px] border border-white/80 p-5 sm:p-6"
     >
+      <div
+        className="absolute left-[-10000px] top-auto h-0 w-0 overflow-hidden"
+        aria-hidden="true"
+      >
+        <label className="flex flex-col gap-2 text-sm text-stone-700">
+          Website
+          <input
+            name="website"
+            tabIndex={-1}
+            autoComplete="off"
+            className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none"
+          />
+        </label>
+      </div>
       <label className="flex flex-col gap-2 text-sm text-stone-700">
         Name
         <input

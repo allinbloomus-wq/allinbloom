@@ -23,6 +23,7 @@ from app.utils.admin_orders import get_day_range, get_week_range
 PENDING_EXPIRATION_HOURS = 24
 PENDING_WITHOUT_SESSION_EXPIRATION_MINUTES = 10
 STRIPE_CHECKOUT_SESSION_EXPIRATION_SECONDS = 30 * 60
+PAYPAL_CHECKOUT_EXPIRATION_SECONDS = STRIPE_CHECKOUT_SESSION_EXPIRATION_SECONDS
 
 
 def _read_stripe_attr(obj: object, key: str) -> object:
@@ -49,6 +50,18 @@ def _extract_payment_intent_status(payment_intent: object) -> str | None:
     if not status:
         return None
     return str(status).lower()
+
+
+def _is_order_older_than(order: Order, *, seconds: int) -> bool:
+    created_at = order.created_at
+    if not isinstance(created_at, datetime):
+        return False
+    if created_at.tzinfo is None:
+        created_at = created_at.replace(tzinfo=timezone.utc)
+    now = datetime.now(timezone.utc)
+    if now <= created_at:
+        return False
+    return (now - created_at).total_seconds() > seconds
 
 
 def resolve_order_status_from_session(
@@ -182,6 +195,10 @@ def resolve_order_status_from_paypal_order(
     if status == "COMPLETED" or capture_status == "COMPLETED":
         return OrderStatus.PAID, capture_id
     if status == "VOIDED" or capture_status in {"DECLINED", "DENIED", "FAILED"}:
+        return OrderStatus.FAILED, capture_id
+    if status in {"CREATED", "SAVED", "PAYER_ACTION_REQUIRED"} and _is_order_older_than(
+        order, seconds=PAYPAL_CHECKOUT_EXPIRATION_SECONDS
+    ):
         return OrderStatus.FAILED, capture_id
     return None, None
 

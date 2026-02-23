@@ -29,6 +29,14 @@ class OrderOut(SchemaBase):
     status: OrderStatus
     is_read: bool
     delivery_address: Optional[str] = None
+    delivery_address_line1: Optional[str] = None
+    delivery_address_line2: Optional[str] = None
+    delivery_city: Optional[str] = None
+    delivery_state: Optional[str] = None
+    delivery_postal_code: Optional[str] = None
+    delivery_country: Optional[str] = None
+    delivery_floor: Optional[str] = None
+    order_comment: Optional[str] = None
     delivery_miles: Optional[str] = None
     delivery_fee_cents: Optional[int] = None
     first_order_discount_percent: Optional[int] = None

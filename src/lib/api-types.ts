@@ -69,6 +69,14 @@ export type Order = {
   status: OrderStatus;
   isRead: boolean;
   deliveryAddress: string | null;
+  deliveryAddressLine1: string | null;
+  deliveryAddressLine2: string | null;
+  deliveryCity: string | null;
+  deliveryState: string | null;
+  deliveryPostalCode: string | null;
+  deliveryCountry: string | null;
+  deliveryFloor: string | null;
+  orderComment: string | null;
   deliveryMiles: string | null;
   deliveryFeeCents: number | null;
   firstOrderDiscountPercent: number | null;

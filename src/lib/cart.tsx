@@ -46,7 +46,15 @@ const CHECKOUT_FORM_KEY = "all-in-bloom-checkout-form";
 
 export type CheckoutFormStorage = {
   guestEmail: string;
-  address: string;
+  address?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  addressFloor?: string;
+  addressCity?: string;
+  addressState?: string;
+  postalCode?: string;
+  country?: string;
+  orderComment?: string;
   phoneLocal: string;
   quote: {
     feeCents: number;

@@ -61,6 +61,39 @@ def _format_fee(value: str | int | None) -> str:
     return _format_money(cents)
 
 
+def _format_delivery_address(params: dict) -> str:
+    direct = params.get("delivery_address")
+    if isinstance(direct, str) and direct.strip():
+        return direct.strip()
+
+    line1 = str(params.get("delivery_address_line1") or "").strip()
+    if not line1:
+        return "-"
+    line2 = str(params.get("delivery_address_line2") or "").strip()
+    floor = str(params.get("delivery_floor") or "").strip()
+    city = str(params.get("delivery_city") or "").strip()
+    state = str(params.get("delivery_state") or "").strip()
+    postal_code = str(params.get("delivery_postal_code") or "").strip()
+    country = str(params.get("delivery_country") or "").strip()
+
+    extras = []
+    if line2:
+        extras.append(line2)
+    if floor:
+        if floor.lower().startswith("floor"):
+            extras.append(floor)
+        else:
+            extras.append(f"Floor {floor}")
+    if extras:
+        line1 = f"{line1}, {', '.join(extras)}"
+
+    state_zip = " ".join(part for part in [state, postal_code] if part)
+    city_state_zip = ", ".join(part for part in [city, state_zip] if part)
+    parts = [line1, city_state_zip, country]
+    formatted = ", ".join(part for part in parts if part)
+    return formatted or "-"
+
+
 async def send_email(to: Iterable[str], subject: str, text: str, html: str, reply_to: str) -> None:
     if not settings.resend_api_key:
         return
@@ -109,10 +142,11 @@ async def send_admin_order_email(params: dict) -> None:
     safe_order = _escape(params["order_id"])
     safe_email = _escape(params.get("email") or "-")
     safe_phone = _escape(params.get("phone") or "-")
-    safe_address = _escape(params.get("delivery_address") or "-")
+    safe_address = _escape(_format_delivery_address(params))
     safe_miles = _escape(params.get("delivery_miles") or "-")
     safe_fee = _escape(_format_fee(params.get("delivery_fee")))
     safe_discount = _escape(params.get("first_order_discount") or "0")
+    safe_comment = _escape(params.get("order_comment") or "")
     total = _escape(_format_money(params["total_cents"]))
 
     items = params.get("items") or []
@@ -133,10 +167,11 @@ async def send_admin_order_email(params: dict) -> None:
             f"Customer email: {params.get('email') or '-'}",
             f"Phone: {params.get('phone') or '-'}",
             f"Total: {_format_money(params['total_cents'])}",
-            f"Delivery address: {params.get('delivery_address') or '-'}",
+            f"Delivery address: {_format_delivery_address(params)}",
             f"Delivery miles: {params.get('delivery_miles') or '-'}",
             f"Delivery fee: {_format_fee(params.get('delivery_fee'))}",
             f"First order discount %: {params.get('first_order_discount') or '0'}",
+            f"Order comment: {params.get('order_comment') or '-'}",
             "Items:",
             items_text or "-",
         ]
@@ -151,6 +186,7 @@ async def send_admin_order_email(params: dict) -> None:
       <p><strong>Delivery miles:</strong> {safe_miles}</p>
       <p><strong>Delivery fee:</strong> {safe_fee}</p>
       <p><strong>First order discount %:</strong> {safe_discount}</p>
+      <p><strong>Order comment:</strong> {safe_comment or "-"}</p>
       <h3>Items</h3>
       <ul>{items_html}</ul>
     """
@@ -169,10 +205,11 @@ async def send_customer_order_email(params: dict) -> None:
     safe_order = _escape(params["order_id"])
     safe_email = _escape(params.get("email") or "-")
     safe_phone = _escape(params.get("phone") or "-")
-    safe_address = _escape(params.get("delivery_address") or "-")
+    safe_address = _escape(_format_delivery_address(params))
     safe_miles = _escape(params.get("delivery_miles") or "-")
     safe_fee = _escape(_format_fee(params.get("delivery_fee")))
     safe_discount = _escape(params.get("first_order_discount") or "0")
+    safe_comment = _escape(params.get("order_comment") or "")
     total = _escape(_format_money(params["total_cents"]))
 
     items = params.get("items") or []
@@ -193,10 +230,11 @@ async def send_customer_order_email(params: dict) -> None:
             f"Email: {params.get('email') or '-'}",
             f"Phone: {params.get('phone') or '-'}",
             f"Total: {_format_money(params['total_cents'])}",
-            f"Delivery address: {params.get('delivery_address') or '-'}",
+            f"Delivery address: {_format_delivery_address(params)}",
             f"Delivery miles: {params.get('delivery_miles') or '-'}",
             f"Delivery fee: {_format_fee(params.get('delivery_fee'))}",
             f"First order discount %: {params.get('first_order_discount') or '0'}",
+            f"Order comment: {params.get('order_comment') or '-'}",
             "Items:",
             items_text or "-",
         ]
@@ -211,6 +249,7 @@ async def send_customer_order_email(params: dict) -> None:
       <p><strong>Delivery miles:</strong> {safe_miles}</p>
       <p><strong>Delivery fee:</strong> {safe_fee}</p>
       <p><strong>First order discount %:</strong> {safe_discount}</p>
+      <p><strong>Order comment:</strong> {safe_comment or "-"}</p>
       <h3>Items</h3>
       <ul>{items_html}</ul>
     """

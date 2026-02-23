@@ -134,9 +134,6 @@ export default function ReviewForm() {
         <h3 className="text-2xl font-semibold text-stone-900 sm:text-3xl">
           Tell us about your bouquet experience
         </h3>
-        <p className="text-sm text-stone-600">
-          Your email is only visible in the admin panel.
-        </p>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[0.92fr_1.08fr]">

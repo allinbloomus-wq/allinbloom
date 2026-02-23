@@ -20,7 +20,25 @@ export default async function AdminOrderDetailPage({
 
   const verifiedDeliveryAddress = stripeSession?.deliveryAddress?.trim() || "";
   const fallbackDeliveryAddress = order.deliveryAddress?.trim() || "";
-  const deliveryAddress = verifiedDeliveryAddress || fallbackDeliveryAddress;
+  const line1 = order.deliveryAddressLine1?.trim() || "";
+  const line2 = order.deliveryAddressLine2?.trim() || "";
+  const floor = order.deliveryFloor?.trim() || "";
+  const floorLabel = floor
+    ? floor.toLowerCase().startsWith("floor")
+      ? floor
+      : `Floor ${floor}`
+    : "";
+  const city = order.deliveryCity?.trim() || "";
+  const state = order.deliveryState?.trim() || "";
+  const postal = order.deliveryPostalCode?.trim() || "";
+  const country = order.deliveryCountry?.trim() || "";
+  const cityStateZip = [city, [state, postal].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+  const structuredLines = [line1, line2, floorLabel, cityStateZip, country].filter(
+    Boolean
+  );
+  const deliveryAddress = structuredLines.length
+    ? structuredLines.join(", ")
+    : verifiedDeliveryAddress || fallbackDeliveryAddress;
   const deliveryMiles = stripeSession?.deliveryMiles || order.deliveryMiles;
   const deliveryFeeCents =
     stripeSession?.deliveryFeeCents ?? order.deliveryFeeCents ?? null;
@@ -125,13 +143,29 @@ export default async function AdminOrderDetailPage({
             <div className="mt-3 space-y-2">
               {deliveryAddress ? (
                 <>
-                  <p className="break-words">{deliveryAddress}</p>
+                  {structuredLines.length ? (
+                    structuredLines.map((line, index) => (
+                      <p key={`${line}-${index}`} className="break-words">
+                        {line}
+                      </p>
+                    ))
+                  ) : (
+                    <p className="break-words">{deliveryAddress}</p>
+                  )}
                   {deliveryMiles ? <p>Distance: {deliveryMiles} miles</p> : null}
                   {deliveryFeeCents !== null ? (
                     <p>
                       Delivery fee:{" "}
                       {deliveryFeeCents > 0 ? formatMoney(deliveryFeeCents) : "Free"}
                     </p>
+                  ) : null}
+                  {order.orderComment ? (
+                    <div className="pt-2">
+                      <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
+                        Order comment
+                      </p>
+                      <p className="break-words">{order.orderComment}</p>
+                    </div>
                   ) : null}
                 </>
               ) : shipping ? (

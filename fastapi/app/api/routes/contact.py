@@ -46,6 +46,18 @@ def _allow_request(key: str) -> bool:
 @router.post("")
 async def contact(request: Request, payload: ContactRequest):
     key = _get_client_key(request)
+    honeypot = (payload.website or "").strip()
+    if honeypot:
+        log_critical_event(
+            domain="messaging",
+            event="contact_honeypot_triggered",
+            message="Contact form blocked by honeypot field.",
+            request=request,
+            context={"client_key": key, "honeypot_length": len(honeypot)},
+            level=logging.WARNING,
+        )
+        return {"ok": True}
+
     if not _allow_request(key):
         log_critical_event(
             domain="messaging",

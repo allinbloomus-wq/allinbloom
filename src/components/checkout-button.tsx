@@ -1,12 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { CartItem } from "@/lib/cart";
 import { clientFetch } from "@/lib/api-client";
 
 type CheckoutButtonProps = {
   items: CartItem[];
   deliveryAddress: string;
+  deliveryAddressLine1?: string;
+  deliveryAddressLine2?: string;
+  deliveryCity?: string;
+  deliveryState?: string;
+  deliveryPostalCode?: string;
+  deliveryCountry?: string;
+  deliveryFloor?: string;
+  orderComment?: string;
   phone?: string;
   email: string;
   disabled?: boolean;
@@ -22,6 +30,14 @@ type CheckoutButtonProps = {
 export default function CheckoutButton({
   items,
   deliveryAddress,
+  deliveryAddressLine1,
+  deliveryAddressLine2,
+  deliveryCity,
+  deliveryState,
+  deliveryPostalCode,
+  deliveryCountry,
+  deliveryFloor,
+  orderComment,
   phone,
   email,
   disabled,
@@ -35,10 +51,13 @@ export default function CheckoutButton({
 }: CheckoutButtonProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const busyRef = useRef(false);
   const method = paymentMethod ?? "stripe";
   const buttonLabel = label ?? (method === "paypal" ? "Pay with PayPal" : "Checkout");
 
   const handleCheckout = async () => {
+    if (busyRef.current) return;
+    busyRef.current = true;
     setLoading(true);
     setError(null);
     onBusyChange?.(true);
@@ -68,6 +87,14 @@ export default function CheckoutButton({
                 }
           ),
           address: deliveryAddress,
+          addressLine1: deliveryAddressLine1,
+          addressLine2: deliveryAddressLine2,
+          city: deliveryCity,
+          state: deliveryState,
+          postalCode: deliveryPostalCode,
+          country: deliveryCountry,
+          floor: deliveryFloor,
+          orderComment,
           phone: phone || "",
           email,
           paymentMethod: method,
@@ -85,6 +112,7 @@ export default function CheckoutButton({
       if (!response.ok) {
         setLoading(false);
         onBusyChange?.(false);
+        busyRef.current = false;
         setError(data.error || data.detail || data.message || "Unable to start checkout.");
         return;
       }
@@ -96,10 +124,12 @@ export default function CheckoutButton({
 
       setLoading(false);
       onBusyChange?.(false);
+      busyRef.current = false;
       setError("Unable to start checkout.");
     } catch {
       setLoading(false);
       onBusyChange?.(false);
+      busyRef.current = false;
       setError("Unable to start checkout.");
     }
   };

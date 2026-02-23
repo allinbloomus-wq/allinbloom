@@ -75,6 +75,39 @@ def _normalize_payment_method(value: str | None) -> str:
     return aliases.get(normalized, normalized)
 
 
+def _clean_text(value: str | None) -> str:
+    return (value or "").strip()
+
+
+def _format_delivery_address(
+    *,
+    line1: str,
+    line2: str,
+    floor: str,
+    city: str,
+    state: str,
+    postal_code: str,
+    country: str,
+) -> str:
+    base = line1.strip()
+    extras = []
+    if line2 and line2.strip():
+        extras.append(line2.strip())
+    if floor and floor.strip():
+        cleaned_floor = floor.strip()
+        if cleaned_floor.lower().startswith("floor"):
+            extras.append(cleaned_floor)
+        else:
+            extras.append(f"Floor {cleaned_floor}")
+    if extras:
+        base = f"{base}, {', '.join(extras)}"
+
+    state_zip = " ".join(part for part in [state.strip(), postal_code.strip()] if part)
+    city_state_zip = ", ".join(part for part in [city.strip(), state_zip] if part)
+    parts = [base, city_state_zip, country.strip()]
+    return ", ".join(part for part in parts if part)
+
+
 def _is_order_access_allowed(order: Order, *, user, cancel_token: str | None) -> bool:
     order_email = _order_email(order)
     if not order_email:
@@ -146,9 +179,22 @@ async def start_checkout(
             raise HTTPException(status_code=400, detail="PayPal is not configured.")
 
     items = payload.items
-    address = payload.address.strip()
-    raw_phone = (payload.phone or "").strip()
-    payload_email = (payload.email or "").strip().lower()
+    raw_address = _clean_text(payload.address)
+    address_line1 = _clean_text(payload.address_line1)
+    address_line2 = _clean_text(payload.address_line2)
+    city = _clean_text(payload.city)
+    state = _clean_text(payload.state)
+    postal_code = _clean_text(payload.postal_code)
+    country = _clean_text(payload.country) or "United States"
+    floor = _clean_text(payload.floor)
+    order_comment = _clean_text(payload.order_comment)
+    raw_phone = _clean_text(payload.phone)
+    payload_email = _clean_text(payload.email).lower()
+    has_structured_address = any(
+        [address_line1, address_line2, city, state, postal_code, floor]
+    )
+    if not has_structured_address:
+        country = ""
     checkout_email = (user.email or "").strip().lower() if user else payload_email
     fallback_phone = (user.phone or "").strip() if user else ""
     phone_candidate = raw_phone or fallback_phone
@@ -175,16 +221,33 @@ async def start_checkout(
             level=logging.WARNING,
         )
         raise HTTPException(status_code=400, detail="A valid email is required.")
-    if not address:
-        log_critical_event(
-            domain="personal_data",
-            event="checkout_missing_address",
-            message="Checkout request has empty delivery address.",
-            request=request,
-            context={"user_id": user_id},
-            level=logging.WARNING,
+    address_for_quote = raw_address
+    if not address_for_quote:
+        if not address_line1 or not city or not state or not postal_code:
+            log_critical_event(
+                domain="personal_data",
+                event="checkout_missing_address",
+                message="Checkout request has incomplete delivery address.",
+                request=request,
+                context={"user_id": user_id},
+                level=logging.WARNING,
+            )
+            raise HTTPException(
+                status_code=400,
+                detail="Delivery address must include street, city, state, and ZIP.",
+            )
+        address_for_quote = _format_delivery_address(
+            line1=address_line1,
+            line2="",
+            floor="",
+            city=city,
+            state=state,
+            postal_code=postal_code,
+            country=country,
         )
-        raise HTTPException(status_code=400, detail="Delivery address is required.")
+
+    if order_comment and len(order_comment) > 500:
+        raise HTTPException(status_code=400, detail="Order comment is too long.")
     if payment_method == "stripe" and not normalized_phone:
         log_critical_event(
             domain="personal_data",
@@ -197,7 +260,7 @@ async def start_checkout(
         raise HTTPException(status_code=400, detail="Use phone format +1 312 555 0123.")
 
     settings_row = get_store_settings(db)
-    delivery = await get_delivery_quote(address)
+    delivery = await get_delivery_quote(address_for_quote)
     if not delivery.ok:
         log_critical_event(
             domain="payment",
@@ -350,12 +413,32 @@ async def start_checkout(
             )
         )
 
+    delivery_address = address_for_quote
+    if address_line1:
+        delivery_address = _format_delivery_address(
+            line1=address_line1,
+            line2=address_line2,
+            floor=floor,
+            city=city,
+            state=state,
+            postal_code=postal_code,
+            country=country,
+        )
+
     order = Order(
         email=checkout_email,
         phone=normalized_phone or None,
         total_cents=computed_total,
         items=order_items,
-        delivery_address=address,
+        delivery_address=delivery_address or None,
+        delivery_address_line1=address_line1 or None,
+        delivery_address_line2=address_line2 or None,
+        delivery_city=city or None,
+        delivery_state=state or None,
+        delivery_postal_code=postal_code or None,
+        delivery_country=country or None,
+        delivery_floor=floor or None,
+        order_comment=order_comment or None,
         delivery_miles=f"{delivery.miles:.1f}" if delivery.miles is not None else None,
         delivery_fee_cents=delivery.fee_cents,
         first_order_discount_percent=first_order_discount_percent,
@@ -455,11 +538,19 @@ async def start_checkout(
             expires_at=expires_at,
             metadata={
                 "orderId": order.id,
-                "deliveryAddress": address,
+                "deliveryAddress": delivery_address or address_for_quote,
+                "deliveryAddressLine1": address_line1 or "",
+                "deliveryAddressLine2": address_line2 or "",
+                "deliveryCity": city or "",
+                "deliveryState": state or "",
+                "deliveryPostalCode": postal_code or "",
+                "deliveryCountry": country or "",
+                "deliveryFloor": floor or "",
                 "deliveryMiles": f"{delivery.miles:.1f}" if delivery.miles is not None else "",
                 "deliveryFeeCents": str(delivery.fee_cents or 0),
                 "firstOrderDiscountPercent": str(first_order_discount_percent),
                 "phone": normalized_phone,
+                "orderComment": order_comment or "",
             },
             payment_intent_data={"metadata": {"orderId": order.id}},
             idempotency_key=f"stripe-checkout-{order.id}",

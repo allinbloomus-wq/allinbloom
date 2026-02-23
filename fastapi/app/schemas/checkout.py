@@ -16,7 +16,15 @@ class CheckoutItemIn(SchemaBase):
 
 class CheckoutRequest(SchemaBase):
     items: list[CheckoutItemIn]
-    address: str
+    address: Optional[str] = None
+    address_line1: Optional[str] = None
+    address_line2: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    postal_code: Optional[str] = None
+    country: Optional[str] = None
+    floor: Optional[str] = None
+    order_comment: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
     payment_method: Optional[str] = None

@@ -161,6 +161,18 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                         ],
                         "delivery_address": metadata.get("deliveryAddress")
                         or order.delivery_address,
+                        "delivery_address_line1": metadata.get("deliveryAddressLine1")
+                        or order.delivery_address_line1,
+                        "delivery_address_line2": metadata.get("deliveryAddressLine2")
+                        or order.delivery_address_line2,
+                        "delivery_city": metadata.get("deliveryCity") or order.delivery_city,
+                        "delivery_state": metadata.get("deliveryState") or order.delivery_state,
+                        "delivery_postal_code": metadata.get("deliveryPostalCode")
+                        or order.delivery_postal_code,
+                        "delivery_country": metadata.get("deliveryCountry")
+                        or order.delivery_country,
+                        "delivery_floor": metadata.get("deliveryFloor") or order.delivery_floor,
+                        "order_comment": metadata.get("orderComment") or order.order_comment,
                         "delivery_miles": metadata.get("deliveryMiles")
                         or order.delivery_miles,
                         "delivery_fee": metadata.get("deliveryFeeCents")

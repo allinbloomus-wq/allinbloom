@@ -7,3 +7,4 @@ class ContactRequest(SchemaBase):
     name: str
     email: str
     message: str
+    website: str | None = None

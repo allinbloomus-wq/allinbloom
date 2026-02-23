@@ -16,8 +16,16 @@ type DiscountInfo = {
   note: string;
 };
 
+type GooglePlaceAddressComponent = {
+  long_name?: string;
+  short_name?: string;
+  types?: string[];
+};
+
 type GooglePlaceResult = {
   formatted_address?: string;
+  name?: string;
+  address_components?: GooglePlaceAddressComponent[];
 };
 
 type GoogleAutocompleteInstance = {
@@ -56,6 +64,49 @@ const toLocalPhoneDigits = (value: string | null | undefined) => {
   const local = digits.startsWith("1") ? digits.slice(1) : digits;
   return local.slice(0, 10);
 };
+
+type AddressParts = {
+  line1: string;
+  line2?: string;
+  floor?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
+};
+
+const formatAddress = ({
+  line1,
+  line2,
+  floor,
+  city,
+  state,
+  postalCode,
+  country,
+}: AddressParts) => {
+  const base = line1.trim();
+  if (!base) return "";
+  const extras: string[] = [];
+  const cleanLine2 = line2?.trim();
+  const cleanFloor = floor?.trim();
+  if (cleanLine2) {
+    extras.push(cleanLine2);
+  }
+  if (cleanFloor) {
+    const normalizedFloor = cleanFloor.toLowerCase().startsWith("floor")
+      ? cleanFloor
+      : `Floor ${cleanFloor}`;
+    extras.push(normalizedFloor);
+  }
+  const line = extras.length ? `${base}, ${extras.join(", ")}` : base;
+  const stateZip = [state?.trim(), postalCode?.trim()].filter(Boolean).join(" ");
+  const cityStateZip = [city?.trim(), stateZip].filter(Boolean).join(", ");
+  const parts = [line, cityStateZip, country?.trim()].filter(Boolean) as string[];
+  return parts.join(", ");
+};
+
+const formatAddressForQuote = (parts: AddressParts) =>
+  formatAddress({ ...parts, line2: "", floor: "" });
 
 const PaymentIcon = ({ icon }: { icon: PaymentIconSpec }) => {
   const [src, setSrc] = useState(icon.src);
@@ -126,7 +177,14 @@ export default function CartView({
 }: CartViewProps) {
   const { items, updateQuantity, removeItem } = useCart();
   const [guestEmail, setGuestEmail] = useState(() => userEmail || "");
-  const [address, setAddress] = useState("");
+  const [addressLine1, setAddressLine1] = useState("");
+  const [addressLine2, setAddressLine2] = useState("");
+  const [addressFloor, setAddressFloor] = useState("");
+  const [addressCity, setAddressCity] = useState("");
+  const [addressState, setAddressState] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+  const [country, setCountry] = useState("United States");
+  const [orderComment, setOrderComment] = useState("");
   const [phoneLocal, setPhoneLocal] = useState(() => toLocalPhoneDigits(userPhone));
   const inputRef = useRef<HTMLInputElement | null>(null);
   const autocompleteRef = useRef<GoogleAutocompleteInstance | null>(null);
@@ -156,21 +214,42 @@ export default function CartView({
   };
   const phoneValid = phoneLocal.length === 10;
   const phoneValue = formatPhone(phoneLocal);
+  const addressForQuote = useMemo(
+    () =>
+      formatAddressForQuote({
+        line1: addressLine1,
+        city: addressCity,
+        state: addressState,
+        postalCode,
+        country,
+      }),
+    [addressLine1, addressCity, addressState, postalCode, country]
+  );
+  const hasRequiredAddress =
+    Boolean(addressLine1.trim()) &&
+    Boolean(addressCity.trim()) &&
+    Boolean(addressState.trim()) &&
+    Boolean(postalCode.trim());
 
   useEffect(() => {
     const stored = loadCheckoutFormStorage();
     if (stored) {
-      const nextAddress = stored.address?.trim() || "";
       if (!isAuthenticated && stored.guestEmail) {
         setGuestEmail(stored.guestEmail);
       }
-      if (nextAddress) {
-        setAddress(nextAddress);
-      }
+      const legacyAddress = stored.address?.trim() || "";
+      setAddressLine1(stored.addressLine1?.trim() || legacyAddress);
+      setAddressLine2(stored.addressLine2?.trim() || "");
+      setAddressFloor(stored.addressFloor?.trim() || "");
+      setAddressCity(stored.addressCity?.trim() || "");
+      setAddressState(stored.addressState?.trim() || "");
+      setPostalCode(stored.postalCode?.trim() || "");
+      setCountry(stored.country?.trim() || "United States");
+      setOrderComment(stored.orderComment?.trim() || "");
       if (stored.phoneLocal) {
         setPhoneLocal(stored.phoneLocal);
       }
-      if (stored.quote && stored.quote.address === nextAddress) {
+      if (stored.quote) {
         setQuote(stored.quote);
       }
     }
@@ -181,11 +260,40 @@ export default function CartView({
     if (!storageReady) return;
     saveCheckoutFormStorage({
       guestEmail: isAuthenticated ? "" : guestEmail,
-      address: address.trim(),
+      addressLine1: addressLine1.trim(),
+      addressLine2: addressLine2.trim(),
+      addressFloor: addressFloor.trim(),
+      addressCity: addressCity.trim(),
+      addressState: addressState.trim(),
+      postalCode: postalCode.trim(),
+      country: country.trim(),
+      orderComment: orderComment.trim(),
       phoneLocal,
       quote,
     });
-  }, [address, guestEmail, isAuthenticated, phoneLocal, quote, storageReady]);
+  }, [
+    addressCity,
+    addressFloor,
+    addressLine1,
+    addressLine2,
+    addressState,
+    country,
+    guestEmail,
+    isAuthenticated,
+    orderComment,
+    phoneLocal,
+    postalCode,
+    quote,
+    storageReady,
+  ]);
+
+  useEffect(() => {
+    if (!quote) return;
+    if (quote.address !== addressForQuote) {
+      setQuote(null);
+      setQuoteError(null);
+    }
+  }, [addressForQuote, quote]);
 
   useEffect(() => {
     if (!mapsKey || !inputRef.current) return;
@@ -223,16 +331,44 @@ export default function CartView({
           {
             types: ["address"],
             componentRestrictions: { country: "us" },
-            fields: ["formatted_address"],
+            fields: ["formatted_address", "address_components", "name"],
           }
         );
         autocompleteRef.current.addListener("place_changed", () => {
           const place = autocompleteRef.current?.getPlace();
-          if (place?.formatted_address) {
-            setAddress(place.formatted_address);
-            setQuote(null);
-            setQuoteError(null);
-          }
+          if (!place) return;
+          const components = place.address_components || [];
+          const getComponent = (type: string) =>
+            components.find((component) => component.types?.includes(type));
+          const streetNumber = getComponent("street_number")?.long_name || "";
+          const route = getComponent("route")?.long_name || "";
+          const subpremise = getComponent("subpremise")?.long_name || "";
+          const city =
+            getComponent("locality")?.long_name ||
+            getComponent("postal_town")?.long_name ||
+            getComponent("sublocality")?.long_name ||
+            getComponent("administrative_area_level_2")?.long_name ||
+            "";
+          const state = getComponent("administrative_area_level_1")?.short_name || "";
+          const postal = getComponent("postal_code")?.long_name || "";
+          const postalSuffix = getComponent("postal_code_suffix")?.long_name || "";
+          const countryName = getComponent("country")?.long_name || "";
+          const line1 = [streetNumber, route].filter(Boolean).join(" ").trim();
+          const resolvedLine1 = line1 || place.name || "";
+          const resolvedPostal = postal
+            ? postalSuffix
+              ? `${postal}-${postalSuffix}`
+              : postal
+            : "";
+
+          if (resolvedLine1) setAddressLine1(resolvedLine1);
+          if (subpremise) setAddressLine2(`Apt ${subpremise}`);
+          if (city) setAddressCity(city);
+          if (state) setAddressState(state);
+          if (resolvedPostal) setPostalCode(resolvedPostal);
+          if (countryName) setCountry(countryName);
+          setQuote(null);
+          setQuoteError(null);
         });
       })
       .catch(() => {
@@ -311,26 +447,28 @@ export default function CartView({
     Boolean(quoteError) ||
     !emailValid ||
     !phoneValid ||
+    !hasRequiredAddress ||
     checkoutBusy;
   const paypalCheckoutDisabled =
     !quote ||
     quoteLoading ||
     Boolean(quoteError) ||
     !emailValid ||
+    !hasRequiredAddress ||
     checkoutBusy;
   const checkoutPhone = phoneValid ? phoneValue : "";
 
   const requestQuote = async () => {
-    const trimmed = address.trim();
-    if (!trimmed) {
+    if (!hasRequiredAddress) {
       setQuote(null);
-      setQuoteError("Please enter a delivery address.");
+      setQuoteError("Please enter street, city, state, and ZIP.");
       return;
     }
 
     setQuoteLoading(true);
     setQuoteError(null);
 
+    const trimmed = addressForQuote.trim();
     const response = await fetch("/api/delivery/quote", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -470,17 +608,107 @@ export default function CartView({
             </p>
           ) : null}
           <label className="flex flex-col gap-2 text-sm text-stone-700">
-            Delivery address
+            Street address
             <input
               ref={inputRef}
-              value={address}
+              value={addressLine1}
               onChange={(event) => {
-                setAddress(event.target.value);
+                setAddressLine1(event.target.value);
                 setQuote(null);
                 setQuoteError(null);
               }}
-              placeholder="Street, city, state, ZIP"
+              placeholder="123 Main St"
+              autoComplete="address-line1"
               className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400 disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-stone-400"
+            />
+          </label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="flex flex-col gap-2 text-sm text-stone-700">
+              Apartment / Suite (optional)
+              <input
+                value={addressLine2}
+                onChange={(event) => setAddressLine2(event.target.value)}
+                placeholder="Apt 2B"
+                autoComplete="address-line2"
+                className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+              />
+            </label>
+            <label className="flex flex-col gap-2 text-sm text-stone-700">
+              Floor (optional)
+              <input
+                value={addressFloor}
+                onChange={(event) => setAddressFloor(event.target.value)}
+                placeholder="5"
+                className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+              />
+            </label>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-[1.2fr_0.8fr_0.9fr]">
+            <label className="flex flex-col gap-2 text-sm text-stone-700">
+              City
+              <input
+                value={addressCity}
+                onChange={(event) => {
+                  setAddressCity(event.target.value);
+                  setQuote(null);
+                  setQuoteError(null);
+                }}
+                placeholder="Chicago"
+                autoComplete="address-level2"
+                className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+              />
+            </label>
+            <label className="flex flex-col gap-2 text-sm text-stone-700">
+              State
+              <input
+                value={addressState}
+                onChange={(event) => {
+                  const next = event.target.value
+                    .toUpperCase()
+                    .replace(/[^A-Z]/g, "")
+                    .slice(0, 2);
+                  setAddressState(next);
+                  setQuote(null);
+                  setQuoteError(null);
+                }}
+                placeholder="IL"
+                autoComplete="address-level1"
+                maxLength={2}
+                className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 uppercase outline-none focus:border-stone-400"
+              />
+            </label>
+            <label className="flex flex-col gap-2 text-sm text-stone-700">
+              ZIP code
+              <input
+                value={postalCode}
+                onChange={(event) => {
+                  const next = event.target.value
+                    .toUpperCase()
+                    .replace(/[^0-9-]/g, "")
+                    .slice(0, 10);
+                  setPostalCode(next);
+                  setQuote(null);
+                  setQuoteError(null);
+                }}
+                placeholder="60601"
+                autoComplete="postal-code"
+                inputMode="numeric"
+                className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+              />
+            </label>
+          </div>
+          <label className="flex flex-col gap-2 text-sm text-stone-700">
+            Country
+            <input
+              value={country}
+              onChange={(event) => {
+                setCountry(event.target.value);
+                setQuote(null);
+                setQuoteError(null);
+              }}
+              placeholder="United States"
+              autoComplete="country"
+              className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
             />
           </label>
           <label className="flex flex-col gap-2 text-sm text-stone-700">
@@ -506,10 +734,20 @@ export default function CartView({
               Use format +1 312 555 0123.
             </p>
           ) : null}
+          <label className="flex flex-col gap-2 text-sm text-stone-700">
+            Order comment (optional)
+            <textarea
+              value={orderComment}
+              onChange={(event) => setOrderComment(event.target.value.slice(0, 500))}
+              placeholder="Delivery instructions, recipient notes, etc."
+              rows={3}
+              className="min-h-[6.5rem] w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+            />
+          </label>
           <button
             type="button"
             onClick={requestQuote}
-            disabled={quoteLoading || !address.trim()}
+            disabled={quoteLoading || !hasRequiredAddress}
             className="w-full rounded-full border border-stone-200 bg-white/80 px-4 py-2 text-xs uppercase tracking-[0.3em] text-stone-600 disabled:opacity-50"
           >
             {quoteLoading ? "Checking..." : "Check delivery"}
@@ -559,7 +797,15 @@ export default function CartView({
         </div>
         <CheckoutButton
           items={items}
-          deliveryAddress={address.trim()}
+          deliveryAddress={addressForQuote}
+          deliveryAddressLine1={addressLine1.trim()}
+          deliveryAddressLine2={addressLine2.trim()}
+          deliveryCity={addressCity.trim()}
+          deliveryState={addressState.trim()}
+          deliveryPostalCode={postalCode.trim()}
+          deliveryCountry={country.trim()}
+          deliveryFloor={addressFloor.trim()}
+          orderComment={orderComment.trim()}
           phone={checkoutPhone}
           email={checkoutEmail}
           disabled={stripeCheckoutDisabled}
@@ -658,7 +904,15 @@ export default function CartView({
         </div>
         <CheckoutButton
           items={items}
-          deliveryAddress={address.trim()}
+          deliveryAddress={addressForQuote}
+          deliveryAddressLine1={addressLine1.trim()}
+          deliveryAddressLine2={addressLine2.trim()}
+          deliveryCity={addressCity.trim()}
+          deliveryState={addressState.trim()}
+          deliveryPostalCode={postalCode.trim()}
+          deliveryCountry={country.trim()}
+          deliveryFloor={addressFloor.trim()}
+          orderComment={orderComment.trim()}
           phone={checkoutPhone}
           email={checkoutEmail}
           disabled={paypalCheckoutDisabled}
