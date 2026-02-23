@@ -40,11 +40,41 @@ type GoogleMapsWindow = Window & {
   };
 };
 
+type PaymentIconSpec = {
+  label: string;
+  src: string;
+  fallbackSrc?: string;
+};
+
 const toLocalPhoneDigits = (value: string | null | undefined) => {
   const digits = (value || "").replace(/\D/g, "");
   if (!digits) return "";
   const local = digits.startsWith("1") ? digits.slice(1) : digits;
   return local.slice(0, 10);
+};
+
+const PaymentIcon = ({ icon }: { icon: PaymentIconSpec }) => {
+  const [src, setSrc] = useState(icon.src);
+
+  useEffect(() => {
+    setSrc(icon.src);
+  }, [icon.src]);
+
+  return (
+    <span className="inline-flex shrink-0 items-center justify-center" title={icon.label}>
+      <img
+        src={src}
+        alt={icon.label}
+        loading="lazy"
+        className="h-5 w-auto"
+        onError={() => {
+          if (icon.fallbackSrc && src !== icon.fallbackSrc) {
+            setSrc(icon.fallbackSrc);
+          }
+        }}
+      />
+    </span>
+  );
 };
 
 type CartViewProps = {
@@ -485,73 +515,88 @@ export default function CartView({
           label="Checkout"
           paymentMethod="stripe"
         />
-        <div className="flex flex-wrap gap-2">
+        <div className="flex items-center gap-3 overflow-x-auto py-1">
           {[
             {
               label: "Visa",
-              src: "https://api.iconify.design/fa6-brands/cc-visa.svg?height=18&color=%2378716c",
+              src: "/payments/visa.svg",
+              fallbackSrc:
+                "https://api.iconify.design/fa6-brands/cc-visa.svg?height=18&color=%231a1f71",
             },
             {
               label: "Mastercard",
-              src: "https://api.iconify.design/fa6-brands/cc-mastercard.svg?height=18&color=%2378716c",
+              src: "/payments/mastercard.svg",
+              fallbackSrc:
+                "https://api.iconify.design/fa6-brands/cc-mastercard.svg?height=18&color=%23eb001b",
             },
             {
               label: "Amex",
-              src: "https://api.iconify.design/fa6-brands/cc-amex.svg?height=18&color=%2378716c",
+              src: "/payments/amex.svg",
+              fallbackSrc:
+                "https://api.iconify.design/fa6-brands/cc-amex.svg?height=18&color=%232e77bb",
             },
             {
               label: "Discover",
-              src: "https://api.iconify.design/fa6-brands/cc-discover.svg?height=18&color=%2378716c",
+              src: "/payments/discover.svg",
+              fallbackSrc:
+                "https://api.iconify.design/fa6-brands/cc-discover.svg?height=18&color=%23ff6000",
             },
             {
               label: "Diners Club",
-              src: "https://api.iconify.design/fa6-brands/cc-diners-club.svg?height=18&color=%2378716c",
+              src: "/payments/diners-club.svg",
+              fallbackSrc:
+                "https://api.iconify.design/fa6-brands/cc-diners-club.svg?height=18&color=%230079be",
             },
             {
               label: "JCB",
-              src: "https://api.iconify.design/fa6-brands/cc-jcb.svg?height=18&color=%2378716c",
+              src: "/payments/jcb.svg",
+              fallbackSrc:
+                "https://api.iconify.design/fa6-brands/cc-jcb.svg?height=18&color=%230b4ea2",
             },
             {
               label: "UnionPay",
-              src: "https://api.iconify.design/logos/unionpay.svg?height=18",
+              src: "/payments/unionpay.svg",
+              fallbackSrc:
+                "https://api.iconify.design/fa6-brands/cc-unionpay.svg?height=18&color=%23e60012",
             },
             {
               label: "Apple Pay",
-              src: "https://api.iconify.design/fa6-brands/apple-pay.svg?height=18&color=%2378716c",
+              src: "/payments/apple-pay.svg",
+              fallbackSrc:
+                "https://api.iconify.design/fa6-brands/apple-pay.svg?height=18&color=%23000000",
             },
             {
               label: "Google Pay",
-              src: "https://api.iconify.design/fa6-brands/google-pay.svg?height=18&color=%2378716c",
+              src: "/payments/google-pay.svg",
+              fallbackSrc:
+                "https://api.iconify.design/fa6-brands/google-pay.svg?height=18&color=%234285f4",
             },
             {
               label: "Samsung Pay",
-              src: "https://api.iconify.design/simple-icons/samsung.svg?height=18&color=%2378716c",
+              src: "/payments/samsung-pay.svg",
+              fallbackSrc:
+                "https://api.iconify.design/simple-icons/samsung.svg?height=18&color=%231428a0",
             },
             {
               label: "Amazon Pay",
-              src: "https://api.iconify.design/fa6-brands/amazon-pay.svg?height=18&color=%2378716c",
+              src: "/payments/amazon-pay.svg",
+              fallbackSrc:
+                "https://api.iconify.design/fa6-brands/amazon-pay.svg?height=18&color=%23ff9900",
             },
             {
               label: "Link",
-              src: "https://api.iconify.design/fa6-brands/stripe.svg?height=18&color=%2378716c",
+              src: "/payments/link.svg",
+              fallbackSrc:
+                "https://api.iconify.design/fa6-brands/stripe.svg?height=18&color=%23635bff",
             },
             {
               label: "Cash App Pay",
-              src: "https://api.iconify.design/lineicons/cash-app.svg?height=18&color=%2378716c",
+              src: "/payments/cash-app-pay.svg",
+              fallbackSrc:
+                "https://api.iconify.design/lineicons/cash-app.svg?height=18&color=%2300d632",
             },
           ].map((icon) => (
-            <span
-              key={icon.label}
-              className="inline-flex items-center justify-center rounded-full border border-stone-200 bg-white/80 px-3 py-1"
-              title={icon.label}
-            >
-              <img
-                src={icon.src}
-                alt={icon.label}
-                loading="lazy"
-                className="h-4 w-auto"
-              />
-            </span>
+            <PaymentIcon key={icon.label} icon={icon} />
           ))}
         </div>
         <div className="flex items-center gap-3">

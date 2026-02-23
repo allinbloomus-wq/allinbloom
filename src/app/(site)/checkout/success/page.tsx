@@ -175,7 +175,7 @@ function CheckoutSuccessContent() {
           : status === "error"
           ? error ||
             "We could not confirm your payment yet. Please return to the cart and try again."
-          : "We have received your order and our florists are preparing your bouquet now. You will receive a confirmation email with delivery details shortly."}
+          : "We have received your order and our florists are preparing your bouquet now. You will receive a confirmation email with delivery details shortly. If you don't see it, please check your spam folder."}
       </p>
       <Link
         href={status === "success" ? "/catalog" : "/cart"}

@@ -100,8 +100,8 @@ export default function AdminBouquetRow({ bouquet }: { bouquet: Bouquet }) {
             </p>
           </div>
         </div>
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:items-end">
-          <div className="flex flex-wrap items-center gap-2 text-xs sm:justify-end">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
+          <div className="flex flex-wrap items-center gap-2 text-xs">
             {bouquet.isFeatured && (
               <span className="rounded-full bg-rose-100 px-3 py-1 text-rose-700">
                 Featured

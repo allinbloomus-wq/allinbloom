@@ -14,6 +14,8 @@ type ReviewFormState = {
 };
 
 const REVIEW_TEXT_MAX_LENGTH = 1024;
+const REVIEW_IMAGE_MAX_WIDTH = 1200;
+const REVIEW_IMAGE_MAX_HEIGHT = 900;
 
 const initialState: ReviewFormState = {
   name: "",
@@ -64,6 +66,9 @@ export default function ReviewForm() {
     const payload = new FormData();
     payload.append("file", file);
     payload.append("upload_preset", uploadPreset);
+    payload.append("max_width", String(REVIEW_IMAGE_MAX_WIDTH));
+    payload.append("max_height", String(REVIEW_IMAGE_MAX_HEIGHT));
+    payload.append("format", "webp");
 
     try {
       const response = await clientFetch("/api/upload/review", {

@@ -15,6 +15,16 @@ type AdminImageUploadProps = {
   required?: boolean;
 };
 
+const parseRecommendedSize = (value?: string) => {
+  if (!value) return null;
+  const match = value.match(/(\d+)\s*x\s*(\d+)/i);
+  if (!match) return null;
+  const width = Number.parseInt(match[1], 10);
+  const height = Number.parseInt(match[2], 10);
+  if (!Number.isFinite(width) || !Number.isFinite(height)) return null;
+  return { width, height };
+};
+
 export default function AdminImageUpload({
   name = "image",
   urlLabel = "Image URL",
@@ -33,6 +43,7 @@ export default function AdminImageUpload({
 
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
   const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+  const recommendedTarget = parseRecommendedSize(recommendedSize);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -54,6 +65,11 @@ export default function AdminImageUpload({
     const formData = new FormData();
     formData.append("file", file);
     formData.append("upload_preset", uploadPreset);
+    if (recommendedTarget) {
+      formData.append("max_width", String(recommendedTarget.width));
+      formData.append("max_height", String(recommendedTarget.height));
+      formData.append("format", "webp");
+    }
 
     try {
       const response = await clientFetch("/api/upload", {
