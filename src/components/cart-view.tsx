@@ -55,10 +55,23 @@ const toLocalPhoneDigits = (value: string | null | undefined) => {
 
 const PaymentIcon = ({ icon }: { icon: PaymentIconSpec }) => {
   const [src, setSrc] = useState(icon.src);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     setSrc(icon.src);
+    setFailed(false);
   }, [icon.src]);
+
+  if (failed) {
+    return (
+      <span
+        className="inline-flex shrink-0 items-center justify-center text-[10px] uppercase tracking-[0.18em] text-stone-500"
+        title={icon.label}
+      >
+        {icon.label}
+      </span>
+    );
+  }
 
   return (
     <span className="inline-flex shrink-0 items-center justify-center" title={icon.label}>
@@ -70,7 +83,9 @@ const PaymentIcon = ({ icon }: { icon: PaymentIconSpec }) => {
         onError={() => {
           if (icon.fallbackSrc && src !== icon.fallbackSrc) {
             setSrc(icon.fallbackSrc);
+            return;
           }
+          setFailed(true);
         }}
       />
     </span>
@@ -520,80 +535,78 @@ export default function CartView({
             {
               label: "Visa",
               src: "/payments/visa.svg",
-              fallbackSrc:
-                "https://api.iconify.design/fa6-brands/cc-visa.svg?height=18&color=%231a1f71",
+              fallbackSrc: "https://api.iconify.design/logos/visa.svg?height=18",
             },
             {
               label: "Mastercard",
               src: "/payments/mastercard.svg",
               fallbackSrc:
-                "https://api.iconify.design/fa6-brands/cc-mastercard.svg?height=18&color=%23eb001b",
+                "https://api.iconify.design/logos/mastercard.svg?height=18",
             },
             {
               label: "Amex",
               src: "/payments/amex.svg",
               fallbackSrc:
-                "https://api.iconify.design/fa6-brands/cc-amex.svg?height=18&color=%232e77bb",
+                "https://api.iconify.design/logos/american-express.svg?height=18",
             },
             {
               label: "Discover",
               src: "/payments/discover.svg",
               fallbackSrc:
-                "https://api.iconify.design/fa6-brands/cc-discover.svg?height=18&color=%23ff6000",
-            },
-            {
-              label: "Diners Club",
-              src: "/payments/diners-club.svg",
-              fallbackSrc:
-                "https://api.iconify.design/fa6-brands/cc-diners-club.svg?height=18&color=%230079be",
-            },
-            {
-              label: "JCB",
-              src: "/payments/jcb.svg",
-              fallbackSrc:
-                "https://api.iconify.design/fa6-brands/cc-jcb.svg?height=18&color=%230b4ea2",
-            },
-            {
-              label: "UnionPay",
-              src: "/payments/unionpay.svg",
-              fallbackSrc:
-                "https://api.iconify.design/fa6-brands/cc-unionpay.svg?height=18&color=%23e60012",
+                "https://api.iconify.design/logos/discover.svg?height=18",
             },
             {
               label: "Apple Pay",
               src: "/payments/apple-pay.svg",
               fallbackSrc:
-                "https://api.iconify.design/fa6-brands/apple-pay.svg?height=18&color=%23000000",
+                "https://api.iconify.design/logos/apple-pay.svg?height=18",
             },
             {
               label: "Google Pay",
               src: "/payments/google-pay.svg",
               fallbackSrc:
-                "https://api.iconify.design/fa6-brands/google-pay.svg?height=18&color=%234285f4",
-            },
-            {
-              label: "Samsung Pay",
-              src: "/payments/samsung-pay.svg",
-              fallbackSrc:
-                "https://api.iconify.design/simple-icons/samsung.svg?height=18&color=%231428a0",
-            },
-            {
-              label: "Amazon Pay",
-              src: "/payments/amazon-pay.svg",
-              fallbackSrc:
-                "https://api.iconify.design/fa6-brands/amazon-pay.svg?height=18&color=%23ff9900",
+                "https://api.iconify.design/logos/google-pay.svg?height=18",
             },
             {
               label: "Link",
               src: "/payments/link.svg",
               fallbackSrc:
-                "https://api.iconify.design/fa6-brands/stripe.svg?height=18&color=%23635bff",
+                "https://api.iconify.design/logos/stripe.svg?height=18",
             },
             {
               label: "Cash App Pay",
               src: "/payments/cash-app-pay.svg",
               fallbackSrc:
                 "https://api.iconify.design/lineicons/cash-app.svg?height=18&color=%2300d632",
+            },
+            {
+              label: "Amazon Pay",
+              src: "/payments/amazon-pay.svg",
+              fallbackSrc:
+                "https://api.iconify.design/logos/amazon-pay.svg?height=18",
+            },
+            {
+              label: "Samsung Pay",
+              src: "/payments/samsung-pay.svg",
+              fallbackSrc:
+                "https://api.iconify.design/logos/samsung-pay.svg?height=18",
+            },
+            {
+              label: "UnionPay",
+              src: "/payments/unionpay.svg",
+              fallbackSrc:
+                "https://api.iconify.design/logos/unionpay.svg?height=18",
+            },
+            {
+              label: "JCB",
+              src: "/payments/jcb.svg",
+              fallbackSrc: "https://api.iconify.design/logos/jcb.svg?height=18",
+            },
+            {
+              label: "Diners Club",
+              src: "/payments/diners-club.svg",
+              fallbackSrc:
+                "https://api.iconify.design/logos/diners-club.svg?height=18",
             },
           ].map((icon) => (
             <PaymentIcon key={icon.label} icon={icon} />
@@ -615,7 +628,6 @@ export default function CartView({
           onBusyChange={setCheckoutBusy}
           label="Pay with PayPal"
           paymentMethod="paypal"
-          className="bg-[#003087] hover:bg-[#001c64]"
           iconSrc="/paypal.webp"
           iconAlt="PayPal"
           iconClassName="h-4 w-auto"
