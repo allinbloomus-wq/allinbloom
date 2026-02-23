@@ -78,17 +78,17 @@ const PaymentIcon = ({ icon }: { icon: PaymentIconSpec }) => {
   }
 
   return (
-    <span className="inline-flex shrink-0 items-center justify-center" title={icon.label}>
-      <img
-        src={src}
-        alt={icon.label}
-        loading="lazy"
-        className="h-5 w-auto"
-        onError={() => {
-          if (icon.fallbackSrc && src !== icon.fallbackSrc) {
-            setSrc(icon.fallbackSrc);
-            return;
-          }
+      <span className="inline-flex shrink-0 items-center justify-center" title={icon.label}>
+        <img
+          src={src}
+          alt={icon.label}
+          loading="lazy"
+          className="h-2.5 w-auto"
+          onError={() => {
+            if (icon.fallbackSrc && src !== icon.fallbackSrc) {
+              setSrc(icon.fallbackSrc);
+              return;
+            }
           setFailed(true);
         }}
       />
