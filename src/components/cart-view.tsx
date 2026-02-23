@@ -365,7 +365,7 @@ export default function CartView({
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-      <div className="space-y-4">
+      <div className="min-w-0 space-y-4">
         {lineItems.map((item) => (
           <div
             key={item.id}
@@ -436,7 +436,7 @@ export default function CartView({
           </div>
         ))}
       </div>
-      <div className="glass h-fit space-y-4 rounded-[28px] border border-white/80 p-5 sm:p-6">
+      <div className="glass h-fit min-w-0 space-y-4 rounded-[28px] border border-white/80 p-5 sm:p-6">
         <h2 className="text-xl font-semibold text-stone-900">Order summary</h2>
         {canceledCheckoutStatus === "CANCELED" || canceledCheckoutStatus === "FAILED" ? (
           <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs uppercase tracking-[0.24em] text-amber-800">
@@ -567,7 +567,7 @@ export default function CartView({
           label="Checkout"
           paymentMethod="stripe"
         />
-        <div className="flex items-center gap-3 overflow-x-auto py-1">
+        <div className="flex min-w-0 max-w-full items-center gap-3 overflow-x-auto py-1">
           {[
             {
               label: "Visa",
