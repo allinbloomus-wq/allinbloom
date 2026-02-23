@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import AdminOrderRow from "@/components/admin-order-row";
 import { formatDate } from "@/lib/format";
 import {
@@ -41,6 +41,7 @@ export default function AdminOrdersList({
   );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const didRestoreScroll = useRef(false);
 
   useEffect(() => {
     setWeeks(initialWeeks);
@@ -49,6 +50,7 @@ export default function AdminOrdersList({
     setError(null);
   }, [initialWeeks, initialOldestWeekStartKey]);
 
+  const scrollKey = useMemo(() => `admin-orders-scroll:${mode}`, [mode]);
   const currentWeekStartKey = useMemo(
     () => getCurrentWeekStartKey(new Date()),
     []
@@ -58,6 +60,22 @@ export default function AdminOrdersList({
     () => addDaysToDayKey(todayKey, -1),
     [todayKey]
   );
+
+  useEffect(() => {
+    if (didRestoreScroll.current) return;
+    didRestoreScroll.current = true;
+    try {
+      const raw = sessionStorage.getItem(scrollKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as { y?: number };
+      if (typeof parsed?.y === "number") {
+        window.scrollTo({ top: parsed.y, behavior: "auto" });
+      }
+      sessionStorage.removeItem(scrollKey);
+    } catch {
+      // Ignore storage errors (e.g., disabled cookies).
+    }
+  }, [scrollKey]);
 
   const getLabel = (weekStartKey: string) => {
     const weekEndKey = addDaysToDayKey(weekStartKey, 6);

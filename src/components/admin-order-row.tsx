@@ -47,6 +47,17 @@ export default function AdminOrderRow({
   const menuRef = useRef<HTMLDivElement | null>(null);
   const isBusy = isLoading || isDeleting || isRestoring || isPermanentDeleting;
 
+  const storeScrollPosition = () => {
+    try {
+      sessionStorage.setItem(
+        `admin-orders-scroll:${mode}`,
+        JSON.stringify({ y: window.scrollY, ts: Date.now() })
+      );
+    } catch {
+      // Ignore storage errors (e.g., disabled cookies).
+    }
+  };
+
   useEffect(() => {
     if (!isMenuOpen) return;
 
@@ -273,6 +284,7 @@ export default function AdminOrderRow({
           </div>
           <Link
             href={`/admin/orders/${order.id}`}
+            onClick={storeScrollPosition}
             className={`${orderMetaBadgeClass} border-stone-300 bg-white/80 text-stone-600 transition hover:border-stone-400`}
           >
             Details

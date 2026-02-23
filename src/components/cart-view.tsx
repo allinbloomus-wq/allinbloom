@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useCart } from "@/lib/cart";
+import {
+  loadCheckoutFormStorage,
+  saveCheckoutFormStorage,
+  useCart,
+} from "@/lib/cart";
 import { formatMoney } from "@/lib/format";
 import { getCartItemDiscount } from "@/lib/pricing";
 import CheckoutButton from "@/components/checkout-button";
@@ -130,10 +134,12 @@ export default function CartView({
     feeCents: number;
     miles: number;
     distanceText: string;
+    address: string;
   } | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
+  const [storageReady, setStorageReady] = useState(false);
   const mapsKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   const checkoutEmail = (isAuthenticated ? userEmail || "" : guestEmail).trim().toLowerCase();
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(checkoutEmail);
@@ -150,6 +156,36 @@ export default function CartView({
   };
   const phoneValid = phoneLocal.length === 10;
   const phoneValue = formatPhone(phoneLocal);
+
+  useEffect(() => {
+    const stored = loadCheckoutFormStorage();
+    if (stored) {
+      const nextAddress = stored.address?.trim() || "";
+      if (!isAuthenticated && stored.guestEmail) {
+        setGuestEmail(stored.guestEmail);
+      }
+      if (nextAddress) {
+        setAddress(nextAddress);
+      }
+      if (stored.phoneLocal) {
+        setPhoneLocal(stored.phoneLocal);
+      }
+      if (stored.quote && stored.quote.address === nextAddress) {
+        setQuote(stored.quote);
+      }
+    }
+    setStorageReady(true);
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!storageReady) return;
+    saveCheckoutFormStorage({
+      guestEmail: isAuthenticated ? "" : guestEmail,
+      address: address.trim(),
+      phoneLocal,
+      quote,
+    });
+  }, [address, guestEmail, isAuthenticated, phoneLocal, quote, storageReady]);
 
   useEffect(() => {
     if (!mapsKey || !inputRef.current) return;
@@ -314,6 +350,7 @@ export default function CartView({
       feeCents: payload.feeCents,
       miles: payload.miles,
       distanceText: payload.distanceText,
+      address: trimmed,
     });
     setQuoteLoading(false);
   };

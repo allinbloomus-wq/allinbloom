@@ -42,6 +42,45 @@ type CartAction =
   | { type: "clear" };
 
 const CART_KEY = "all-in-bloom-cart";
+const CHECKOUT_FORM_KEY = "all-in-bloom-checkout-form";
+
+export type CheckoutFormStorage = {
+  guestEmail: string;
+  address: string;
+  phoneLocal: string;
+  quote: {
+    feeCents: number;
+    miles: number;
+    distanceText: string;
+    address: string;
+  } | null;
+};
+
+export function loadCheckoutFormStorage(): CheckoutFormStorage | null {
+  try {
+    const raw = sessionStorage.getItem(CHECKOUT_FORM_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as CheckoutFormStorage;
+  } catch {
+    return null;
+  }
+}
+
+export function saveCheckoutFormStorage(payload: CheckoutFormStorage) {
+  try {
+    sessionStorage.setItem(CHECKOUT_FORM_KEY, JSON.stringify(payload));
+  } catch {
+    // Ignore storage errors (e.g., disabled cookies).
+  }
+}
+
+export function clearCheckoutFormStorage() {
+  try {
+    sessionStorage.removeItem(CHECKOUT_FORM_KEY);
+  } catch {
+    // Ignore storage errors (e.g., disabled cookies).
+  }
+}
 
 const reducer = (state: CartState, action: CartAction): CartState => {
   switch (action.type) {

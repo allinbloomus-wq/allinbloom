@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { clearCartStorage, useCart } from "@/lib/cart";
+import { clearCartStorage, clearCheckoutFormStorage, useCart } from "@/lib/cart";
 import { clientFetch } from "@/lib/api-client";
 
 export default function CheckoutSuccessPage() {
@@ -72,6 +72,7 @@ function CheckoutSuccessContent() {
       if (orderStatus === "PAID") {
         setStatus("success");
         clearCartStorage();
+        clearCheckoutFormStorage();
         clear();
         return;
       }
@@ -128,6 +129,7 @@ function CheckoutSuccessContent() {
       if (paymentStatus === "PAID") {
         setStatus("success");
         clearCartStorage();
+        clearCheckoutFormStorage();
         clear();
         return;
       }
