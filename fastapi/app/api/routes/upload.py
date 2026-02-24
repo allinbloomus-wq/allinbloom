@@ -110,10 +110,6 @@ async def _upload_to_cloudinary(
     normalized_width = _normalize_dimension(max_width)
     normalized_height = _normalize_dimension(max_height)
     transform = _build_transform(normalized_width, normalized_height, normalized_fmt)
-    if transform:
-        data["transformation"] = transform
-    if normalized_fmt:
-        data["format"] = normalized_fmt
 
     async with httpx.AsyncClient(timeout=20) as client:
         response = await client.post(url, data=data, files=files)
@@ -121,16 +117,7 @@ async def _upload_to_cloudinary(
     payload = response.json()
     if response.status_code >= 400:
         message = (payload.get("error") or {}).get("message", "Upload failed")
-        if response.status_code == 400 and normalized_fmt:
-            message = (
-                "Cloudinary rejected the WebP transformation. "
-                "Allow f_webp,q_auto in the unsigned upload preset or disable "
-                "strict transformations."
-            )
-        raise HTTPException(
-            status_code=response.status_code,
-            detail=message,
-        )
+        raise HTTPException(status_code=response.status_code, detail=message)
 
     raw_url = payload.get("secure_url") or payload.get("url") or ""
     return UploadResponse(
