@@ -51,16 +51,23 @@ export async function getOrdersByEmail(email: string): Promise<Order[]> {
 }
 
 export async function cancelCheckoutOrder(
-  orderId: string,
-  cancelToken?: string | null
+  orderId?: string | null,
+  cancelToken?: string | null,
+  paypalOrderId?: string | null
 ): Promise<string | null> {
-  if (!orderId) return null;
+  const normalizedOrderId = orderId?.trim() || "";
+  const normalizedPaypalOrderId = paypalOrderId?.trim() || "";
+  if (!normalizedOrderId && !normalizedPaypalOrderId) return null;
   const response = await apiFetch(
     "/api/checkout/cancel",
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orderId, cancelToken: cancelToken || undefined }),
+      body: JSON.stringify({
+        orderId: normalizedOrderId || undefined,
+        paypalOrderId: normalizedPaypalOrderId || undefined,
+        cancelToken: cancelToken || undefined,
+      }),
     },
     false
   );

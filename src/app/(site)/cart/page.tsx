@@ -16,6 +16,7 @@ type CartSearchParams = Promise<{
   checkoutCanceled?: string | string[];
   orderId?: string | string[];
   cancelToken?: string | string[];
+  token?: string | string[];
 }>;
 
 const pickFirst = (value: string | string[] | undefined) =>
@@ -33,9 +34,14 @@ export default async function CartPage({
   const checkoutCanceledParam = pickFirst(params.checkoutCanceled);
   const canceledOrderId = pickFirst(params.orderId);
   const canceledCheckoutToken = pickFirst(params.cancelToken);
+  const paypalOrderToken = pickFirst(params.token);
   const canceledCheckoutStatus =
-    checkoutCanceledParam === "1" && canceledOrderId
-      ? await cancelCheckoutOrder(canceledOrderId, canceledCheckoutToken)
+    checkoutCanceledParam === "1" && (canceledOrderId || paypalOrderToken)
+      ? await cancelCheckoutOrder(
+          canceledOrderId,
+          canceledCheckoutToken,
+          paypalOrderToken
+        )
       : null;
 
   const settings = await getStoreSettings();

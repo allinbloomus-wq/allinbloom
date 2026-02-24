@@ -592,16 +592,31 @@ async def cancel_checkout(
 ):
     user_id = user.id if user else None
 
-    order = db.get(Order, payload.order_id)
+    order_id = (payload.order_id or "").strip()
+    paypal_order_id = (payload.paypal_order_id or "").strip()
+    order = db.get(Order, order_id) if order_id else None
+    if not order and paypal_order_id:
+        order = (
+            db.execute(select(Order).where(Order.paypal_order_id == paypal_order_id))
+            .scalars()
+            .first()
+        )
     if not order:
         raise HTTPException(status_code=404, detail="Not found")
-    if not _is_order_access_allowed(order, user=user, cancel_token=payload.cancel_token):
+    access_allowed = _is_order_access_allowed(order, user=user, cancel_token=payload.cancel_token)
+    if not access_allowed and paypal_order_id and order.paypal_order_id == paypal_order_id:
+        access_allowed = True
+    if not access_allowed:
         log_critical_event(
             domain="payment",
             event="checkout_cancel_unauthorized",
             message="Checkout cancel denied: invalid user/token for order.",
             request=request,
-            context={"order_id": payload.order_id, "user_id": user_id},
+            context={
+                "order_id": order_id or order.id,
+                "paypal_order_id": paypal_order_id or order.paypal_order_id,
+                "user_id": user_id,
+            },
             level=logging.WARNING,
         )
         raise HTTPException(status_code=404, detail="Not found")

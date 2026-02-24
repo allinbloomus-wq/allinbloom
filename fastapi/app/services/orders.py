@@ -194,9 +194,17 @@ def resolve_order_status_from_paypal_order(
 
     if status == "COMPLETED" or capture_status == "COMPLETED":
         return OrderStatus.PAID, capture_id
-    if status == "VOIDED" or capture_status in {"DECLINED", "DENIED", "FAILED"}:
+    if status in {"VOIDED", "CANCELED", "CANCELLED"} or capture_status in {
+        "DECLINED",
+        "DENIED",
+        "FAILED",
+    }:
         return OrderStatus.FAILED, capture_id
-    if status in {"CREATED", "SAVED", "PAYER_ACTION_REQUIRED"} and _is_order_older_than(
+    if status in {"CREATED", "SAVED", "PAYER_ACTION_REQUIRED", "APPROVED"} and _is_order_older_than(
+        order, seconds=PAYPAL_CHECKOUT_EXPIRATION_SECONDS
+    ):
+        return OrderStatus.FAILED, capture_id
+    if capture_status == "PENDING" and _is_order_older_than(
         order, seconds=PAYPAL_CHECKOUT_EXPIRATION_SECONDS
     ):
         return OrderStatus.FAILED, capture_id

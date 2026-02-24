@@ -35,7 +35,8 @@ class CheckoutResponse(SchemaBase):
 
 
 class CheckoutCancelRequest(SchemaBase):
-    order_id: str
+    order_id: Optional[str] = None
+    paypal_order_id: Optional[str] = None
     cancel_token: Optional[str] = None
 
 

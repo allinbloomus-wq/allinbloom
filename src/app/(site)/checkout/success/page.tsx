@@ -6,6 +6,9 @@ import { useSearchParams } from "next/navigation";
 import { clearCartStorage, clearCheckoutFormStorage, useCart } from "@/lib/cart";
 import { clientFetch } from "@/lib/api-client";
 
+const PAYPAL_RETRY_DELAY_MS = 3000;
+const PAYPAL_MAX_ATTEMPTS = 6;
+
 export default function CheckoutSuccessPage() {
   return (
     <Suspense fallback={<CheckoutSuccessFallback />}>
@@ -96,9 +99,15 @@ function CheckoutSuccessContent() {
     if (!isPaypalReturn || !paypalToken) return;
 
     let isMounted = true;
+    let attempts = 0;
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+
     const capture = async () => {
-      setStatus("loading");
-      setError(null);
+      attempts += 1;
+      if (attempts === 1) {
+        setStatus("loading");
+        setError(null);
+      }
       const response = await clientFetch(
         "/api/paypal/capture",
         {
@@ -138,15 +147,28 @@ function CheckoutSuccessContent() {
         setError("PayPal payment was not completed.");
         return;
       }
+
+      if (attempts >= PAYPAL_MAX_ATTEMPTS) {
+        setStatus("pending");
+        setError(
+          "PayPal payment is still pending. Please refresh this page in a moment."
+        );
+        return;
+      }
+
       setStatus("pending");
-      setError(
-        "PayPal payment is still pending. Please refresh this page in a moment."
-      );
+      setError("PayPal payment is still pending. Checking again shortly.");
+      timeout = setTimeout(() => {
+        void capture();
+      }, PAYPAL_RETRY_DELAY_MS);
     };
 
     void capture();
     return () => {
       isMounted = false;
+      if (timeout) {
+        clearTimeout(timeout);
+      }
     };
   }, [cancelToken, checkoutOrderId, clear, isPaypalReturn, paypalToken]);
 
