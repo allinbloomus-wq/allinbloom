@@ -229,8 +229,13 @@ def _sync_with_paypal(db: Session, orders: Iterable[Order]) -> dict[str, OrderSt
         if status == "APPROVED":
             try:
                 payload = paypal_capture_order(order.paypal_order_id)
-            except PayPalApiError:
-                continue
+            except PayPalApiError as exc:
+                if exc.status_code is None or exc.status_code >= 500:
+                    continue
+                try:
+                    payload = paypal_get_order(order.paypal_order_id)
+                except PayPalApiError:
+                    continue
 
         next_status, capture_id = resolve_order_status_from_paypal_order(order, payload)
         if next_status and next_status != order.status:
@@ -294,8 +299,13 @@ def sync_order_with_paypal(db: Session, order: Order) -> OrderStatus | None:
     if status == "APPROVED":
         try:
             payload = paypal_capture_order(order.paypal_order_id)
-        except PayPalApiError:
-            return None
+        except PayPalApiError as exc:
+            if exc.status_code is None or exc.status_code >= 500:
+                return None
+            try:
+                payload = paypal_get_order(order.paypal_order_id)
+            except PayPalApiError:
+                return None
 
     next_status, capture_id = resolve_order_status_from_paypal_order(order, payload)
     if not next_status or next_status == order.status:
