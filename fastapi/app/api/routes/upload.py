@@ -71,13 +71,6 @@ async def _upload_to_cloudinary(
     data = {"upload_preset": settings.cloudinary_upload_preset}
     files = {"file": (file.filename, content, file.content_type)}
 
-    normalized_fmt = (fmt or "").strip().lower() or None
-    if not normalized_fmt and file.content_type != "image/gif":
-        normalized_fmt = "webp"
-
-    if normalized_fmt:
-        data["format"] = normalized_fmt
-
     async with httpx.AsyncClient(timeout=20) as client:
         response = await client.post(url, data=data, files=files)
 
