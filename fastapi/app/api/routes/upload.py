@@ -15,7 +15,6 @@ router = APIRouter(prefix="/api/upload", tags=["upload"])
 
 ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024
-MAX_TRANSFORM_DIM = 2400
 REVIEW_UPLOAD_WINDOW = timedelta(minutes=30)
 REVIEW_UPLOAD_LIMIT = 20
 review_upload_rate_limit: dict[str, dict[str, object]] = {}
@@ -57,37 +56,6 @@ async def _read_and_validate_file(file: UploadFile) -> bytes:
     return content
 
 
-def _normalize_dimension(value: int | None) -> int | None:
-    if not value:
-        return None
-    if value <= 0:
-        return None
-    return min(value, MAX_TRANSFORM_DIM)
-
-
-def _build_transform(
-    max_width: int | None, max_height: int | None, fmt: str | None
-) -> str:
-    parts: list[str] = []
-    if max_width or max_height:
-        parts.append("c_limit")
-        if max_width:
-            parts.append(f"w_{max_width}")
-        if max_height:
-            parts.append(f"h_{max_height}")
-    if fmt:
-        parts.append(f"f_{fmt}")
-    if parts:
-        parts.append("q_auto")
-    return ",".join(parts)
-
-
-def _apply_transform(url: str, transform: str) -> str:
-    if not url or not transform or "/upload/" not in url:
-        return url
-    return url.replace("/upload/", f"/upload/{transform}/", 1)
-
-
 async def _upload_to_cloudinary(
     file: UploadFile,
     content: bytes,
@@ -107,9 +75,8 @@ async def _upload_to_cloudinary(
     if not normalized_fmt and file.content_type != "image/gif":
         normalized_fmt = "webp"
 
-    normalized_width = _normalize_dimension(max_width)
-    normalized_height = _normalize_dimension(max_height)
-    transform = _build_transform(normalized_width, normalized_height, normalized_fmt)
+    if normalized_fmt:
+        data["format"] = normalized_fmt
 
     async with httpx.AsyncClient(timeout=20) as client:
         response = await client.post(url, data=data, files=files)
@@ -121,7 +88,7 @@ async def _upload_to_cloudinary(
 
     raw_url = payload.get("secure_url") or payload.get("url") or ""
     return UploadResponse(
-        url=_apply_transform(raw_url, transform),
+        url=raw_url,
         public_id=payload.get("public_id"),
     )
 
