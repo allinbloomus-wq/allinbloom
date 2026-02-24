@@ -61,6 +61,20 @@ def _format_fee(value: str | int | None) -> str:
     return _format_money(cents)
 
 
+def _format_item_details_text(item: dict) -> str:
+    details = str(item.get("details") or "").strip()
+    if not details:
+        return ""
+    return f" | {details}"
+
+
+def _format_item_details_html(item: dict) -> str:
+    details = str(item.get("details") or "").strip()
+    if not details:
+        return ""
+    return f" <span style=\"color:#6b7280\">({_escape(details)})</span>"
+
+
 def _format_delivery_address(params: dict) -> str:
     direct = params.get("delivery_address")
     if isinstance(direct, str) and direct.strip():
@@ -151,11 +165,14 @@ async def send_admin_order_email(params: dict) -> None:
 
     items = params.get("items") or []
     items_html = "".join(
-        f"<li>{item['quantity']} x {_escape(item['name'])} - {_escape(_format_money(item['price_cents']))}</li>"
+        f"<li>{item['quantity']} x {_escape(item['name'])} - "
+        f"{_escape(_format_money(item['price_cents']))}"
+        f"{_format_item_details_html(item)}</li>"
         for item in items
     )
     items_text = "\n".join(
         f"{item['quantity']} x {item['name']} - {_format_money(item['price_cents'])}"
+        f"{_format_item_details_text(item)}"
         for item in items
     )
 
@@ -214,11 +231,14 @@ async def send_customer_order_email(params: dict) -> None:
 
     items = params.get("items") or []
     items_html = "".join(
-        f"<li>{item['quantity']} x {_escape(item['name'])} - {_escape(_format_money(item['price_cents']))}</li>"
+        f"<li>{item['quantity']} x {_escape(item['name'])} - "
+        f"{_escape(_format_money(item['price_cents']))}"
+        f"{_format_item_details_html(item)}</li>"
         for item in items
     )
     items_text = "\n".join(
         f"{item['quantity']} x {item['name']} - {_format_money(item['price_cents'])}"
+        f"{_format_item_details_text(item)}"
         for item in items
     )
 

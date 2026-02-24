@@ -76,6 +76,7 @@ export default function CheckoutButton({
                   priceCents: item.priceCents,
                   price_cents: item.priceCents,
                   image: item.image,
+                  details: item.meta?.details || item.meta?.note || undefined,
                   isCustom: true,
                   is_custom: true,
                 }

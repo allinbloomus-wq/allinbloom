@@ -156,6 +156,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                                 "name": item.name,
                                 "quantity": item.quantity,
                                 "price_cents": item.price_cents,
+                                "details": item.details,
                             }
                             for item in order.items
                         ],

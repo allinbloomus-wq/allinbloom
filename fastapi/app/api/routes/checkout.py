@@ -286,6 +286,9 @@ async def start_checkout(
         if item.is_custom:
             price_cents = int(item.price_cents or 0)
             quantity = max(1, item.quantity)
+            details = _clean_text(item.details)
+            if details and len(details) > 500:
+                raise HTTPException(status_code=400, detail="Custom item details are too long.")
             if not item.name or not item.image:
                 log_critical_event(
                     domain="cart",
@@ -313,6 +316,7 @@ async def start_checkout(
                     "image": item.image,
                     "quantity": quantity,
                     "unit_price": price_cents,
+                    "details": details or None,
                 }
             )
             continue
@@ -399,6 +403,7 @@ async def start_checkout(
             price_cents=item["unit_price"],
             quantity=item["quantity"],
             image=item["image"],
+            details=item.get("details"),
         )
         for item in discounted_items
     ]

@@ -813,7 +813,7 @@ export default function CartView({
           label="Checkout"
           paymentMethod="stripe"
         />
-        <div className="flex min-w-0 max-w-full items-center gap-3 overflow-x-auto py-1 lg:justify-center">
+        <div className="flex min-w-0 max-w-full items-center gap-3 overflow-x-auto py-1 lg:justify-start">
           {[
             {
               label: "Visa",

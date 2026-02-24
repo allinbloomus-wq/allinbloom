@@ -55,7 +55,12 @@ def _build_email_payload(order: Order) -> dict:
         "email": order.email,
         "phone": order.phone,
         "items": [
-            {"name": item.name, "quantity": item.quantity, "price_cents": item.price_cents}
+            {
+                "name": item.name,
+                "quantity": item.quantity,
+                "price_cents": item.price_cents,
+                "details": item.details,
+            }
             for item in order.items
         ],
         "delivery_address": order.delivery_address,

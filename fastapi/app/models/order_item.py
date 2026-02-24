@@ -17,6 +17,7 @@ class OrderItem(Base):
     price_cents = Column("priceCents", Integer, nullable=False)
     quantity = Column(Integer, nullable=False)
     image = Column(String, nullable=False)
+    details = Column(String, nullable=True)
 
     order = relationship("Order", back_populates="items")
     bouquet = relationship("Bouquet", back_populates="order_items")

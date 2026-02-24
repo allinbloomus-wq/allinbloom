@@ -12,6 +12,7 @@ class CheckoutItemIn(SchemaBase):
     price_cents: Optional[int] = None
     image: Optional[str] = None
     is_custom: Optional[bool] = None
+    details: Optional[str] = None
 
 
 class CheckoutRequest(SchemaBase):

@@ -314,6 +314,39 @@ def sync_order_with_paypal(db: Session, order: Order) -> OrderStatus | None:
     return next_status
 
 
+def sync_pending_orders(db: Session, *, limit: int = 200) -> dict[str, OrderStatus]:
+    expire_pending_orders(db)
+    safe_limit = max(limit, 1)
+    orders = (
+        db.execute(
+            select(Order)
+            .where(
+                Order.status == OrderStatus.PENDING,
+                Order.is_deleted.is_(False),
+                or_(
+                    Order.stripe_session_id.is_not(None),
+                    Order.paypal_order_id.is_not(None),
+                ),
+            )
+            .order_by(Order.created_at.asc())
+            .limit(safe_limit)
+        )
+        .scalars()
+        .all()
+    )
+    if not orders:
+        return {}
+
+    stripe_updates = _sync_with_stripe(db, orders)
+    paypal_updates = _sync_with_paypal(db, orders)
+    updates = {**stripe_updates, **paypal_updates}
+    if updates:
+        for order in orders:
+            if order.id in updates:
+                order.status = updates[order.id]
+    return updates
+
+
 def get_admin_orders(db: Session) -> list[Order]:
     expire_pending_orders(db)
     orders = (

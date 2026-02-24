@@ -55,6 +55,7 @@ export type OrderItem = {
   priceCents: number;
   quantity: number;
   image: string;
+  details: string | null;
 };
 
 export type Order = {

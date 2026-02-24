@@ -27,6 +27,7 @@ export type CartItem = {
     isMixed?: boolean;
     bouquetColors?: string;
     isCustom?: boolean;
+    details?: string;
   };
 };
 

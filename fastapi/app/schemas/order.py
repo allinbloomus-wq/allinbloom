@@ -15,6 +15,7 @@ class OrderItemOut(SchemaBase):
     price_cents: int
     quantity: int
     image: str
+    details: Optional[str] = None
 
 
 class OrderOut(SchemaBase):

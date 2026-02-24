@@ -96,9 +96,16 @@ export default async function AdminOrderDetailPage({
           <div className="mt-4 space-y-2 text-sm text-stone-600">
             {order.items.map((item) => (
               <div key={item.id} className="flex items-start justify-between gap-3">
-                <span className="min-w-0 break-words">
-                  {item.quantity} x {item.name}
-                </span>
+                <div className="min-w-0">
+                  <p className="break-words">
+                    {item.quantity} x {item.name}
+                  </p>
+                  {item.details ? (
+                    <p className="mt-1 text-xs text-stone-500">
+                      {item.details}
+                    </p>
+                  ) : null}
+                </div>
                 <span className="shrink-0">{formatMoney(item.priceCents)}</span>
               </div>
             ))}
