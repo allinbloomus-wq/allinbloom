@@ -624,7 +624,7 @@ export default function CartView({
           </label>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="flex flex-col gap-2 text-sm text-stone-700">
-              Apartment / Suite (optional)
+              <span className="min-h-[2.5rem]">Apartment / Suite (optional)</span>
               <input
                 value={addressLine2}
                 onChange={(event) => setAddressLine2(event.target.value)}
@@ -634,7 +634,7 @@ export default function CartView({
               />
             </label>
             <label className="flex flex-col gap-2 text-sm text-stone-700">
-              Floor (optional)
+              <span className="min-h-[2.5rem]">Floor (optional)</span>
               <input
                 value={addressFloor}
                 onChange={(event) => setAddressFloor(event.target.value)}
