@@ -247,5 +247,26 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                 context={"order_id": order_id, "stripe_session_id": session_id},
             )
 
+    if event["type"] in ["payment_intent.payment_failed", "payment_intent.canceled"]:
+        payment_intent = event["data"]["object"]
+        metadata = payment_intent.get("metadata") or {}
+        order_id = metadata.get("orderId")
+        order = _load_order_for_session(db, order_id=order_id, session_id=None)
+        if not order:
+            log_critical_event(
+                domain="payment",
+                event="stripe_payment_intent_order_not_found",
+                message="Stripe payment intent webhook references unknown order.",
+                request=request,
+                context={"order_id": order_id, "payment_intent_id": payment_intent.get("id")},
+            )
+        elif order.status == OrderStatus.PENDING:
+            db.execute(
+                update(Order)
+                .where(Order.id == order.id, Order.status == OrderStatus.PENDING)
+                .values(status=OrderStatus.FAILED)
+            )
+            db.commit()
+
     mark_webhook_event_processed(db, provider="stripe", event_id=event_id)
     return {"received": True}
