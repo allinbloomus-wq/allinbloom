@@ -103,36 +103,36 @@ async def _upload_to_cloudinary(
     data = {"upload_preset": settings.cloudinary_upload_preset}
     files = {"file": (file.filename, content, file.content_type)}
 
-    async with httpx.AsyncClient(timeout=20) as client:
-        normalized_fmt = (fmt or "").strip().lower() or None
-        if normalized_fmt:
-            data["format"] = normalized_fmt
+    normalized_fmt = (fmt or "").strip().lower() or None
+    if not normalized_fmt and file.content_type != "image/gif":
+        normalized_fmt = "webp"
 
+    normalized_width = _normalize_dimension(max_width)
+    normalized_height = _normalize_dimension(max_height)
+    transform = _build_transform(normalized_width, normalized_height, normalized_fmt)
+    if transform:
+        data["transformation"] = transform
+    if normalized_fmt:
+        data["format"] = normalized_fmt
+
+    async with httpx.AsyncClient(timeout=20) as client:
         response = await client.post(url, data=data, files=files)
 
     payload = response.json()
     if response.status_code >= 400:
         message = (payload.get("error") or {}).get("message", "Upload failed")
         if response.status_code == 400 and normalized_fmt:
-            retry_data = {"upload_preset": settings.cloudinary_upload_preset}
-            async with httpx.AsyncClient(timeout=20) as client:
-                response = await client.post(url, data=retry_data, files=files)
-            payload = response.json()
-            if response.status_code < 400:
-                message = None
-        if response.status_code >= 400:
-            raise HTTPException(
-                status_code=response.status_code,
-                detail=message,
+            message = (
+                "Cloudinary rejected the WebP transformation. "
+                "Allow f_webp,q_auto in the unsigned upload preset or disable "
+                "strict transformations."
             )
+        raise HTTPException(
+            status_code=response.status_code,
+            detail=message,
+        )
 
     raw_url = payload.get("secure_url") or payload.get("url") or ""
-    normalized_width = _normalize_dimension(max_width)
-    normalized_height = _normalize_dimension(max_height)
-    if not normalized_fmt and file.content_type != "image/gif":
-        normalized_fmt = "webp"
-    transform = _build_transform(normalized_width, normalized_height, normalized_fmt)
-
     return UploadResponse(
         url=_apply_transform(raw_url, transform),
         public_id=payload.get("public_id"),
