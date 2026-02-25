@@ -39,12 +39,15 @@ export default function BouquetCard({
           {formatLabel(bouquet.flowerType)}
         </p>
         {pricing.discount ? (
-          <div className="order-2 flex items-baseline gap-2 sm:order-1">
+          <div className="order-2 flex flex-wrap items-center gap-x-2 gap-y-1 sm:order-1">
             <span className="text-xs text-stone-400 line-through sm:text-sm">
               {formatMoney(pricing.originalPriceCents)}
             </span>
             <span className="text-base font-semibold text-[color:var(--brand)] sm:text-lg">
               {formatMoney(pricing.finalPriceCents)}
+            </span>
+            <span className="inline-flex shrink-0 items-center rounded-full bg-[color:var(--brand)]/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[color:var(--brand)] sm:text-[11px]">
+              -{pricing.discount.percent}%
             </span>
           </div>
         ) : (
