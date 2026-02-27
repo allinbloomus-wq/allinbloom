@@ -54,30 +54,39 @@ const parseNumber = (value: FormDataEntryValue | null) => {
 const ADDITIONAL_IMAGE_FIELDS = [
   {
     key: "image2",
-    urlLabel: "Image URL #2",
-    previewAlt: "Bouquet image 2 preview",
+    urlLabel: "Image URL",
+    previewAlt: "Bouquet additional image preview",
   },
   {
     key: "image3",
-    urlLabel: "Image URL #3",
-    previewAlt: "Bouquet image 3 preview",
+    urlLabel: "Image URL",
+    previewAlt: "Bouquet additional image preview",
   },
   {
     key: "image4",
-    urlLabel: "Image URL #4",
-    previewAlt: "Bouquet image 4 preview",
+    urlLabel: "Image URL",
+    previewAlt: "Bouquet additional image preview",
   },
   {
     key: "image5",
-    urlLabel: "Image URL #5",
-    previewAlt: "Bouquet image 5 preview",
+    urlLabel: "Image URL",
+    previewAlt: "Bouquet additional image preview",
   },
   {
     key: "image6",
-    urlLabel: "Image URL #6",
-    previewAlt: "Bouquet image 6 preview",
+    urlLabel: "Image URL",
+    previewAlt: "Bouquet additional image preview",
   },
 ] as const;
+
+type AdditionalImageKey = (typeof ADDITIONAL_IMAGE_FIELDS)[number]["key"];
+
+const ADDITIONAL_IMAGE_KEYS = ADDITIONAL_IMAGE_FIELDS.map((field) => field.key);
+
+const getDefaultAdditionalImageKeys = (bouquet?: Bouquet): AdditionalImageKey[] =>
+  ADDITIONAL_IMAGE_FIELDS.filter(({ key }) =>
+    Boolean(String(bouquet?.[key] || "").trim())
+  ).map(({ key }) => key);
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -102,8 +111,17 @@ export default function AdminBouquetForm({
   const [selectedColors, setSelectedColors] = useState<string[]>(() =>
     sortPaletteColors(parsePaletteColors(bouquet?.colors))
   );
+  const [activeAdditionalImageKeys, setActiveAdditionalImageKeys] = useState<
+    AdditionalImageKey[]
+  >(() => getDefaultAdditionalImageKeys(bouquet));
+  const [photoLimitWarning, setPhotoLimitWarning] = useState("");
   const [isColorMenuOpen, setIsColorMenuOpen] = useState(false);
   const colorMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    setActiveAdditionalImageKeys(getDefaultAdditionalImageKeys(bouquet));
+    setPhotoLimitWarning("");
+  }, [bouquet?.id]);
 
   useEffect(() => {
     if (!isColorMenuOpen) return;
@@ -137,6 +155,15 @@ export default function AdminBouquetForm({
     () => selectedColors.join(", "),
     [selectedColors]
   );
+  const visibleAdditionalImageFields = useMemo(
+    () =>
+      ADDITIONAL_IMAGE_FIELDS.filter((field) =>
+        activeAdditionalImageKeys.includes(field.key)
+      ),
+    [activeAdditionalImageKeys]
+  );
+  const canAddAdditionalPhoto =
+    activeAdditionalImageKeys.length < ADDITIONAL_IMAGE_FIELDS.length;
   const selectedColorsLabel = useMemo(() => {
     if (!selectedColors.length) return "Select colors";
     const preview = selectedColors.slice(0, 3).map(formatPaletteLabel).join(", ");
@@ -151,6 +178,32 @@ export default function AdminBouquetForm({
       }
       return sortPaletteColors([...current, color]);
     });
+  };
+
+  const handleAddPhoto = () => {
+    const nextField = ADDITIONAL_IMAGE_FIELDS.find(
+      ({ key }) => !activeAdditionalImageKeys.includes(key)
+    );
+
+    if (!nextField) {
+      setPhotoLimitWarning("Maximum 6 photos per bouquet.");
+      return;
+    }
+
+    const nextSet = new Set<AdditionalImageKey>([
+      ...activeAdditionalImageKeys,
+      nextField.key,
+    ]);
+    const orderedKeys = ADDITIONAL_IMAGE_KEYS.filter((key) => nextSet.has(key));
+    setActiveAdditionalImageKeys(orderedKeys);
+    setPhotoLimitWarning("");
+  };
+
+  const handleRemovePhoto = (key: AdditionalImageKey) => {
+    setActiveAdditionalImageKeys((current) =>
+      current.filter((entry) => entry !== key)
+    );
+    setPhotoLimitWarning("");
   };
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -350,13 +403,40 @@ export default function AdminBouquetForm({
             recommendedSize="1000x1000"
             isInvalid={invalidSet.has("image")}
           />
+          <button
+            type="button"
+            onClick={handleAddPhoto}
+            className={`inline-flex h-10 w-full items-center justify-center rounded-full px-4 text-[11px] uppercase tracking-[0.22em] transition ${
+              canAddAdditionalPhoto
+                ? "border border-stone-300 bg-white/85 text-stone-700 hover:border-stone-400"
+                : "cursor-not-allowed border border-stone-200 bg-stone-100 text-stone-400"
+            }`}
+          >
+            Add photo
+          </button>
+          {photoLimitWarning ? (
+            <p className="text-[11px] uppercase tracking-[0.18em] text-rose-500">
+              {photoLimitWarning}
+            </p>
+          ) : null}
           <div className="space-y-3">
             <p className="text-xs uppercase tracking-[0.2em] text-stone-500">
               Additional bouquet photos (optional)
             </p>
             <div className="grid min-w-0 gap-4">
-              {ADDITIONAL_IMAGE_FIELDS.map((field) => (
-                <div key={field.key} className="min-w-0">
+              {visibleAdditionalImageFields.map((field) => (
+                <div
+                  key={field.key}
+                  className="relative min-w-0 rounded-[24px] border border-stone-200/70 bg-white/45 p-3"
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleRemovePhoto(field.key)}
+                    className="absolute right-2 top-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full border border-stone-200 bg-white/90 text-sm text-stone-600 transition hover:border-stone-300 hover:text-stone-800"
+                    aria-label="Remove photo"
+                  >
+                    x
+                  </button>
                   <AdminImageUpload
                     name={field.key}
                     defaultValue={bouquet?.[field.key] || ""}
