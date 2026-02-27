@@ -2,8 +2,9 @@
 
 import { formatLabel, formatMoney } from "@/lib/format";
 import AddToCartControls from "@/components/add-to-cart-controls";
-import BouquetImageLightbox from "@/components/bouquet-image-lightbox";
+import BouquetImageCarousel from "@/components/bouquet-image-carousel";
 import type { Bouquet, BouquetPricing } from "@/lib/api-types";
+import { getBouquetGalleryImages } from "@/lib/bouquet-images";
 
 export default function BouquetCard({
   bouquet,
@@ -12,15 +13,12 @@ export default function BouquetCard({
   bouquet: Bouquet;
   pricing: BouquetPricing;
 }) {
+  const galleryImages = getBouquetGalleryImages(bouquet);
+
   return (
     <div className="glass flex h-full flex-col gap-3 rounded-[24px] border border-white/80 p-[9px] sm:gap-4 sm:rounded-[28px] sm:p-5">
       <div className="overflow-hidden rounded-[18px] border border-white/80 bg-white sm:rounded-[22px]">
-        <BouquetImageLightbox
-          src={bouquet.image}
-          alt={bouquet.name}
-          className="block w-full"
-          imageClassName="aspect-square w-full object-cover"
-        />
+        <BouquetImageCarousel images={galleryImages} alt={bouquet.name} />
       </div>
       <div className="min-w-0 flex-1 space-y-1.5 sm:space-y-2">
         <div className="flex items-center justify-between gap-2 text-[10px] uppercase tracking-[0.16em] text-stone-500 sm:text-xs sm:tracking-[0.24em]">

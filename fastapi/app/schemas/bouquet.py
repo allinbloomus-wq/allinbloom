@@ -21,6 +21,11 @@ class BouquetOut(SchemaBase):
     discount_percent: int
     discount_note: Optional[str] = None
     image: str
+    image_2: Optional[str] = None
+    image_3: Optional[str] = None
+    image_4: Optional[str] = None
+    image_5: Optional[str] = None
+    image_6: Optional[str] = None
 
 
 class BouquetCreate(SchemaBase):
@@ -37,6 +42,11 @@ class BouquetCreate(SchemaBase):
     discount_percent: int = 0
     discount_note: Optional[str] = None
     image: str
+    image_2: Optional[str] = None
+    image_3: Optional[str] = None
+    image_4: Optional[str] = None
+    image_5: Optional[str] = None
+    image_6: Optional[str] = None
 
 
 class BouquetUpdate(SchemaBase):
@@ -53,3 +63,8 @@ class BouquetUpdate(SchemaBase):
     discount_percent: Optional[int] = None
     discount_note: Optional[str] = None
     image: Optional[str] = None
+    image_2: Optional[str] = None
+    image_3: Optional[str] = None
+    image_4: Optional[str] = None
+    image_5: Optional[str] = None
+    image_6: Optional[str] = None

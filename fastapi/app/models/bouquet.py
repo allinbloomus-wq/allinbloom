@@ -25,6 +25,11 @@ class Bouquet(Base):
     discount_percent = Column("discountPercent", Integer, default=0, nullable=False)
     discount_note = Column("discountNote", String, nullable=True)
     image = Column(String, nullable=False)
+    image_2 = Column("image2", String, nullable=True)
+    image_3 = Column("image3", String, nullable=True)
+    image_4 = Column("image4", String, nullable=True)
+    image_5 = Column("image5", String, nullable=True)
+    image_6 = Column("image6", String, nullable=True)
     created_at = Column(
         "createdAt", DateTime(timezone=True), server_default=func.now(), nullable=False
     )

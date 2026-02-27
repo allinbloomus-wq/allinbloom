@@ -51,6 +51,34 @@ const parseNumber = (value: FormDataEntryValue | null) => {
   return Number(raw);
 };
 
+const ADDITIONAL_IMAGE_FIELDS = [
+  {
+    key: "image2",
+    urlLabel: "Image URL #2",
+    previewAlt: "Bouquet image 2 preview",
+  },
+  {
+    key: "image3",
+    urlLabel: "Image URL #3",
+    previewAlt: "Bouquet image 3 preview",
+  },
+  {
+    key: "image4",
+    urlLabel: "Image URL #4",
+    previewAlt: "Bouquet image 4 preview",
+  },
+  {
+    key: "image5",
+    urlLabel: "Image URL #5",
+    previewAlt: "Bouquet image 5 preview",
+  },
+  {
+    key: "image6",
+    urlLabel: "Image URL #6",
+    previewAlt: "Bouquet image 6 preview",
+  },
+] as const;
+
 function SubmitButton() {
   const { pending } = useFormStatus();
 
@@ -322,6 +350,25 @@ export default function AdminBouquetForm({
             recommendedSize="1000x1000"
             isInvalid={invalidSet.has("image")}
           />
+          <div className="space-y-3">
+            <p className="text-xs uppercase tracking-[0.2em] text-stone-500">
+              Additional bouquet photos (optional)
+            </p>
+            <div className="grid gap-4">
+              {ADDITIONAL_IMAGE_FIELDS.map((field) => (
+                <AdminImageUpload
+                  key={field.key}
+                  name={field.key}
+                  defaultValue={bouquet?.[field.key] || ""}
+                  urlLabel={field.urlLabel}
+                  previewAlt={field.previewAlt}
+                  recommendedSize="1000x1000"
+                  previewClassName="h-24 w-24"
+                  required={false}
+                />
+              ))}
+            </div>
+          </div>
           <label className="relative z-10 flex flex-col gap-2 text-sm text-stone-700">
             Flower type
             <select

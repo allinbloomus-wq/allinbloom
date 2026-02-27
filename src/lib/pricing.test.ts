@@ -56,6 +56,11 @@ const baseBouquet: Bouquet = {
   discountPercent: 0,
   discountNote: null,
   image: "/images/bouquet-1.webp",
+  image2: null,
+  image3: null,
+  image4: null,
+  image5: null,
+  image6: null,
 };
 
 describe("pricing helpers", () => {

@@ -43,6 +43,11 @@ describe("parseBouquetForm", () => {
       discountPercent: 15,
       discountNote: "Spring promo",
       image: "/images/custom.webp",
+      image2: null,
+      image3: null,
+      image4: null,
+      image5: null,
+      image6: null,
     });
   });
 
@@ -67,6 +72,11 @@ describe("parseBouquetForm", () => {
     expect(payload.discountPercent).toBe(90);
     expect(payload.discountNote).toBe("Discount");
     expect(payload.image).toBe("/images/bouquet-1.webp");
+    expect(payload.image2).toBeNull();
+    expect(payload.image3).toBeNull();
+    expect(payload.image4).toBeNull();
+    expect(payload.image5).toBeNull();
+    expect(payload.image6).toBeNull();
   });
 
   it("drops discount note when discount is disabled", () => {
@@ -85,5 +95,31 @@ describe("parseBouquetForm", () => {
 
     expect(payload.discountPercent).toBe(0);
     expect(payload.discountNote).toBeNull();
+  });
+
+  it("normalizes additional gallery image URLs", () => {
+    const payload = parseBouquetForm(
+      makeFormData({
+        name: "Gallery bouquet",
+        description: "desc",
+        price: "75",
+        flowerType: "rose",
+        style: "modern",
+        colors: "white",
+        image: "/images/main.webp",
+        image2: " /images/2.webp ",
+        image3: " ",
+        image4: "/images/4.webp",
+        image5: "",
+        image6: "/images/6.webp",
+      })
+    );
+
+    expect(payload.image).toBe("/images/main.webp");
+    expect(payload.image2).toBe("/images/2.webp");
+    expect(payload.image3).toBeNull();
+    expect(payload.image4).toBe("/images/4.webp");
+    expect(payload.image5).toBeNull();
+    expect(payload.image6).toBe("/images/6.webp");
   });
 });

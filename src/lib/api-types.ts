@@ -19,6 +19,11 @@ export type Bouquet = {
   discountPercent: number;
   discountNote: string | null;
   image: string;
+  image2: string | null;
+  image3: string | null;
+  image4: string | null;
+  image5: string | null;
+  image6: string | null;
 };
 
 export type PromoSlide = {

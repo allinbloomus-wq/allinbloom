@@ -13,6 +13,11 @@ export type BouquetFormPayload = {
   discountPercent: number;
   discountNote: string | null;
   image: string;
+  image2: string | null;
+  image3: string | null;
+  image4: string | null;
+  image5: string | null;
+  image6: string | null;
 };
 
 const normalizeEnum = <T extends readonly string[]>(
@@ -26,6 +31,11 @@ const normalizeEnum = <T extends readonly string[]>(
 };
 
 export const parseBouquetForm = (formData: FormData): BouquetFormPayload => {
+  const normalizeOptionalImage = (value: FormDataEntryValue | null) => {
+    const normalized = String(value || "").trim();
+    return normalized || null;
+  };
+
   const name = String(formData.get("name") || "").trim();
   const description = String(formData.get("description") || "").trim();
   const price = Number(formData.get("price") || 0);
@@ -61,6 +71,11 @@ export const parseBouquetForm = (formData: FormData): BouquetFormPayload => {
     discountPercent,
     discountNote: normalizedDiscountNote,
     image,
+    image2: normalizeOptionalImage(formData.get("image2")),
+    image3: normalizeOptionalImage(formData.get("image3")),
+    image4: normalizeOptionalImage(formData.get("image4")),
+    image5: normalizeOptionalImage(formData.get("image5")),
+    image6: normalizeOptionalImage(formData.get("image6")),
   };
 };
 
