@@ -403,22 +403,6 @@ export default function AdminBouquetForm({
             recommendedSize="1000x1000"
             isInvalid={invalidSet.has("image")}
           />
-          <button
-            type="button"
-            onClick={handleAddPhoto}
-            className={`inline-flex h-10 w-full items-center justify-center rounded-full px-4 text-[11px] uppercase tracking-[0.22em] transition ${
-              canAddAdditionalPhoto
-                ? "border border-stone-300 bg-white/85 text-stone-700 hover:border-stone-400"
-                : "cursor-not-allowed border border-stone-200 bg-stone-100 text-stone-400"
-            }`}
-          >
-            Add photo
-          </button>
-          {photoLimitWarning ? (
-            <p className="text-[11px] uppercase tracking-[0.18em] text-rose-500">
-              {photoLimitWarning}
-            </p>
-          ) : null}
           <div className="space-y-3">
             <p className="text-xs uppercase tracking-[0.2em] text-stone-500">
               Additional bouquet photos (optional)
@@ -450,6 +434,22 @@ export default function AdminBouquetForm({
               ))}
             </div>
           </div>
+          <button
+            type="button"
+            onClick={handleAddPhoto}
+            className={`inline-flex h-10 w-full items-center justify-center rounded-full px-4 text-[11px] uppercase tracking-[0.22em] transition ${
+              canAddAdditionalPhoto
+                ? "border border-stone-300 bg-white/85 text-stone-700 hover:border-stone-400"
+                : "cursor-not-allowed border border-stone-200 bg-stone-100 text-stone-400"
+            }`}
+          >
+            Add photo
+          </button>
+          {photoLimitWarning ? (
+            <p className="text-[11px] uppercase tracking-[0.18em] text-rose-500">
+              {photoLimitWarning}
+            </p>
+          ) : null}
           <label className="relative z-10 flex flex-col gap-2 text-sm text-stone-700">
             Flower type
             <select
