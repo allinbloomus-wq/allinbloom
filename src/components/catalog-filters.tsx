@@ -10,6 +10,7 @@ import {
   PRICE_LIMITS,
 } from "@/lib/constants";
 import MultiCheckboxDropdown from "@/components/multi-checkbox-dropdown";
+import FiltersToggleButton from "@/components/filters-toggle-button";
 
 type FilterFormValues = {
   flowers: string[];
@@ -208,6 +209,7 @@ function CatalogFiltersForm({ initialValues }: CatalogFiltersFormProps) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement | null>(null);
   const [formValues, setFormValues] = useState<FilterFormValues>(initialValues);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<DropdownField | null>(null);
   const priceFieldClass =
     "h-11 w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-0 text-[0.93rem] leading-[1.35] text-stone-800 outline-none focus:border-[color:var(--brand)]";
@@ -295,99 +297,110 @@ function CatalogFiltersForm({ initialValues }: CatalogFiltersFormProps) {
 
   return (
     <div className="glass relative z-20 max-w-full rounded-[28px] border border-white/80 p-4 sm:p-6">
-      <form
-        ref={formRef}
-        onSubmit={applyFilters}
-        className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
-      >
-        <MultiCheckboxDropdown
-          label="Flower type"
-          controlId="catalog-filter-flowers"
-          options={dropdownOptions.flower}
-          values={formValues.flowers}
-          onToggle={toggleFlower}
-          onClear={() => setFormValues((current) => ({ ...current, flowers: [] }))}
-          emptyLabel="All flowers"
-        />
-        <FilterDropdown
-          label="Palette"
-          controlId="catalog-filter-color"
-          value={formValues.color}
-          options={dropdownOptions.color}
-          isOpen={openDropdown === "color"}
-          onToggle={() => setOpenDropdown((current) => (current === "color" ? null : "color"))}
-          onClose={() => setOpenDropdown(null)}
-          onSelect={(value) => setDropdownValue("color", value)}
-        />
-        <FilterDropdown
-          label="Bouquet type"
-          controlId="catalog-filter-bouquet-type"
-          value={formValues.bouquetType}
-          options={dropdownOptions.bouquetType}
-          isOpen={openDropdown === "bouquetType"}
-          onToggle={() =>
-            setOpenDropdown((current) => (current === "bouquetType" ? null : "bouquetType"))
-          }
-          onClose={() => setOpenDropdown(null)}
-          onSelect={(value) => setDropdownValue("bouquetType", value)}
-        />
-        <label className="flex flex-col gap-2 text-sm text-stone-700">
-          Min price (${PRICE_LIMITS.min})
-          <input
-            type="number"
-            name="min"
-            value={formValues.min}
-            onChange={(event) =>
-              setFormValues((current) => ({ ...current, min: event.target.value }))
-            }
-            min={PRICE_LIMITS.min}
-            placeholder="45"
-            className={priceFieldClass}
-          />
-        </label>
-        <label className="flex flex-col gap-2 text-sm text-stone-700">
-          Max price (${PRICE_LIMITS.max})
-          <input
-            type="number"
-            name="max"
-            value={formValues.max}
-            onChange={(event) =>
-              setFormValues((current) => ({ ...current, max: event.target.value }))
-            }
-            max={PRICE_LIMITS.max}
-            placeholder="200"
-            className={priceFieldClass}
-          />
-        </label>
-        <FilterDropdown
-          label="Sort by"
-          controlId="catalog-filter-sort"
-          value={formValues.sort}
-          options={dropdownOptions.sort}
-          isOpen={openDropdown === "sort"}
-          onToggle={() => setOpenDropdown((current) => (current === "sort" ? null : "sort"))}
-          onClose={() => setOpenDropdown(null)}
-          onSelect={(value) => setDropdownValue("sort", value)}
-        />
-      </form>
-      <div className="mt-6 flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={() => formRef.current?.requestSubmit()}
-          className="inline-flex h-11 w-full items-center justify-center rounded-full bg-[color:var(--brand)] px-6 text-xs uppercase tracking-[0.3em] text-white transition hover:bg-[color:var(--brand-dark)] sm:w-auto"
-        >
-          Apply filters
-        </button>
-        {hasFilters ? (
-          <button
-            type="button"
-            onClick={() => router.push("/catalog?entry=1")}
-            className="inline-flex h-11 w-full items-center justify-center rounded-full border border-stone-200 bg-white/80 px-5 text-xs uppercase tracking-[0.3em] text-stone-600 sm:w-auto"
+      <FiltersToggleButton
+        isOpen={isFiltersOpen}
+        onClick={() => {
+          setOpenDropdown(null);
+          setIsFiltersOpen((current) => !current);
+        }}
+      />
+      {isFiltersOpen ? (
+        <>
+          <form
+            ref={formRef}
+            onSubmit={applyFilters}
+            className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3"
           >
-            Clear
-          </button>
-        ) : null}
-      </div>
+            <MultiCheckboxDropdown
+              label="Flower type"
+              controlId="catalog-filter-flowers"
+              options={dropdownOptions.flower}
+              values={formValues.flowers}
+              onToggle={toggleFlower}
+              onClear={() => setFormValues((current) => ({ ...current, flowers: [] }))}
+              emptyLabel="All flowers"
+            />
+            <FilterDropdown
+              label="Palette"
+              controlId="catalog-filter-color"
+              value={formValues.color}
+              options={dropdownOptions.color}
+              isOpen={openDropdown === "color"}
+              onToggle={() => setOpenDropdown((current) => (current === "color" ? null : "color"))}
+              onClose={() => setOpenDropdown(null)}
+              onSelect={(value) => setDropdownValue("color", value)}
+            />
+            <FilterDropdown
+              label="Bouquet type"
+              controlId="catalog-filter-bouquet-type"
+              value={formValues.bouquetType}
+              options={dropdownOptions.bouquetType}
+              isOpen={openDropdown === "bouquetType"}
+              onToggle={() =>
+                setOpenDropdown((current) => (current === "bouquetType" ? null : "bouquetType"))
+              }
+              onClose={() => setOpenDropdown(null)}
+              onSelect={(value) => setDropdownValue("bouquetType", value)}
+            />
+            <label className="flex flex-col gap-2 text-sm text-stone-700">
+              Min price (${PRICE_LIMITS.min})
+              <input
+                type="number"
+                name="min"
+                value={formValues.min}
+                onChange={(event) =>
+                  setFormValues((current) => ({ ...current, min: event.target.value }))
+                }
+                min={PRICE_LIMITS.min}
+                placeholder="45"
+                className={priceFieldClass}
+              />
+            </label>
+            <label className="flex flex-col gap-2 text-sm text-stone-700">
+              Max price (${PRICE_LIMITS.max})
+              <input
+                type="number"
+                name="max"
+                value={formValues.max}
+                onChange={(event) =>
+                  setFormValues((current) => ({ ...current, max: event.target.value }))
+                }
+                max={PRICE_LIMITS.max}
+                placeholder="200"
+                className={priceFieldClass}
+              />
+            </label>
+            <FilterDropdown
+              label="Sort by"
+              controlId="catalog-filter-sort"
+              value={formValues.sort}
+              options={dropdownOptions.sort}
+              isOpen={openDropdown === "sort"}
+              onToggle={() => setOpenDropdown((current) => (current === "sort" ? null : "sort"))}
+              onClose={() => setOpenDropdown(null)}
+              onSelect={(value) => setDropdownValue("sort", value)}
+            />
+          </form>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => formRef.current?.requestSubmit()}
+              className="inline-flex h-11 w-full items-center justify-center rounded-full bg-[color:var(--brand)] px-6 text-xs uppercase tracking-[0.3em] text-white transition hover:bg-[color:var(--brand-dark)] sm:w-auto"
+            >
+              Apply filters
+            </button>
+            {hasFilters ? (
+              <button
+                type="button"
+                onClick={() => router.push("/catalog?entry=1")}
+                className="inline-flex h-11 w-full items-center justify-center rounded-full border border-stone-200 bg-white/80 px-5 text-xs uppercase tracking-[0.3em] text-stone-600 sm:w-auto"
+              >
+                Clear
+              </button>
+            ) : null}
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }

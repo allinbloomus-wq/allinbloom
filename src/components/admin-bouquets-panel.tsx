@@ -11,6 +11,7 @@ import {
 } from "@/lib/constants";
 import AdminBouquetRow from "@/components/admin-bouquet-row";
 import MultiCheckboxDropdown from "@/components/multi-checkbox-dropdown";
+import FiltersToggleButton from "@/components/filters-toggle-button";
 
 type AdminFilterValues = {
   flowers: string[];
@@ -44,7 +45,9 @@ const toUniqueArray = (values: string[]) =>
   values.filter((value, index) => values.indexOf(value) === index);
 
 const parseMoneyToCents = (value: string) => {
-  const parsed = Number(value);
+  const normalized = String(value).trim();
+  if (!normalized) return null;
+  const parsed = Number(normalized);
   if (!Number.isFinite(parsed)) return null;
   return Math.max(0, Math.round(parsed * 100));
 };
@@ -202,8 +205,9 @@ function FilterDropdown({
 }
 
 export default function AdminBouquetsPanel({ bouquets }: { bouquets: Bouquet[] }) {
+  const searchRootRef = useRef<HTMLDivElement | null>(null);
   const [searchInput, setSearchInput] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [filters, setFilters] = useState<AdminFilterValues>(initialFilters);
   const [openDropdown, setOpenDropdown] = useState<DropdownField | null>(null);
@@ -240,8 +244,42 @@ export default function AdminBouquetsPanel({ bouquets }: { bouquets: Bouquet[] }
     []
   );
 
+  useEffect(() => {
+    if (!isSearchOpen) return;
+
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (searchRootRef.current?.contains(target)) return;
+      setIsSearchOpen(false);
+    };
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsSearchOpen(false);
+    };
+
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isSearchOpen]);
+
+  const normalizedSearchQuery = useMemo(
+    () => searchInput.trim().toLowerCase(),
+    [searchInput]
+  );
+
+  const searchSuggestions = useMemo(() => {
+    if (!normalizedSearchQuery) return [];
+    return bouquets
+      .filter((bouquet) => bouquet.name.toLowerCase().includes(normalizedSearchQuery))
+      .slice(0, 8);
+  }, [bouquets, normalizedSearchQuery]);
+
   const filteredAndSorted = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
     const minCents = parseMoneyToCents(filters.min);
     const maxCents = parseMoneyToCents(filters.max);
     const selectedFlowers = filters.flowers;
@@ -249,7 +287,9 @@ export default function AdminBouquetsPanel({ bouquets }: { bouquets: Bouquet[] }
     const selectedBouquetType = filters.bouquetType.trim().toLowerCase();
 
     const filtered = bouquets.filter((bouquet) => {
-      if (q && !bouquet.name.toLowerCase().includes(q)) return false;
+      if (normalizedSearchQuery && !bouquet.name.toLowerCase().includes(normalizedSearchQuery)) {
+        return false;
+      }
 
       const bouquetFlowers = parseBouquetFlowerTypes(bouquet);
       if (
@@ -295,7 +335,7 @@ export default function AdminBouquetsPanel({ bouquets }: { bouquets: Bouquet[] }
       sorted.sort((left, right) => right.priceCents - left.priceCents || right.id.localeCompare(left.id));
     }
     return sorted;
-  }, [bouquets, filters, searchQuery]);
+  }, [bouquets, filters, normalizedSearchQuery]);
 
   const hasAnyFilters = useMemo(
     () =>
@@ -327,33 +367,62 @@ export default function AdminBouquetsPanel({ bouquets }: { bouquets: Bouquet[] }
   return (
     <div className="grid gap-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            setSearchQuery(searchInput.trim());
-          }}
-          className="flex min-w-0 flex-1 items-center gap-2 rounded-full border border-stone-200 bg-white/80 p-1.5"
-        >
-          <input
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
-            placeholder="Search bouquet by name"
-            className="h-10 min-w-0 flex-1 rounded-full border-0 bg-transparent px-3 text-sm text-stone-800 outline-none"
-          />
-          <button
-            type="submit"
-            className="inline-flex h-10 shrink-0 items-center justify-center rounded-full bg-[color:var(--brand)] px-5 text-[10px] uppercase tracking-[0.24em] text-white transition hover:bg-[color:var(--brand-dark)] sm:text-xs sm:tracking-[0.3em]"
+        <div ref={searchRootRef} className="relative min-w-0 flex-1">
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              setIsSearchOpen(false);
+            }}
+            className="flex min-w-0 flex-1 items-center gap-2 rounded-full border border-stone-200 bg-white/80 p-1.5"
           >
-            Find
-          </button>
-        </form>
-        <button
-          type="button"
+            <input
+              value={searchInput}
+              onFocus={() => {
+                if (searchInput.trim()) setIsSearchOpen(true);
+              }}
+              onChange={(event) => {
+                const nextValue = event.target.value;
+                setSearchInput(nextValue);
+                setIsSearchOpen(Boolean(nextValue.trim()));
+              }}
+              placeholder="Search bouquet by name"
+              className="h-10 min-w-0 flex-1 rounded-full border-0 bg-transparent px-3 text-sm text-stone-800 outline-none"
+            />
+            <button
+              type="submit"
+              className="inline-flex h-10 shrink-0 items-center justify-center rounded-full bg-[color:var(--brand)] px-5 text-[10px] uppercase tracking-[0.24em] text-white transition hover:bg-[color:var(--brand-dark)] sm:text-xs sm:tracking-[0.3em]"
+            >
+              Find
+            </button>
+          </form>
+          {isSearchOpen ? (
+            <div className="custom-select-panel">
+              {searchSuggestions.length ? (
+                searchSuggestions.map((bouquet) => (
+                  <button
+                    key={bouquet.id}
+                    type="button"
+                    className="custom-select-option"
+                    onClick={() => {
+                      setSearchInput(bouquet.name);
+                      setIsSearchOpen(false);
+                    }}
+                  >
+                    <span className="truncate">{bouquet.name}</span>
+                  </button>
+                ))
+              ) : (
+                <div className="px-3 py-2.5 text-xs uppercase tracking-[0.2em] text-stone-500">
+                  No matches found
+                </div>
+              )}
+            </div>
+          ) : null}
+        </div>
+        <FiltersToggleButton
+          isOpen={isFiltersOpen}
           onClick={() => setIsFiltersOpen((current) => !current)}
-          className="inline-flex h-10 shrink-0 items-center justify-center rounded-full border border-stone-300 bg-white/80 px-4 text-[10px] uppercase tracking-[0.24em] text-stone-700 transition hover:border-stone-400 sm:text-xs sm:tracking-[0.3em]"
-        >
-          Filters
-        </button>
+        />
       </div>
 
       {isFiltersOpen ? (
