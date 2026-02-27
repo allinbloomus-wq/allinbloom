@@ -29,20 +29,101 @@ type FilterOption = {
   label: string;
 };
 
-const initialFilters: AdminFilterValues = {
-  flowers: [],
-  color: "",
-  bouquetType: "",
-  min: "",
-  max: "",
-  sort: "",
-};
+const ADMIN_BOUQUETS_STATE_STORAGE_KEY = "admin-bouquets-panel-state";
 
 const formatLabel = (value: string) =>
   value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
 
 const toUniqueArray = (values: string[]) =>
   values.filter((value, index) => values.indexOf(value) === index);
+
+const emptyFilters = (): AdminFilterValues => ({
+  flowers: [],
+  color: "",
+  bouquetType: "",
+  min: "",
+  max: "",
+  sort: "",
+});
+
+const normalizeNumericInput = (value: unknown) => {
+  if (typeof value !== "string") return "";
+  const normalized = value.trim();
+  if (!normalized) return "";
+  return Number.isFinite(Number(normalized)) ? normalized : "";
+};
+
+const normalizePersistedFilters = (value: unknown): AdminFilterValues => {
+  if (!value || typeof value !== "object") {
+    return emptyFilters();
+  }
+
+  const source = value as Partial<Record<keyof AdminFilterValues, unknown>>;
+  const flowerValues = FLOWER_TYPES.map((entry) => entry.toLowerCase());
+  const flowers = Array.isArray(source.flowers)
+    ? source.flowers
+        .map((entry) => String(entry || "").trim().toLowerCase())
+        .filter((entry) => flowerValues.includes(entry))
+        .filter((entry, index, list) => list.indexOf(entry) === index)
+    : [];
+
+  const colorValue = String(source.color || "")
+    .trim()
+    .toLowerCase();
+  const color = COLOR_OPTIONS.includes(colorValue as (typeof COLOR_OPTIONS)[number])
+    ? colorValue
+    : "";
+
+  const bouquetTypeValue = String(source.bouquetType || "")
+    .trim()
+    .toLowerCase();
+  const bouquetType = BOUQUET_TYPE_FILTERS.includes(
+    bouquetTypeValue as (typeof BOUQUET_TYPE_FILTERS)[number]
+  ) && bouquetTypeValue !== "all"
+    ? bouquetTypeValue
+    : "";
+
+  const sortValue = String(source.sort || "")
+    .trim()
+    .toLowerCase();
+  const sort = CATALOG_SORT_VALUES.includes(sortValue as (typeof CATALOG_SORT_VALUES)[number])
+    ? sortValue
+    : "";
+
+  return {
+    flowers,
+    color,
+    bouquetType,
+    min: normalizeNumericInput(source.min),
+    max: normalizeNumericInput(source.max),
+    sort,
+  };
+};
+
+const readPersistedState = (): {
+  searchInput: string;
+  isFiltersOpen: boolean;
+  filters: AdminFilterValues;
+} | null => {
+  if (typeof window === "undefined") return null;
+  const raw = window.sessionStorage.getItem(ADMIN_BOUQUETS_STATE_STORAGE_KEY);
+  if (!raw) return null;
+
+  try {
+    const parsed = JSON.parse(raw) as {
+      searchInput?: unknown;
+      isFiltersOpen?: unknown;
+      filters?: unknown;
+    };
+    return {
+      searchInput: typeof parsed.searchInput === "string" ? parsed.searchInput : "",
+      isFiltersOpen: parsed.isFiltersOpen === true,
+      filters: normalizePersistedFilters(parsed.filters),
+    };
+  } catch {
+    return null;
+  }
+};
 
 const parseMoneyToCents = (value: string) => {
   const normalized = String(value).trim();
@@ -206,10 +287,13 @@ function FilterDropdown({
 
 export default function AdminBouquetsPanel({ bouquets }: { bouquets: Bouquet[] }) {
   const searchRootRef = useRef<HTMLDivElement | null>(null);
-  const [searchInput, setSearchInput] = useState("");
+  const persistedState = useMemo(() => readPersistedState(), []);
+  const [searchInput, setSearchInput] = useState(persistedState?.searchInput || "");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
-  const [filters, setFilters] = useState<AdminFilterValues>(initialFilters);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(persistedState?.isFiltersOpen || false);
+  const [filters, setFilters] = useState<AdminFilterValues>(
+    persistedState?.filters || emptyFilters()
+  );
   const [openDropdown, setOpenDropdown] = useState<DropdownField | null>(null);
   const priceFieldClass =
     "h-11 w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-0 text-[0.93rem] leading-[1.35] text-stone-800 outline-none focus:border-[color:var(--brand)]";
@@ -349,6 +433,25 @@ export default function AdminBouquetsPanel({ bouquets }: { bouquets: Bouquet[] }
       ),
     [filters]
   );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const hasStateToPersist = Boolean(searchInput.trim() || isFiltersOpen || hasAnyFilters);
+    if (!hasStateToPersist) {
+      window.sessionStorage.removeItem(ADMIN_BOUQUETS_STATE_STORAGE_KEY);
+      return;
+    }
+
+    window.sessionStorage.setItem(
+      ADMIN_BOUQUETS_STATE_STORAGE_KEY,
+      JSON.stringify({
+        searchInput,
+        isFiltersOpen,
+        filters,
+      })
+    );
+  }, [filters, hasAnyFilters, isFiltersOpen, searchInput]);
 
   const toggleFlower = (value: string) => {
     setFilters((current) => {
@@ -502,7 +605,7 @@ export default function AdminBouquetsPanel({ bouquets }: { bouquets: Bouquet[] }
             <div className="mt-4">
               <button
                 type="button"
-                onClick={() => setFilters(initialFilters)}
+                onClick={() => setFilters(emptyFilters())}
                 className="inline-flex h-10 items-center justify-center rounded-full border border-stone-200 bg-white/80 px-4 text-[10px] uppercase tracking-[0.24em] text-stone-700 transition hover:border-stone-300 sm:text-xs sm:tracking-[0.3em]"
               >
                 Clear filters

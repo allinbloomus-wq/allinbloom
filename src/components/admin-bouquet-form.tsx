@@ -364,8 +364,8 @@ export default function AdminBouquetForm({
     >
       {bouquet ? <input type="hidden" name="id" value={bouquet.id} /> : null}
 
-      <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="min-w-0 space-y-4">
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-start xl:gap-8">
+        <div className="min-w-0 grid auto-rows-max gap-4">
           <label className="flex flex-col gap-2 text-sm text-stone-700">
             Name
             <input
@@ -385,7 +385,7 @@ export default function AdminBouquetForm({
               className={textareaFieldClass(invalidSet.has("description"))}
             />
           </label>
-          <div className="grid gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <label className="flex flex-col gap-2 text-sm text-stone-700">
               Price (USD)
               <input
@@ -411,7 +411,7 @@ export default function AdminBouquetForm({
                 className={controlFieldClass(false)}
               />
             </label>
-            <label className="flex flex-col gap-2 text-sm text-stone-700">
+            <label className="flex flex-col gap-2 text-sm text-stone-700 sm:col-span-2">
               Discount comment
               <input
                 name="discountNote"
@@ -496,7 +496,7 @@ export default function AdminBouquetForm({
             ) : null}
           </div>
         </div>
-        <div className="min-w-0 space-y-4">
+        <div className="min-w-0 grid auto-rows-max gap-4">
           <AdminImageUpload
             defaultValue={bouquet?.image || "/images/mock.webp"}
             recommendedSize="1000x1000"
