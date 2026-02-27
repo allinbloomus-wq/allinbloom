@@ -8,6 +8,7 @@ import {
   FLOWER_TYPES,
   PRICE_LIMITS,
 } from "@/lib/constants";
+import MultiCheckboxDropdown from "@/components/multi-checkbox-dropdown";
 
 type FilterFormValues = {
   flowers: string[];
@@ -210,6 +211,10 @@ function CatalogFiltersForm({ initialValues }: CatalogFiltersFormProps) {
 
   const dropdownOptions = useMemo(
     () => ({
+      flower: FLOWER_TYPES.map((option) => ({
+        value: option.toLowerCase(),
+        label: formatLabel(option),
+      })),
       color: [
         { value: "", label: "Any color" },
         ...COLOR_OPTIONS.map((option) => ({ value: option, label: formatLabel(option) })),
@@ -276,27 +281,15 @@ function CatalogFiltersForm({ initialValues }: CatalogFiltersFormProps) {
         className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
       >
         <div className="md:col-span-2 lg:col-span-3">
-          <span className="text-sm text-stone-700">Flower type</span>
-          <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {FLOWER_TYPES.map((option) => {
-              const value = option.toLowerCase();
-              const checked = formValues.flowers.includes(value);
-              return (
-                <label
-                  key={option}
-                  className="flex cursor-pointer items-center gap-2 rounded-2xl border border-stone-200 bg-white/80 px-3 py-2 text-sm text-stone-700 transition hover:border-stone-300"
-                >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => toggleFlower(value)}
-                    className="h-4 w-4 accent-[color:var(--brand)]"
-                  />
-                  <span>{formatLabel(option)}</span>
-                </label>
-              );
-            })}
-          </div>
+          <MultiCheckboxDropdown
+            label="Flower type"
+            controlId="catalog-filter-flowers"
+            options={dropdownOptions.flower}
+            values={formValues.flowers}
+            onToggle={toggleFlower}
+            onClear={() => setFormValues((current) => ({ ...current, flowers: [] }))}
+            emptyLabel="All flowers"
+          />
         </div>
         <FilterDropdown
           label="Palette"

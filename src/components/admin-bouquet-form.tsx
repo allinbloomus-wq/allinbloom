@@ -6,6 +6,7 @@ import type { Bouquet } from "@/lib/api-types";
 import { BOUQUET_TYPES, COLOR_OPTIONS, FLOWER_TYPES } from "@/lib/constants";
 import { formatLabel } from "@/lib/format";
 import AdminImageUpload from "@/components/admin-image-upload";
+import MultiCheckboxDropdown from "@/components/multi-checkbox-dropdown";
 
 type AdminBouquetFormProps = {
   bouquet?: Bouquet;
@@ -210,6 +211,14 @@ export default function AdminBouquetForm({
   const defaultBouquetType = useMemo(
     () => resolveDefaultBouquetType(bouquet),
     [bouquet]
+  );
+  const flowerTypeOptions = useMemo(
+    () =>
+      FLOWER_TYPES.map((type) => ({
+        value: type,
+        label: formatLabel(type),
+      })),
+    []
   );
 
   const toggleColorOption = (color: string) => {
@@ -512,45 +521,25 @@ export default function AdminBouquetForm({
               {photoLimitWarning}
             </p>
           ) : null}
-          <div className="space-y-2 text-sm text-stone-700">
+          <div className={invalidSet.has("flowerTypes") ? "rounded-2xl border border-rose-300 p-2" : ""}>
             <input type="hidden" name="style" value={selectedFlowerTypesValue} />
             <input
               type="hidden"
               name="flowerType"
               value={selectedFlowerTypes[0] || FLOWER_TYPES[0]}
             />
-            <span>Flower type (up to 3)</span>
-            <div
-              className={`grid gap-2 sm:grid-cols-2 ${
-                invalidSet.has("flowerTypes") ? "rounded-2xl border border-rose-300 p-2" : ""
-              }`}
-            >
-              {FLOWER_TYPES.map((type) => {
-                const checked = selectedFlowerTypes.includes(type);
-                const disableUnchecked = !checked && selectedFlowerTypes.length >= 3;
-                return (
-                  <label
-                    key={type}
-                    className={`flex cursor-pointer items-center gap-2 rounded-2xl border px-3 py-2 text-sm transition ${
-                      disableUnchecked
-                        ? "border-stone-200 bg-stone-100 text-stone-400"
-                        : "border-stone-200 bg-white/85 text-stone-700 hover:border-stone-300"
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      name="flowerTypes"
-                      value={type}
-                      checked={checked}
-                      disabled={disableUnchecked}
-                      onChange={() => toggleFlowerTypeOption(type)}
-                      className="h-4 w-4 accent-[color:var(--brand)]"
-                    />
-                    <span>{formatLabel(type)}</span>
-                  </label>
-                );
-              })}
-            </div>
+            {selectedFlowerTypes.map((value) => (
+              <input key={value} type="hidden" name="flowerTypes" value={value} />
+            ))}
+            <MultiCheckboxDropdown
+              label="Flower type (up to 3)"
+              controlId="admin-bouquet-flower-types"
+              options={flowerTypeOptions}
+              values={selectedFlowerTypes}
+              onToggle={toggleFlowerTypeOption}
+              maxSelections={3}
+              emptyLabel="Select flower types"
+            />
             {flowerTypeLimitWarning ? (
               <p className="text-[11px] uppercase tracking-[0.18em] text-rose-500">
                 {flowerTypeLimitWarning}

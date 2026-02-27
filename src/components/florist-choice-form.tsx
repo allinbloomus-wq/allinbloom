@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useCart } from "@/lib/cart";
 import { useToast } from "@/components/toast-provider";
 import { FLOWER_TYPES } from "@/lib/constants";
+import MultiCheckboxDropdown from "@/components/multi-checkbox-dropdown";
 
 const paletteOptions = [
   "Blush & Ivory",
@@ -146,6 +147,14 @@ export default function FloristChoiceForm() {
   const [mixed, setMixed] = useState(true);
   const [note, setNote] = useState("");
   const [openDropdown, setOpenDropdown] = useState<"palette" | null>(null);
+  const flowerTypeOptions = useMemo(
+    () =>
+      FLOWER_TYPES.map((option) => ({
+        value: option.toLowerCase(),
+        label: option.charAt(0) + option.slice(1).toLowerCase(),
+      })),
+    []
+  );
 
   const toggleFlowerType = (value: string) => {
     setFlowerTypes((current) => {
@@ -233,35 +242,15 @@ export default function FloristChoiceForm() {
         onClose={() => setOpenDropdown(null)}
         onSelect={setPalette}
       />
-      <div className="space-y-2">
-        <p className="text-sm text-stone-700">Preferred flower type (up to 3)</p>
-        <div className="grid gap-2 sm:grid-cols-2">
-          {FLOWER_TYPES.map((option) => {
-            const value = option.toLowerCase();
-            const checked = flowerTypes.includes(value);
-            const disableUnchecked = !checked && flowerTypes.length >= 3;
-            return (
-              <label
-                key={option}
-                className={`flex cursor-pointer items-center gap-2 rounded-2xl border px-3 py-2 text-sm transition ${
-                  disableUnchecked
-                    ? "border-stone-200 bg-stone-100 text-stone-400"
-                    : "border-stone-200 bg-white text-stone-700 hover:border-stone-300"
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  disabled={disableUnchecked}
-                  onChange={() => toggleFlowerType(value)}
-                  className="h-4 w-4 accent-[color:var(--brand)]"
-                />
-                <span>{option.charAt(0) + option.slice(1).toLowerCase()}</span>
-              </label>
-            );
-          })}
-        </div>
-      </div>
+      <MultiCheckboxDropdown
+        label="Preferred flower type (up to 3)"
+        controlId="florist-choice-flowers"
+        options={flowerTypeOptions}
+        values={flowerTypes}
+        onToggle={toggleFlowerType}
+        maxSelections={3}
+        emptyLabel="Select flower types"
+      />
       <div className="flex items-center gap-3 text-sm text-stone-700">
         <input
           id="mixed"
