@@ -303,6 +303,7 @@ function CatalogFiltersForm({ initialValues }: CatalogFiltersFormProps) {
           setOpenDropdown(null);
           setIsFiltersOpen((current) => !current);
         }}
+        className="w-full"
       />
       {isFiltersOpen ? (
         <>

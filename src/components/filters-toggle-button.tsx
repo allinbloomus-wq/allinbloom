@@ -4,19 +4,21 @@ type FiltersToggleButtonProps = {
   isOpen: boolean;
   onClick: () => void;
   label?: string;
+  className?: string;
 };
 
 export default function FiltersToggleButton({
   isOpen,
   onClick,
   label = "Filters",
+  className = "",
 }: FiltersToggleButtonProps) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-expanded={isOpen}
-      className="relative inline-flex h-10 shrink-0 items-center justify-start rounded-full border border-stone-300 bg-white/80 px-4 pr-10 text-[10px] uppercase tracking-[0.24em] text-stone-700 transition hover:border-stone-400 sm:text-xs sm:tracking-[0.3em]"
+      className={`relative inline-flex h-10 shrink-0 items-center justify-start rounded-full border border-stone-300 bg-white/80 px-4 pr-10 text-[10px] uppercase tracking-[0.24em] text-stone-700 transition hover:border-stone-400 sm:text-xs sm:tracking-[0.3em] ${className}`}
     >
       <span>{label}</span>
       <svg
