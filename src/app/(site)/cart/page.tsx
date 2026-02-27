@@ -76,7 +76,6 @@ export default async function CartPage({
                 percent: settings.categoryDiscountPercent,
                 note: settings.categoryDiscountNote || "Discount",
                 flowerType: settings.categoryFlowerType,
-                style: settings.categoryStyle,
                 mixed: settings.categoryMixed,
                 color: settings.categoryColor,
                 minPriceCents: settings.categoryMinPriceCents,

@@ -24,6 +24,7 @@ export type CartItem = {
     bouquetDiscountNote?: string;
     flowerType?: string;
     bouquetStyle?: string;
+    bouquetFlowerTypes?: string;
     isMixed?: boolean;
     bouquetColors?: string;
     isCustom?: boolean;

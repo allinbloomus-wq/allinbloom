@@ -18,17 +18,17 @@ const CATALOG_CATEGORY_TILES = [
   {
     key: "mono",
     title: "Mono bouquets",
-    href: "/catalog?entry=1&mixed=mono",
+    href: "/catalog?entry=1&bouquetType=mono",
   },
   {
     key: "mixed",
     title: "Mixed bouquets",
-    href: "/catalog?entry=1&mixed=mixed",
+    href: "/catalog?entry=1&bouquetType=mixed",
   },
   {
     key: "season",
     title: "Season bouquets",
-    href: "/catalog?entry=1&style=season",
+    href: "/catalog?entry=1&bouquetType=season",
   },
   {
     key: "all",
@@ -43,14 +43,28 @@ const getInitialPageSize = async () => {
   return MOBILE_UA.test(ua) ? 6 : 12;
 };
 
+const resolveBouquetType = (params: CatalogSearchParams) => {
+  const direct = (params.bouquetType || "").trim().toLowerCase();
+  if (direct === "mono" || direct === "mixed" || direct === "season") {
+    return direct;
+  }
+  const legacyMixed = (params.mixed || "").trim().toLowerCase();
+  if (legacyMixed === "mono" || legacyMixed === "mixed") {
+    return legacyMixed;
+  }
+  if ((params.style || "").trim().toLowerCase() === "season") {
+    return "season";
+  }
+  return "";
+};
+
 const hasCatalogListingContext = (params: CatalogSearchParams) =>
   params.entry === "1" ||
   Boolean(
     params.filter ||
       params.flower ||
       params.color ||
-      params.style ||
-      params.mixed ||
+      resolveBouquetType(params) ||
       params.min ||
       params.max
   );
@@ -72,7 +86,7 @@ export async function generateMetadata({
     ? "Choose a bouquet category: mono, mixed, seasonal, or all bouquets."
     : isFeatured
     ? "Discover our most-loved signature bouquets curated by Chicago florists."
-    : "Browse our full Chicago flower delivery catalog. Filter by palette, style, and price.";
+    : "Browse our full Chicago flower delivery catalog. Filter by flower, palette, bouquet type, and price.";
   const canonical = isFeatured
     ? "/catalog?filter=featured"
     : hasListingContext
@@ -159,8 +173,7 @@ export default async function CatalogPage({
     filter: params.filter,
     flower: params.flower,
     color: params.color,
-    style: params.style,
-    mixed: params.mixed,
+    bouquetType: resolveBouquetType(params),
     min: params.min,
     max: params.max,
   };
@@ -180,8 +193,7 @@ export default async function CatalogPage({
     params.filter || "",
     params.flower || "",
     params.color || "",
-    params.style || "",
-    params.mixed || "",
+    resolveBouquetType(params),
     params.min || "",
     params.max || "",
   ].join("|");
@@ -198,7 +210,7 @@ export default async function CatalogPage({
         <p className="max-w-2xl text-balance text-sm leading-relaxed text-stone-600">
           {isFeatured
             ? "Our most loved bouquets, curated by the All in Bloom Floral Studio team."
-            : "Filter by flower, palette, price, and arrangement style. Every bouquet is assembled fresh on the day of delivery by our in-house florists."}
+            : "Filter by flower, palette, bouquet type, and price. Every bouquet is assembled fresh on the day of delivery by our in-house florists."}
         </p>
       </div>
       <CatalogFilters />

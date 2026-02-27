@@ -2,34 +2,70 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { BOUQUET_STYLES, COLOR_OPTIONS, FLOWER_TYPES, PRICE_LIMITS } from "@/lib/constants";
+import {
+  BOUQUET_TYPE_FILTERS,
+  COLOR_OPTIONS,
+  FLOWER_TYPES,
+  PRICE_LIMITS,
+} from "@/lib/constants";
 
 type FilterFormValues = {
-  flower: string;
+  flowers: string[];
   color: string;
-  style: string;
-  mixed: string;
+  bouquetType: string;
   min: string;
   max: string;
 };
 
-type DropdownField = "flower" | "color" | "style" | "mixed";
+type DropdownField = "color" | "bouquetType";
 
 type FilterOption = {
   value: string;
   label: string;
 };
 
-const readSearchParams = (searchParams: { get: (key: string) => string | null }): FilterFormValues => ({
-  flower: searchParams.get("flower") || "all",
-  color: searchParams.get("color") || "",
-  style: searchParams.get("style") || "",
-  mixed: searchParams.get("mixed") || "",
-  min: searchParams.get("min") || "",
-  max: searchParams.get("max") || "",
-});
+const toUniqueArray = (values: string[]) =>
+  values.filter((value, index) => values.indexOf(value) === index);
 
-const formatLabel = (value: string) => value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+const resolveBouquetType = (searchParams: { get: (key: string) => string | null }) => {
+  const direct = String(searchParams.get("bouquetType") || "")
+    .trim()
+    .toLowerCase();
+  if (direct === "mono" || direct === "mixed" || direct === "season") {
+    return direct;
+  }
+  const legacyMixed = String(searchParams.get("mixed") || "")
+    .trim()
+    .toLowerCase();
+  if (legacyMixed === "mono" || legacyMixed === "mixed") {
+    return legacyMixed;
+  }
+  if (String(searchParams.get("style") || "").trim().toLowerCase() === "season") {
+    return "season";
+  }
+  return "";
+};
+
+const readSearchParams = (searchParams: { get: (key: string) => string | null }): FilterFormValues => {
+  const selectedFlowers = toUniqueArray(
+    String(searchParams.get("flower") || "")
+      .split(",")
+      .map((value) => value.trim().toUpperCase())
+      .filter((value) => (FLOWER_TYPES as readonly string[]).includes(value))
+      .map((value) => value.toLowerCase())
+  );
+
+  return {
+    flowers: selectedFlowers,
+    color: searchParams.get("color") || "",
+    bouquetType: resolveBouquetType(searchParams),
+    min: searchParams.get("min") || "",
+    max: searchParams.get("max") || "",
+  };
+};
+
+const formatLabel = (value: string) =>
+  value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
 
 type FilterDropdownProps = {
   label: string;
@@ -107,7 +143,13 @@ function FilterDropdown({
             isOpen ? "rotate-180" : ""
           }`}
         >
-          <path d="M3.5 6.5L8 11l4.5-4.5" stroke="currentColor" strokeWidth="1.7" fill="none" strokeLinecap="round" />
+          <path
+            d="M3.5 6.5L8 11l4.5-4.5"
+            stroke="currentColor"
+            strokeWidth="1.7"
+            fill="none"
+            strokeLinecap="round"
+          />
         </svg>
       </button>
       {isOpen ? (
@@ -168,28 +210,16 @@ function CatalogFiltersForm({ initialValues }: CatalogFiltersFormProps) {
 
   const dropdownOptions = useMemo(
     () => ({
-      flower: [
-        { value: "all", label: "All flowers" },
-        ...FLOWER_TYPES.map((option) => ({
-          value: option.toLowerCase(),
-          label: formatLabel(option),
-        })),
-      ],
       color: [
         { value: "", label: "Any color" },
         ...COLOR_OPTIONS.map((option) => ({ value: option, label: formatLabel(option) })),
       ],
-      style: [
-        { value: "", label: "Any style" },
-        ...BOUQUET_STYLES.map((option) => ({
-          value: option.toLowerCase(),
-          label: formatLabel(option),
-        })),
-      ],
-      mixed: [
+      bouquetType: [
         { value: "", label: "All bouquets" },
-        { value: "mixed", label: "Mixed bouquet" },
-        { value: "mono", label: "Mono bouquet" },
+        ...BOUQUET_TYPE_FILTERS.filter((value) => value !== "all").map((value) => ({
+          value,
+          label: `${formatLabel(value)} bouquet`,
+        })),
       ],
     }),
     []
@@ -199,24 +229,39 @@ function CatalogFiltersForm({ initialValues }: CatalogFiltersFormProps) {
     setFormValues((current) => ({ ...current, [field]: value }));
   };
 
+  const toggleFlower = (value: string) => {
+    setFormValues((current) => {
+      const exists = current.flowers.includes(value);
+      const nextFlowers = exists
+        ? current.flowers.filter((entry) => entry !== value)
+        : [...current.flowers, value];
+      return { ...current, flowers: toUniqueArray(nextFlowers) };
+    });
+  };
+
   const hasFilters = useMemo(
     () =>
-      [formValues.flower !== "all", formValues.color, formValues.style, formValues.mixed, formValues.min, formValues.max].some(
-        Boolean
-      ),
+      [
+        formValues.flowers.length > 0,
+        formValues.color,
+        formValues.bouquetType,
+        formValues.min,
+        formValues.max,
+      ].some(Boolean),
     [formValues]
   );
 
   const applyFilters = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const { flower, color, style, mixed, min, max } = formValues;
+    const { flowers, color, bouquetType, min, max } = formValues;
 
     const params = new URLSearchParams();
     params.set("entry", "1");
-    if (flower && flower !== "all") params.set("flower", flower);
+    if (flowers.length) {
+      params.set("flower", flowers.join(","));
+    }
     if (color) params.set("color", color);
-    if (style) params.set("style", style);
-    if (mixed) params.set("mixed", mixed);
+    if (bouquetType) params.set("bouquetType", bouquetType);
     if (min) params.set("min", min);
     if (max) params.set("max", max);
     const query = params.toString();
@@ -230,16 +275,29 @@ function CatalogFiltersForm({ initialValues }: CatalogFiltersFormProps) {
         onSubmit={applyFilters}
         className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
       >
-        <FilterDropdown
-          label="Flower type"
-          controlId="catalog-filter-flower"
-          value={formValues.flower}
-          options={dropdownOptions.flower}
-          isOpen={openDropdown === "flower"}
-          onToggle={() => setOpenDropdown((current) => (current === "flower" ? null : "flower"))}
-          onClose={() => setOpenDropdown(null)}
-          onSelect={(value) => setDropdownValue("flower", value)}
-        />
+        <div className="md:col-span-2 lg:col-span-3">
+          <span className="text-sm text-stone-700">Flower type</span>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {FLOWER_TYPES.map((option) => {
+              const value = option.toLowerCase();
+              const checked = formValues.flowers.includes(value);
+              return (
+                <label
+                  key={option}
+                  className="flex cursor-pointer items-center gap-2 rounded-2xl border border-stone-200 bg-white/80 px-3 py-2 text-sm text-stone-700 transition hover:border-stone-300"
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggleFlower(value)}
+                    className="h-4 w-4 accent-[color:var(--brand)]"
+                  />
+                  <span>{formatLabel(option)}</span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
         <FilterDropdown
           label="Palette"
           controlId="catalog-filter-color"
@@ -251,24 +309,16 @@ function CatalogFiltersForm({ initialValues }: CatalogFiltersFormProps) {
           onSelect={(value) => setDropdownValue("color", value)}
         />
         <FilterDropdown
-          label="Style"
-          controlId="catalog-filter-style"
-          value={formValues.style}
-          options={dropdownOptions.style}
-          isOpen={openDropdown === "style"}
-          onToggle={() => setOpenDropdown((current) => (current === "style" ? null : "style"))}
-          onClose={() => setOpenDropdown(null)}
-          onSelect={(value) => setDropdownValue("style", value)}
-        />
-        <FilterDropdown
           label="Bouquet type"
-          controlId="catalog-filter-mixed"
-          value={formValues.mixed}
-          options={dropdownOptions.mixed}
-          isOpen={openDropdown === "mixed"}
-          onToggle={() => setOpenDropdown((current) => (current === "mixed" ? null : "mixed"))}
+          controlId="catalog-filter-bouquet-type"
+          value={formValues.bouquetType}
+          options={dropdownOptions.bouquetType}
+          isOpen={openDropdown === "bouquetType"}
+          onToggle={() =>
+            setOpenDropdown((current) => (current === "bouquetType" ? null : "bouquetType"))
+          }
           onClose={() => setOpenDropdown(null)}
-          onSelect={(value) => setDropdownValue("mixed", value)}
+          onSelect={(value) => setDropdownValue("bouquetType", value)}
         />
         <label className="flex flex-col gap-2 text-sm text-stone-700">
           Min price (${PRICE_LIMITS.min})
@@ -276,7 +326,9 @@ function CatalogFiltersForm({ initialValues }: CatalogFiltersFormProps) {
             type="number"
             name="min"
             value={formValues.min}
-            onChange={(event) => setFormValues((current) => ({ ...current, min: event.target.value }))}
+            onChange={(event) =>
+              setFormValues((current) => ({ ...current, min: event.target.value }))
+            }
             min={PRICE_LIMITS.min}
             placeholder="45"
             className={priceFieldClass}
@@ -288,7 +340,9 @@ function CatalogFiltersForm({ initialValues }: CatalogFiltersFormProps) {
             type="number"
             name="max"
             value={formValues.max}
-            onChange={(event) => setFormValues((current) => ({ ...current, max: event.target.value }))}
+            onChange={(event) =>
+              setFormValues((current) => ({ ...current, max: event.target.value }))
+            }
             max={PRICE_LIMITS.max}
             placeholder="200"
             className={priceFieldClass}

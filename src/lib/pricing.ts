@@ -19,7 +19,6 @@ type CategorySettings = Pick<
   | "categoryDiscountPercent"
   | "categoryDiscountNote"
   | "categoryFlowerType"
-  | "categoryStyle"
   | "categoryMixed"
   | "categoryColor"
   | "categoryMinPriceCents"
@@ -34,7 +33,6 @@ type GlobalSettings = Pick<
 const hasCategoryFilters = (settings: CategorySettings) =>
   Boolean(
     settings.categoryFlowerType ||
-      settings.categoryStyle ||
       settings.categoryMixed ||
       settings.categoryColor ||
       settings.categoryMinPriceCents !== null ||
@@ -42,10 +40,7 @@ const hasCategoryFilters = (settings: CategorySettings) =>
   );
 
 const matchesCategory = (
-  bouquet: Pick<
-    Bouquet,
-    "flowerType" | "style" | "isMixed" | "colors" | "priceCents"
-  >,
+  bouquet: Pick<Bouquet, "flowerType" | "isMixed" | "colors" | "priceCents">,
   settings: CategorySettings
 ) => {
   if (settings.categoryDiscountPercent <= 0) return false;
@@ -55,10 +50,6 @@ const matchesCategory = (
     settings.categoryFlowerType &&
     settings.categoryFlowerType !== bouquet.flowerType
   ) {
-    return false;
-  }
-
-  if (settings.categoryStyle && settings.categoryStyle !== bouquet.style) {
     return false;
   }
 
@@ -100,7 +91,6 @@ export const getBouquetDiscount = (
     | "discountPercent"
     | "discountNote"
     | "flowerType"
-    | "style"
     | "isMixed"
     | "colors"
     | "priceCents"
@@ -141,7 +131,6 @@ export const getBouquetPricing = (
     | "discountPercent"
     | "discountNote"
     | "flowerType"
-    | "style"
     | "isMixed"
     | "colors"
   >,
@@ -165,7 +154,6 @@ export const getCartItemDiscount = (
     bouquetDiscountPercent?: number;
     bouquetDiscountNote?: string;
     flowerType?: string;
-    style?: string;
     isMixed?: boolean;
     colors?: string;
   },
@@ -183,7 +171,6 @@ export const getCartItemDiscount = (
     matchesCategory(
       {
         flowerType: (item.flowerType || "") as Bouquet["flowerType"],
-        style: (item.style || "") as Bouquet["style"],
         isMixed: Boolean(item.isMixed),
         colors: item.colors || "",
         priceCents: item.basePriceCents,

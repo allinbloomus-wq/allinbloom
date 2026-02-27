@@ -1,11 +1,12 @@
-import { FLOWER_TYPES, BOUQUET_STYLES } from "@/lib/constants";
+import { BOUQUET_TYPES, FLOWER_TYPES } from "@/lib/constants";
 
 export type BouquetFormPayload = {
   name: string;
   description: string;
   priceCents: number;
   flowerType: (typeof FLOWER_TYPES)[number];
-  style: (typeof BOUQUET_STYLES)[number];
+  style: string;
+  bouquetType: (typeof BOUQUET_TYPES)[number];
   colors: string;
   isMixed: boolean;
   isFeatured: boolean;
@@ -30,6 +31,37 @@ const normalizeEnum = <T extends readonly string[]>(
   return (allowed as readonly string[]).includes(upper) ? (upper as T[number]) : fallback;
 };
 
+const parseFlowerTypes = (formData: FormData): (typeof FLOWER_TYPES)[number][] => {
+  const valid = new Set<string>(FLOWER_TYPES);
+  const parsed = formData
+    .getAll("flowerTypes")
+    .map((value) => String(value || "").trim().toUpperCase())
+    .filter((value): value is (typeof FLOWER_TYPES)[number] => valid.has(value));
+
+  const unique = parsed.filter((value, index) => parsed.indexOf(value) === index);
+  if (unique.length) {
+    return unique.slice(0, 3);
+  }
+
+  const fallbackCsv = String(formData.get("style") || "");
+  const fallbackFromCsv = fallbackCsv
+    .split(",")
+    .map((value) => value.trim().toUpperCase())
+    .filter((value): value is (typeof FLOWER_TYPES)[number] => valid.has(value))
+    .filter((value, index, list) => list.indexOf(value) === index)
+    .slice(0, 3);
+  if (fallbackFromCsv.length) {
+    return fallbackFromCsv;
+  }
+
+  const fallbackPrimary = normalizeEnum(
+    String(formData.get("flowerType")),
+    FLOWER_TYPES,
+    FLOWER_TYPES[0]
+  );
+  return [fallbackPrimary];
+};
+
 export const parseBouquetForm = (formData: FormData): BouquetFormPayload => {
   const normalizeOptionalImage = (value: FormDataEntryValue | null) => {
     const normalized = String(value || "").trim();
@@ -49,23 +81,22 @@ export const parseBouquetForm = (formData: FormData): BouquetFormPayload => {
   const discountNote = String(formData.get("discountNote") || "").trim();
   const normalizedDiscountNote =
     discountPercent > 0 ? discountNote || "Discount" : null;
+  const flowerTypes = parseFlowerTypes(formData);
+  const bouquetType = normalizeEnum(
+    String(formData.get("bouquetType")),
+    BOUQUET_TYPES,
+    formData.get("isMixed") === "on" ? "MIXED" : "MONO"
+  );
 
   return {
     name,
     description,
     priceCents: Math.max(0, Math.round(price * 100)),
-    flowerType: normalizeEnum(
-      String(formData.get("flowerType")),
-      FLOWER_TYPES,
-      FLOWER_TYPES[0]
-    ),
-    style: normalizeEnum(
-      String(formData.get("style")),
-      BOUQUET_STYLES,
-      BOUQUET_STYLES[0]
-    ),
+    flowerType: flowerTypes[0],
+    style: flowerTypes.join(", "),
+    bouquetType,
     colors,
-    isMixed: formData.get("isMixed") === "on",
+    isMixed: bouquetType === "MIXED",
     isFeatured: formData.get("isFeatured") === "on",
     isActive: formData.get("isActive") === "on",
     discountPercent,

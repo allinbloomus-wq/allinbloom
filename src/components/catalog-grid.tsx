@@ -58,19 +58,17 @@ export default function CatalogGrid({
     if (filters.filter) params.set("filter", filters.filter);
     if (filters.flower) params.set("flower", filters.flower);
     if (filters.color) params.set("color", filters.color);
-    if (filters.style) params.set("style", filters.style);
-    if (filters.mixed) params.set("mixed", filters.mixed);
+    if (filters.bouquetType) params.set("bouquetType", filters.bouquetType);
     if (filters.min) params.set("min", filters.min);
     if (filters.max) params.set("max", filters.max);
     return params;
   }, [
+    filters.bouquetType,
     filters.color,
     filters.filter,
     filters.flower,
     filters.max,
     filters.min,
-    filters.mixed,
-    filters.style,
   ]);
 
   const loadMore = useCallback(async () => {

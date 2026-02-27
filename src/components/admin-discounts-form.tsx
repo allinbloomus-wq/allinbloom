@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 import type { StoreSettings } from "@/lib/api-types";
-import { BOUQUET_STYLES, COLOR_OPTIONS, FLOWER_TYPES } from "@/lib/constants";
+import { COLOR_OPTIONS, FLOWER_TYPES } from "@/lib/constants";
 
 type AdminDiscountsFormProps = {
   settings: StoreSettings;
@@ -68,7 +68,6 @@ export default function AdminDiscountsForm({
     const firstNote = String(formData.get("firstOrderDiscountNote") || "").trim();
 
     const categoryFlowerType = String(formData.get("categoryFlowerType") || "").trim();
-    const categoryStyle = String(formData.get("categoryStyle") || "").trim();
     const categoryMixed = String(formData.get("categoryMixed") || "").trim();
     const categoryColor = String(formData.get("categoryColor") || "").trim();
     const categoryMinPrice = parsePrice(formData.get("categoryMinPrice"));
@@ -89,7 +88,6 @@ export default function AdminDiscountsForm({
 
     const hasCategoryFilter = Boolean(
       categoryFlowerType ||
-        categoryStyle ||
         categoryMixed ||
         categoryColor ||
         categoryMinPrice !== null ||
@@ -104,7 +102,6 @@ export default function AdminDiscountsForm({
     if (categoryPercent > 0 && !hasCategoryFilter) {
       nextErrors.push("Category discount requires at least one filter.");
       nextInvalid.add("categoryFlowerType");
-      nextInvalid.add("categoryStyle");
       nextInvalid.add("categoryMixed");
       nextInvalid.add("categoryColor");
       nextInvalid.add("categoryMinPrice");
@@ -238,23 +235,6 @@ export default function AdminDiscountsForm({
               placeholder="Reason for discount"
               className={fieldClass(invalidSet.has("categoryDiscountNote"))}
             />
-          </label>
-          <label className="relative z-10 flex flex-col gap-2 text-sm text-stone-700">
-            Style
-            <select
-              name="categoryStyle"
-              defaultValue={settings.categoryStyle || ""}
-              className={`select-field ${fieldClass(
-                invalidSet.has("categoryStyle")
-              )}`}
-            >
-              <option value="">Any</option>
-              {BOUQUET_STYLES.map((style) => (
-                <option key={style} value={style}>
-                  {style}
-                </option>
-              ))}
-            </select>
           </label>
           <label className="relative z-10 flex flex-col gap-2 text-sm text-stone-700">
             Bouquet type

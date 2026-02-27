@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from app.models.enums import BouquetStyle, FlowerType
+from app.models.enums import BouquetType, FlowerType
 from app.schemas.base import SchemaBase
 
 
@@ -13,7 +13,8 @@ class BouquetOut(SchemaBase):
     price_cents: int
     currency: str
     flower_type: FlowerType
-    style: BouquetStyle
+    style: str
+    bouquet_type: BouquetType
     colors: str
     is_mixed: bool
     is_featured: bool
@@ -34,7 +35,8 @@ class BouquetCreate(SchemaBase):
     price_cents: int
     currency: str = "USD"
     flower_type: FlowerType
-    style: BouquetStyle
+    style: str
+    bouquet_type: BouquetType = BouquetType.MONO
     colors: str
     is_mixed: bool = False
     is_featured: bool = False
@@ -55,7 +57,8 @@ class BouquetUpdate(SchemaBase):
     price_cents: Optional[int] = None
     currency: Optional[str] = None
     flower_type: Optional[FlowerType] = None
-    style: Optional[BouquetStyle] = None
+    style: Optional[str] = None
+    bouquet_type: Optional[BouquetType] = None
     colors: Optional[str] = None
     is_mixed: Optional[bool] = None
     is_featured: Optional[bool] = None

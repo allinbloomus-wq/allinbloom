@@ -22,7 +22,6 @@ def make_settings(**overrides):
         "category_discount_percent": 0,
         "category_discount_note": None,
         "category_flower_type": None,
-        "category_style": None,
         "category_mixed": None,
         "category_color": None,
         "category_min_price_cents": None,
@@ -38,7 +37,6 @@ def make_bouquet(**overrides):
         "discount_percent": 0,
         "discount_note": None,
         "flower_type": "ROSE",
-        "style": "ROMANTIC",
         "is_mixed": False,
         "colors": "Red,White",
     }
@@ -89,7 +87,6 @@ class PricingTests(unittest.TestCase):
             category_discount_percent=15,
             category_discount_note="Category",
             category_flower_type="ROSE",
-            category_style="ROMANTIC",
             category_mixed="mono",
             category_color="red",
             category_min_price_cents=9000,
@@ -132,7 +129,6 @@ class PricingTests(unittest.TestCase):
         settings = make_settings(
             category_discount_percent=11,
             category_flower_type="ROSE",
-            category_style="ROMANTIC",
             category_mixed="mono",
             category_color="red",
         )
@@ -140,7 +136,6 @@ class PricingTests(unittest.TestCase):
             {
                 "base_price_cents": 10000,
                 "flower_type": "ROSE",
-                "style": "ROMANTIC",
                 "is_mixed": False,
                 "colors": "Deep RED",
             },

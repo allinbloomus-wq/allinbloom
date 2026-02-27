@@ -24,7 +24,6 @@ def _has_category_filters(settings) -> bool:
     return any(
         [
             settings.category_flower_type,
-            settings.category_style,
             settings.category_mixed,
             settings.category_color,
             settings.category_min_price_cents is not None,
@@ -40,8 +39,6 @@ def _matches_category(bouquet, settings) -> bool:
         return False
 
     if settings.category_flower_type and settings.category_flower_type != bouquet.flower_type:
-        return False
-    if settings.category_style and settings.category_style != bouquet.style:
         return False
     if settings.category_mixed == "mixed" and not bouquet.is_mixed:
         return False
@@ -116,7 +113,6 @@ def get_cart_item_discount(item, settings) -> Optional[DiscountInfo]:
 
     bouquet = Obj()
     bouquet.flower_type = item.get("flower_type")
-    bouquet.style = item.get("style")
     bouquet.is_mixed = bool(item.get("is_mixed"))
     bouquet.colors = item.get("colors") or ""
     bouquet.price_cents = item.get("base_price_cents") or 0

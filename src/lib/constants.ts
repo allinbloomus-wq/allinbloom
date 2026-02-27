@@ -4,15 +4,21 @@ export const FLOWER_TYPES = [
   "LILY",
   "PEONY",
   "ORCHID",
-  "MIXED",
 ] as const;
 
-export const BOUQUET_STYLES = [
-  "ROMANTIC",
-  "MODERN",
-  "GARDEN",
-  "MINIMAL",
+export const FLOWER_TYPES_WITH_MIXED = [...FLOWER_TYPES, "MIXED"] as const;
+
+export const BOUQUET_TYPES = [
+  "MONO",
+  "MIXED",
   "SEASON",
+] as const;
+
+export const BOUQUET_TYPE_FILTERS = [
+  "all",
+  "mono",
+  "mixed",
+  "season",
 ] as const;
 
 export const COLOR_OPTIONS = [

@@ -237,10 +237,6 @@ export default async function HomePage() {
           </p>
           <div className="grid gap-4 sm:grid-cols-2">
             <PromoCard
-              title="Weekly edit"
-              description="New seasonal curation drops every Thursday."
-            />
-            <PromoCard
               title="Each bouquet comes in exclusive packaging with branded ribbons and stickers."
               description="We can also add a card and a festive photo to make your gift truly unforgettable."
             />

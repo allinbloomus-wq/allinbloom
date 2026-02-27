@@ -1,5 +1,5 @@
 from app.models.bouquet import Bouquet
-from app.models.enums import BouquetStyle, FlowerType, OrderStatus, Role
+from app.models.enums import BouquetType, FlowerType, OrderStatus, Role
 from app.models.order import Order
 from app.models.order_item import OrderItem
 from app.models.promo_slide import PromoSlide
@@ -11,7 +11,7 @@ from app.models.webhook_event import WebhookEvent
 
 __all__ = [
     "Bouquet",
-    "BouquetStyle",
+    "BouquetType",
     "FlowerType",
     "Order",
     "OrderItem",

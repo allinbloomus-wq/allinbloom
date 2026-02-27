@@ -48,7 +48,8 @@ const baseBouquet: Bouquet = {
   priceCents: 10000,
   currency: "USD",
   flowerType: "ROSE",
-  style: "ROMANTIC",
+  style: "ROSE",
+  bouquetType: "MONO",
   colors: "Red,White",
   isMixed: false,
   isFeatured: true,
@@ -99,7 +100,6 @@ describe("getBouquetDiscount", () => {
         categoryDiscountPercent: 20,
         categoryDiscountNote: "Category promo",
         categoryFlowerType: "ROSE",
-        categoryStyle: "ROMANTIC",
         categoryMixed: "mono",
         categoryColor: "red",
         categoryMinPriceCents: 9000,
@@ -184,14 +184,12 @@ describe("pricing composition", () => {
       {
         basePriceCents: 10000,
         flowerType: "ROSE",
-        style: "ROMANTIC",
         isMixed: false,
         colors: "Deep RED",
       },
       makeSettings({
         categoryDiscountPercent: 12,
         categoryFlowerType: "ROSE",
-        categoryStyle: "ROMANTIC",
         categoryMixed: "mono",
         categoryColor: "red",
       })

@@ -1,13 +1,17 @@
 import type { Bouquet, CatalogResponse } from "@/lib/api-types";
-import { BOUQUET_STYLES, FLOWER_TYPES } from "@/lib/constants";
+import {
+  BOUQUET_TYPE_FILTERS,
+  FLOWER_TYPES,
+} from "@/lib/constants";
 import { apiFetch } from "@/lib/api-server";
 
 export type CatalogSearchParams = {
   entry?: string;
   flower?: string;
   color?: string;
-  style?: string;
-  mixed?: string;
+  bouquetType?: string;
+  style?: string; // legacy URL compatibility
+  mixed?: string; // legacy URL compatibility
   min?: string;
   max?: string;
   filter?: string;
@@ -33,6 +37,43 @@ const normalizeEnum = <T extends readonly string[]>(
   return (allowed as readonly string[]).includes(upper) ? upper : undefined;
 };
 
+const normalizeFlowerFilters = (value?: string) => {
+  if (!value) return undefined;
+
+  const values = value
+    .split(",")
+    .map((item) => normalizeEnum(item, FLOWER_TYPES))
+    .filter((item): item is (typeof FLOWER_TYPES)[number] => Boolean(item));
+
+  const unique = values.filter((item, index) => values.indexOf(item) === index);
+  if (!unique.length) return undefined;
+  return unique.map((item) => item.toLowerCase()).join(",");
+};
+
+const normalizeBouquetTypeFilter = (
+  bouquetType?: string,
+  mixed?: string,
+  style?: string
+) => {
+  const normalized = String(bouquetType || "").trim().toLowerCase();
+  const mixedLegacy = String(mixed || "").trim().toLowerCase();
+  const styleLegacy = String(style || "").trim().toLowerCase();
+
+  if (
+    (BOUQUET_TYPE_FILTERS as readonly string[]).includes(normalized) &&
+    normalized !== "all"
+  ) {
+    return normalized;
+  }
+  if (mixedLegacy === "mono" || mixedLegacy === "mixed") {
+    return mixedLegacy;
+  }
+  if (styleLegacy === "season") {
+    return "season";
+  }
+  return undefined;
+};
+
 export async function getFeaturedBouquets(): Promise<Bouquet[]> {
   const response = await apiFetch("/api/catalog?filter=featured&take=6");
   if (!response.ok) return [];
@@ -56,18 +97,21 @@ export async function getBouquets(
   filters: CatalogSearchParams = {},
   pagination: CatalogPagination = {}
 ): Promise<Bouquet[]> {
-  const flowerType = normalizeEnum(filters.flower, FLOWER_TYPES);
-  const style = normalizeEnum(filters.style, BOUQUET_STYLES);
+  const flowerTypes = normalizeFlowerFilters(filters.flower);
+  const bouquetType = normalizeBouquetTypeFilter(
+    filters.bouquetType,
+    filters.mixed,
+    filters.style
+  );
   const min = toNumber(filters.min);
   const max = toNumber(filters.max);
   const { cursor, take } = pagination;
 
   const params = new URLSearchParams();
   if (filters.filter) params.set("filter", filters.filter);
-  if (flowerType) params.set("flower", flowerType.toLowerCase());
+  if (flowerTypes) params.set("flower", flowerTypes);
   if (filters.color) params.set("color", filters.color);
-  if (style) params.set("style", style.toLowerCase());
-  if (filters.mixed) params.set("mixed", filters.mixed);
+  if (bouquetType) params.set("bouquetType", bouquetType);
   if (min !== undefined) params.set("min", String(min));
   if (max !== undefined) params.set("max", String(max));
   if (cursor) params.set("cursor", cursor);

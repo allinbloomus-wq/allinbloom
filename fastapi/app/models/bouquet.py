@@ -4,7 +4,7 @@ from sqlalchemy import Boolean, Column, DateTime, Enum, Integer, String, func
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
-from app.models.enums import BouquetStyle, FlowerType
+from app.models.enums import BouquetType, FlowerType
 from app.utils.ids import generate_cuid
 
 
@@ -17,7 +17,9 @@ class Bouquet(Base):
     price_cents = Column("priceCents", Integer, nullable=False)
     currency = Column(String, default="USD", nullable=False)
     flower_type = Column("flowerType", Enum(FlowerType, name="FlowerType"), nullable=False)
-    style = Column(Enum(BouquetStyle, name="BouquetStyle"), nullable=False)
+    # Stores up to three flower types as CSV (e.g. "ROSE, TULIP").
+    style = Column(String, nullable=False)
+    bouquet_type = Column("bouquetType", String, default=BouquetType.MONO.value, nullable=False)
     colors = Column(String, nullable=False)
     is_mixed = Column("isMixed", Boolean, default=False, nullable=False)
     is_featured = Column("isFeatured", Boolean, default=False, nullable=False)

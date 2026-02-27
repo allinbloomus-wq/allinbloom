@@ -12,7 +12,7 @@ type AddToCartControlsProps = {
     discountPercent?: number;
     discountNote?: string;
     flowerType?: string;
-    style?: string;
+    flowerTypes?: string;
     colors?: string;
     isMixed?: boolean;
   };
@@ -39,7 +39,7 @@ export default function AddToCartControls({ item }: AddToCartControlsProps) {
               bouquetDiscountPercent: item.discountPercent || 0,
               bouquetDiscountNote: item.discountNote,
               flowerType: item.flowerType,
-              bouquetStyle: item.style,
+              bouquetFlowerTypes: item.flowerTypes,
               bouquetColors: item.colors,
               isMixed: item.isMixed,
             },

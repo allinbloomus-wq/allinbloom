@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
 from app.models.bouquet import Bouquet
-from app.models.enums import BouquetStyle, FlowerType
+from app.models.enums import BouquetType, FlowerType
 from app.schemas.catalog import CatalogResponse
 from app.schemas.bouquet import BouquetOut
 from app.services.pricing import get_bouquet_pricing
@@ -25,10 +25,42 @@ def _normalize_enum(value: str | None, enum_cls):
         return None
 
 
+def _parse_flower_filters(value: str | None) -> list[FlowerType]:
+    if not value:
+        return []
+
+    parsed: list[FlowerType] = []
+    for raw in value.split(","):
+        enum_value = _normalize_enum(raw.strip(), FlowerType)
+        if not enum_value or enum_value in parsed or enum_value == FlowerType.MIXED:
+            continue
+        parsed.append(enum_value)
+    return parsed
+
+
+def _resolve_bouquet_type_filter(
+    bouquet_type: str | None,
+    mixed: str | None,
+    style: str | None,
+) -> str | None:
+    primary = (bouquet_type or "").strip().lower()
+    legacy_mixed = (mixed or "").strip().lower()
+    legacy_style = (style or "").strip().lower()
+
+    if primary in {"mono", "mixed", "season"}:
+        return primary
+    if legacy_mixed in {"mono", "mixed"}:
+        return legacy_mixed
+    if legacy_style == "season":
+        return "season"
+    return None
+
+
 @router.get("", response_model=CatalogResponse)
 def list_catalog(
     flower: str | None = None,
     color: str | None = None,
+    bouquet_type: str | None = Query(default=None, alias="bouquetType"),
     style: str | None = None,
     mixed: str | None = None,
     min: float | None = Query(default=None, alias="min"),
@@ -42,20 +74,44 @@ def list_catalog(
     if filter == "featured":
         filters.append(Bouquet.is_featured.is_(True))
 
-    flower_enum = _normalize_enum(flower, FlowerType)
-    if flower_enum and flower_enum != FlowerType.MIXED:
-        filters.append(Bouquet.flower_type == flower_enum)
-    elif flower_enum == FlowerType.MIXED:
-        filters.append(Bouquet.flower_type == flower_enum)
+    selected_flowers = _parse_flower_filters(flower)
+    if selected_flowers:
+        flower_filters = []
+        for flower_enum in selected_flowers:
+            token = flower_enum.value.lower()
+            flower_filters.append(Bouquet.flower_type == flower_enum)
+            flower_filters.append(func.lower(Bouquet.style).contains(token))
+        filters.append(or_(*flower_filters))
 
-    style_enum = _normalize_enum(style, BouquetStyle)
-    if style_enum:
-        filters.append(Bouquet.style == style_enum)
-
-    if mixed == "mixed":
-        filters.append(Bouquet.is_mixed.is_(True))
-    if mixed == "mono":
-        filters.append(Bouquet.is_mixed.is_(False))
+    normalized_bouquet_type = _resolve_bouquet_type_filter(bouquet_type, mixed, style)
+    if normalized_bouquet_type == "mono":
+        filters.append(
+            or_(
+                Bouquet.bouquet_type == BouquetType.MONO.value,
+                and_(
+                    Bouquet.bouquet_type.is_(None),
+                    Bouquet.is_mixed.is_(False),
+                    func.lower(Bouquet.style) != "season",
+                ),
+            )
+        )
+    if normalized_bouquet_type == "mixed":
+        filters.append(
+            or_(
+                Bouquet.bouquet_type == BouquetType.MIXED.value,
+                and_(Bouquet.bouquet_type.is_(None), Bouquet.is_mixed.is_(True)),
+            )
+        )
+    if normalized_bouquet_type == "season":
+        filters.append(
+            or_(
+                Bouquet.bouquet_type == BouquetType.SEASON.value,
+                and_(
+                    Bouquet.bouquet_type.is_(None),
+                    func.lower(Bouquet.style) == "season",
+                ),
+            )
+        )
 
     if min is not None or max is not None:
         min_cents = int(min * 100) if min is not None else None

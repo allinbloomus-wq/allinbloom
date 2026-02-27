@@ -1,7 +1,10 @@
-import { BOUQUET_STYLES, FLOWER_TYPES } from "@/lib/constants";
+import {
+  BOUQUET_TYPES,
+  FLOWER_TYPES_WITH_MIXED,
+} from "@/lib/constants";
 
-export type FlowerType = (typeof FLOWER_TYPES)[number];
-export type BouquetStyle = (typeof BOUQUET_STYLES)[number];
+export type FlowerType = (typeof FLOWER_TYPES_WITH_MIXED)[number];
+export type BouquetType = (typeof BOUQUET_TYPES)[number];
 export type OrderStatus = "PENDING" | "PAID" | "FAILED" | "CANCELED";
 
 export type Bouquet = {
@@ -11,7 +14,8 @@ export type Bouquet = {
   priceCents: number;
   currency: string;
   flowerType: FlowerType;
-  style: BouquetStyle;
+  style: string;
+  bouquetType: BouquetType;
   colors: string;
   isMixed: boolean;
   isFeatured: boolean;

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getOrderById, getOrderStripeSession } from "@/lib/data/orders";
 import { formatDateTime, formatMoney, formatOrderStatus } from "@/lib/format";
+import { sanitizeOrderItemDetails } from "@/lib/order-details";
 
 export default async function AdminOrderDetailPage({
   params,
@@ -94,21 +95,24 @@ export default async function AdminOrderDetailPage({
             Items in order
           </h2>
           <div className="mt-4 space-y-2 text-sm text-stone-600">
-            {order.items.map((item) => (
-              <div key={item.id} className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="break-words">
-                    {item.quantity} x {item.name}
-                  </p>
-                  {item.details ? (
-                    <p className="mt-1 text-xs text-stone-500">
-                      {item.details}
+            {order.items.map((item) => {
+              const details = sanitizeOrderItemDetails(item.details);
+              return (
+                <div key={item.id} className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="break-words">
+                      {item.quantity} x {item.name}
                     </p>
-                  ) : null}
+                    {details ? (
+                      <p className="mt-1 text-xs text-stone-500">
+                        {details}
+                      </p>
+                    ) : null}
+                  </div>
+                  <span className="shrink-0">{formatMoney(item.priceCents)}</span>
                 </div>
-                <span className="shrink-0">{formatMoney(item.priceCents)}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
           <div className="mt-4 flex justify-between text-sm font-semibold text-stone-900">
             <span>Total</span>

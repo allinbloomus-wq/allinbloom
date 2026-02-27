@@ -17,11 +17,9 @@ class FlowerType(str, Enum):
     MIXED = "MIXED"
 
 
-class BouquetStyle(str, Enum):
-    ROMANTIC = "ROMANTIC"
-    MODERN = "MODERN"
-    GARDEN = "GARDEN"
-    MINIMAL = "MINIMAL"
+class BouquetType(str, Enum):
+    MONO = "MONO"
+    MIXED = "MIXED"
     SEASON = "SEASON"
 
 

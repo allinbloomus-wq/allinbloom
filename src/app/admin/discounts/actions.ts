@@ -29,7 +29,6 @@ export async function updateDiscountSettings(formData: FormData) {
   const categoryFlowerType = String(
     formData.get("categoryFlowerType") || ""
   ).trim();
-  const categoryStyle = String(formData.get("categoryStyle") || "").trim();
   const categoryMixed = String(formData.get("categoryMixed") || "").trim();
   const categoryColor = String(formData.get("categoryColor") || "").trim();
   const categoryMinPriceCents = parsePriceCents(
@@ -45,7 +44,6 @@ export async function updateDiscountSettings(formData: FormData) {
 
   const hasCategoryFilter = Boolean(
     categoryFlowerType ||
-      categoryStyle ||
       categoryMixed ||
       categoryColor ||
       categoryMinPriceCents !== null ||
@@ -90,7 +88,7 @@ export async function updateDiscountSettings(formData: FormData) {
     categoryDiscountPercent: categoryPercent,
     categoryDiscountNote: normalizedCategoryNote,
     categoryFlowerType: categoryPercent > 0 ? categoryFlowerType || null : null,
-    categoryStyle: categoryPercent > 0 ? categoryStyle || null : null,
+    categoryStyle: null,
     categoryMixed: categoryPercent > 0 ? categoryMixed || null : null,
     categoryColor: categoryPercent > 0 ? categoryColor || null : null,
     categoryMinPriceCents: normalizedCategoryMinPriceCents,

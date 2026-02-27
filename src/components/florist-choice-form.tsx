@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCart } from "@/lib/cart";
 import { useToast } from "@/components/toast-provider";
+import { FLOWER_TYPES } from "@/lib/constants";
 
 const paletteOptions = [
   "Blush & Ivory",
@@ -11,8 +12,6 @@ const paletteOptions = [
   "Sage & Cream",
   "Ruby & Blush",
 ];
-
-const styleOptions = ["Romantic", "Modern", "Garden", "Minimal"];
 
 type ChoiceDropdownProps = {
   label: string;
@@ -141,19 +140,42 @@ export default function FloristChoiceForm() {
   const { showToast } = useToast();
   const [price, setPrice] = useState(95);
   const [palette, setPalette] = useState(paletteOptions[0]);
-  const [style, setStyle] = useState(styleOptions[0]);
+  const [flowerTypes, setFlowerTypes] = useState<string[]>([
+    FLOWER_TYPES[0].toLowerCase(),
+  ]);
   const [mixed, setMixed] = useState(true);
   const [note, setNote] = useState("");
-  const [openDropdown, setOpenDropdown] = useState<"palette" | "style" | null>(
-    null
-  );
+  const [openDropdown, setOpenDropdown] = useState<"palette" | null>(null);
+
+  const toggleFlowerType = (value: string) => {
+    setFlowerTypes((current) => {
+      if (current.includes(value)) {
+        const next = current.filter((item) => item !== value);
+        return next.length ? next : [value];
+      }
+      if (current.length >= 3) {
+        return current;
+      }
+      return [...current, value];
+    });
+  };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmedNote = note.trim();
+    const normalizedFlowerTypes = flowerTypes
+      .map((value) => value.trim().toUpperCase())
+      .filter((value) => (FLOWER_TYPES as readonly string[]).includes(value))
+      .slice(0, 3);
+    if (!normalizedFlowerTypes.length) {
+      normalizedFlowerTypes.push(FLOWER_TYPES[0]);
+    }
+    const flowerLabel = normalizedFlowerTypes
+      .map((value) => value.charAt(0) + value.slice(1).toLowerCase())
+      .join(", ");
     const detailsParts = [
       `Palette: ${palette}`,
-      `Style: ${style}`,
+      `Flower type: ${flowerLabel}`,
       `Bouquet: ${mixed ? "Mixed" : "Mono"}`,
     ];
     if (trimmedNote) {
@@ -169,7 +191,8 @@ export default function FloristChoiceForm() {
       quantity: 1,
       meta: {
         colors: [palette],
-        style,
+        flowerType: normalizedFlowerTypes[0] || FLOWER_TYPES[0],
+        bouquetFlowerTypes: normalizedFlowerTypes.join(", "),
         note: details,
         details,
         isCustom: true,
@@ -210,18 +233,35 @@ export default function FloristChoiceForm() {
         onClose={() => setOpenDropdown(null)}
         onSelect={setPalette}
       />
-      <ChoiceDropdown
-        label="Style"
-        controlId="florist-choice-style"
-        value={style}
-        options={styleOptions}
-        isOpen={openDropdown === "style"}
-        onToggle={() =>
-          setOpenDropdown((current) => (current === "style" ? null : "style"))
-        }
-        onClose={() => setOpenDropdown(null)}
-        onSelect={setStyle}
-      />
+      <div className="space-y-2">
+        <p className="text-sm text-stone-700">Preferred flower type (up to 3)</p>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {FLOWER_TYPES.map((option) => {
+            const value = option.toLowerCase();
+            const checked = flowerTypes.includes(value);
+            const disableUnchecked = !checked && flowerTypes.length >= 3;
+            return (
+              <label
+                key={option}
+                className={`flex cursor-pointer items-center gap-2 rounded-2xl border px-3 py-2 text-sm transition ${
+                  disableUnchecked
+                    ? "border-stone-200 bg-stone-100 text-stone-400"
+                    : "border-stone-200 bg-white text-stone-700 hover:border-stone-300"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  disabled={disableUnchecked}
+                  onChange={() => toggleFlowerType(value)}
+                  className="h-4 w-4 accent-[color:var(--brand)]"
+                />
+                <span>{option.charAt(0) + option.slice(1).toLowerCase()}</span>
+              </label>
+            );
+          })}
+        </div>
+      </div>
       <div className="flex items-center gap-3 text-sm text-stone-700">
         <input
           id="mixed"
@@ -249,4 +289,3 @@ export default function FloristChoiceForm() {
     </form>
   );
 }
-

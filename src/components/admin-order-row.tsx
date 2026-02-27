@@ -5,6 +5,7 @@ import Link from "next/link";
 import { formatDateTime, formatMoney, formatOrderStatus } from "@/lib/format";
 import { ADMIN_ORDERS_BADGE_EVENT } from "@/lib/admin-orders";
 import { clientFetch } from "@/lib/api-client";
+import { sanitizeOrderItemDetails } from "@/lib/order-details";
 import type { Order } from "@/lib/api-types";
 
 type AdminOrderRowProps = {
@@ -292,21 +293,24 @@ export default function AdminOrderRow({
         </div>
       </div>
       <div className="mt-4 grid gap-2 text-sm text-stone-600">
-        {order.items.map((item) => (
-          <div key={item.id} className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="break-words">
-                {item.quantity} x {item.name}
-              </p>
-              {item.details ? (
-                <p className="mt-1 text-xs text-stone-500">
-                  {item.details}
+        {order.items.map((item) => {
+          const details = sanitizeOrderItemDetails(item.details);
+          return (
+            <div key={item.id} className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="break-words">
+                  {item.quantity} x {item.name}
                 </p>
-              ) : null}
+                {details ? (
+                  <p className="mt-1 text-xs text-stone-500">
+                    {details}
+                  </p>
+                ) : null}
+              </div>
+              <span className="shrink-0">{formatMoney(item.priceCents)}</span>
             </div>
-            <span className="shrink-0">{formatMoney(item.priceCents)}</span>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

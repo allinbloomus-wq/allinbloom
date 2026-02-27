@@ -1,11 +1,17 @@
 import { describe, expect, it } from "vitest";
 
 import { parseBouquetForm } from "@/lib/bouquet-form";
-import { BOUQUET_STYLES, FLOWER_TYPES } from "@/lib/constants";
+import { BOUQUET_TYPES, FLOWER_TYPES } from "@/lib/constants";
 
-const makeFormData = (entries: Record<string, string>) => {
+const makeFormData = (entries: Record<string, string | string[]>) => {
   const formData = new FormData();
   for (const [key, value] of Object.entries(entries)) {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        formData.append(key, item);
+      }
+      continue;
+    }
     formData.set(key, value);
   }
   return formData;
@@ -18,10 +24,9 @@ describe("parseBouquetForm", () => {
         name: "  Garden Mood  ",
         description: "  Fresh seasonal flowers  ",
         price: "45.555",
-        flowerType: "rose",
-        style: "garden",
+        flowerTypes: ["rose", "lily"],
+        bouquetType: "mixed",
         colors: "  Blush, Ivory ",
-        isMixed: "on",
         isFeatured: "on",
         isActive: "on",
         discountPercent: "14.7",
@@ -35,7 +40,8 @@ describe("parseBouquetForm", () => {
       description: "Fresh seasonal flowers",
       priceCents: 4556,
       flowerType: "ROSE",
-      style: "GARDEN",
+      style: "ROSE, LILY",
+      bouquetType: "MIXED",
       colors: "blush, ivory",
       isMixed: true,
       isFeatured: true,
@@ -51,14 +57,14 @@ describe("parseBouquetForm", () => {
     });
   });
 
-  it("uses fallback enums and clamps numbers", () => {
+  it("uses fallback values and clamps numbers", () => {
     const payload = parseBouquetForm(
       makeFormData({
         name: "Fallback bouquet",
         description: "desc",
         price: "-20",
         flowerType: "unknown",
-        style: "unknown",
+        bouquetType: "unknown",
         colors: "  ",
         discountPercent: "999",
         discountNote: "",
@@ -67,7 +73,8 @@ describe("parseBouquetForm", () => {
     );
 
     expect(payload.flowerType).toBe(FLOWER_TYPES[0]);
-    expect(payload.style).toBe(BOUQUET_STYLES[0]);
+    expect(payload.style).toBe(FLOWER_TYPES[0]);
+    expect(payload.bouquetType).toBe(BOUQUET_TYPES[0]);
     expect(payload.priceCents).toBe(0);
     expect(payload.discountPercent).toBe(90);
     expect(payload.discountNote).toBe("Discount");
@@ -85,8 +92,8 @@ describe("parseBouquetForm", () => {
         name: "No promo",
         description: "desc",
         price: "100",
-        flowerType: "rose",
-        style: "romantic",
+        flowerTypes: ["rose"],
+        bouquetType: "mono",
         colors: "red",
         discountPercent: "-4",
         discountNote: "Should be ignored",
@@ -103,8 +110,8 @@ describe("parseBouquetForm", () => {
         name: "Gallery bouquet",
         description: "desc",
         price: "75",
-        flowerType: "rose",
-        style: "modern",
+        flowerTypes: ["rose", "tulip", "orchid", "peony"],
+        bouquetType: "season",
         colors: "white",
         image: "/images/main.webp",
         image2: " /images/2.webp ",
@@ -115,6 +122,9 @@ describe("parseBouquetForm", () => {
       })
     );
 
+    expect(payload.flowerType).toBe("ROSE");
+    expect(payload.style).toBe("ROSE, TULIP, ORCHID");
+    expect(payload.bouquetType).toBe("SEASON");
     expect(payload.image).toBe("/images/main.webp");
     expect(payload.image2).toBe("/images/2.webp");
     expect(payload.image3).toBeNull();

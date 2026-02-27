@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import type { Bouquet } from "@/lib/api-types";
-import { BOUQUET_STYLES, COLOR_OPTIONS, FLOWER_TYPES } from "@/lib/constants";
+import { BOUQUET_TYPES, COLOR_OPTIONS, FLOWER_TYPES } from "@/lib/constants";
 import { formatLabel } from "@/lib/format";
 import AdminImageUpload from "@/components/admin-image-upload";
 
@@ -28,6 +28,7 @@ const textareaFieldClass = (isInvalid: boolean) =>
   )}`;
 
 const COLOR_OPTIONS_SET = new Set<string>(COLOR_OPTIONS);
+const FLOWER_TYPE_SET = new Set<string>(FLOWER_TYPES);
 
 const parsePaletteColors = (value: string | undefined) =>
   String(value || "")
@@ -49,6 +50,32 @@ const parseNumber = (value: FormDataEntryValue | null) => {
   const raw = String(value || "").trim();
   if (!raw) return NaN;
   return Number(raw);
+};
+
+const parseSelectedFlowerTypes = (bouquet?: Bouquet) => {
+  const fromStyle = String(bouquet?.style || "")
+    .split(",")
+    .map((item) => item.trim().toUpperCase())
+    .filter((item) => FLOWER_TYPE_SET.has(item))
+    .filter((item, idx, arr) => arr.indexOf(item) === idx)
+    .slice(0, 3);
+
+  if (fromStyle.length) return fromStyle;
+  if (bouquet?.flowerType && FLOWER_TYPE_SET.has(bouquet.flowerType)) {
+    return [bouquet.flowerType];
+  }
+  return [FLOWER_TYPES[0]];
+};
+
+const resolveDefaultBouquetType = (bouquet?: Bouquet) => {
+  const direct = String(bouquet?.bouquetType || "").toUpperCase();
+  if ((BOUQUET_TYPES as readonly string[]).includes(direct)) {
+    return direct as (typeof BOUQUET_TYPES)[number];
+  }
+  if (String(bouquet?.style || "").trim().toUpperCase() === "SEASON") {
+    return "SEASON";
+  }
+  return bouquet?.isMixed ? "MIXED" : "MONO";
 };
 
 const ADDITIONAL_IMAGE_FIELDS = [
@@ -111,6 +138,10 @@ export default function AdminBouquetForm({
   const [selectedColors, setSelectedColors] = useState<string[]>(() =>
     sortPaletteColors(parsePaletteColors(bouquet?.colors))
   );
+  const [selectedFlowerTypes, setSelectedFlowerTypes] = useState<string[]>(() =>
+    parseSelectedFlowerTypes(bouquet)
+  );
+  const [flowerTypeLimitWarning, setFlowerTypeLimitWarning] = useState("");
   const [activeAdditionalImageKeys, setActiveAdditionalImageKeys] = useState<
     AdditionalImageKey[]
   >(() => getDefaultAdditionalImageKeys(bouquet));
@@ -121,6 +152,8 @@ export default function AdminBouquetForm({
   useEffect(() => {
     setActiveAdditionalImageKeys(getDefaultAdditionalImageKeys(bouquet));
     setPhotoLimitWarning("");
+    setSelectedFlowerTypes(parseSelectedFlowerTypes(bouquet));
+    setFlowerTypeLimitWarning("");
   }, [bouquet?.id]);
 
   useEffect(() => {
@@ -155,6 +188,10 @@ export default function AdminBouquetForm({
     () => selectedColors.join(", "),
     [selectedColors]
   );
+  const selectedFlowerTypesValue = useMemo(
+    () => selectedFlowerTypes.join(", "),
+    [selectedFlowerTypes]
+  );
   const visibleAdditionalImageFields = useMemo(
     () =>
       ADDITIONAL_IMAGE_FIELDS.filter((field) =>
@@ -170,6 +207,10 @@ export default function AdminBouquetForm({
     const hiddenCount = selectedColors.length - 3;
     return hiddenCount > 0 ? `${preview} +${hiddenCount}` : preview;
   }, [selectedColors]);
+  const defaultBouquetType = useMemo(
+    () => resolveDefaultBouquetType(bouquet),
+    [bouquet]
+  );
 
   const toggleColorOption = (color: string) => {
     setSelectedColors((current) => {
@@ -177,6 +218,22 @@ export default function AdminBouquetForm({
         return current.filter((value) => value !== color);
       }
       return sortPaletteColors([...current, color]);
+    });
+  };
+
+  const toggleFlowerTypeOption = (flowerType: string) => {
+    setSelectedFlowerTypes((current) => {
+      if (current.includes(flowerType)) {
+        const next = current.filter((value) => value !== flowerType);
+        setFlowerTypeLimitWarning("");
+        return next.length ? next : [flowerType];
+      }
+      if (current.length >= 3) {
+        setFlowerTypeLimitWarning("You can select up to 3 flower types.");
+        return current;
+      }
+      setFlowerTypeLimitWarning("");
+      return [...current, flowerType];
     });
   };
 
@@ -244,6 +301,11 @@ export default function AdminBouquetForm({
     if (discountPercent > 0 && !discountNote) {
       nextErrors.push("Discount comment is required when discount percent is greater than 0.");
       nextInvalid.add("discountNote");
+    }
+
+    if (!selectedFlowerTypes.length) {
+      nextErrors.push("At least one flower type is required.");
+      nextInvalid.add("flowerTypes");
     }
 
     if (nextErrors.length) {
@@ -450,43 +512,66 @@ export default function AdminBouquetForm({
               {photoLimitWarning}
             </p>
           ) : null}
-          <label className="relative z-10 flex flex-col gap-2 text-sm text-stone-700">
-            Flower type
-            <select
+          <div className="space-y-2 text-sm text-stone-700">
+            <input type="hidden" name="style" value={selectedFlowerTypesValue} />
+            <input
+              type="hidden"
               name="flowerType"
-              defaultValue={bouquet?.flowerType || FLOWER_TYPES[0]}
+              value={selectedFlowerTypes[0] || FLOWER_TYPES[0]}
+            />
+            <span>Flower type (up to 3)</span>
+            <div
+              className={`grid gap-2 sm:grid-cols-2 ${
+                invalidSet.has("flowerTypes") ? "rounded-2xl border border-rose-300 p-2" : ""
+              }`}
+            >
+              {FLOWER_TYPES.map((type) => {
+                const checked = selectedFlowerTypes.includes(type);
+                const disableUnchecked = !checked && selectedFlowerTypes.length >= 3;
+                return (
+                  <label
+                    key={type}
+                    className={`flex cursor-pointer items-center gap-2 rounded-2xl border px-3 py-2 text-sm transition ${
+                      disableUnchecked
+                        ? "border-stone-200 bg-stone-100 text-stone-400"
+                        : "border-stone-200 bg-white/85 text-stone-700 hover:border-stone-300"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      name="flowerTypes"
+                      value={type}
+                      checked={checked}
+                      disabled={disableUnchecked}
+                      onChange={() => toggleFlowerTypeOption(type)}
+                      className="h-4 w-4 accent-[color:var(--brand)]"
+                    />
+                    <span>{formatLabel(type)}</span>
+                  </label>
+                );
+              })}
+            </div>
+            {flowerTypeLimitWarning ? (
+              <p className="text-[11px] uppercase tracking-[0.18em] text-rose-500">
+                {flowerTypeLimitWarning}
+              </p>
+            ) : null}
+          </div>
+          <label className="relative z-10 flex flex-col gap-2 text-sm text-stone-700">
+            Bouquet type
+            <select
+              name="bouquetType"
+              defaultValue={defaultBouquetType}
               className={`select-field ${controlFieldClass(false)}`}
             >
-              {FLOWER_TYPES.map((type) => (
+              {BOUQUET_TYPES.map((type) => (
                 <option key={type} value={type}>
                   {formatLabel(type)}
                 </option>
               ))}
             </select>
           </label>
-          <label className="relative z-10 flex flex-col gap-2 text-sm text-stone-700">
-            Style
-            <select
-              name="style"
-              defaultValue={bouquet?.style || BOUQUET_STYLES[0]}
-              className={`select-field ${controlFieldClass(false)}`}
-            >
-              {BOUQUET_STYLES.map((style) => (
-                <option key={style} value={style}>
-                  {formatLabel(style)}
-                </option>
-              ))}
-            </select>
-          </label>
           <div className="grid gap-2">
-            <label className="flex items-center gap-2 text-sm text-stone-700">
-              <input
-                type="checkbox"
-                name="isMixed"
-                defaultChecked={bouquet?.isMixed}
-              />
-              Mixed bouquet
-            </label>
             <label className="flex items-center gap-2 text-sm text-stone-700">
               <input
                 type="checkbox"

@@ -5,6 +5,7 @@ import AddToCartControls from "@/components/add-to-cart-controls";
 import BouquetImageCarousel from "@/components/bouquet-image-carousel";
 import type { Bouquet, BouquetPricing } from "@/lib/api-types";
 import { getBouquetGalleryImages } from "@/lib/bouquet-images";
+import { FLOWER_TYPES } from "@/lib/constants";
 
 export default function BouquetCard({
   bouquet,
@@ -14,6 +15,33 @@ export default function BouquetCard({
   pricing: BouquetPricing;
 }) {
   const galleryImages = getBouquetGalleryImages(bouquet);
+  const selectableSet = new Set<string>(FLOWER_TYPES);
+  const parsedFlowerTypes = String(bouquet.style || "")
+    .split(",")
+    .map((value) => value.trim().toUpperCase())
+    .filter((value) => selectableSet.has(value))
+    .filter((value, index, list) => list.indexOf(value) === index)
+    .slice(0, 3);
+
+  const flowerTypeLabelParts = parsedFlowerTypes.length
+    ? parsedFlowerTypes.map((value) => formatLabel(value))
+    : bouquet.flowerType === "MIXED"
+    ? ["Assorted blooms"]
+    : [formatLabel(bouquet.flowerType)];
+  const flowerTypeLabel = flowerTypeLabelParts.join(", ");
+  const flowerTypeTextClass =
+    flowerTypeLabelParts.length >= 3
+      ? "text-[8px] tracking-[0.1em] sm:text-[10px]"
+      : flowerTypeLabelParts.length === 2
+      ? "text-[9px] tracking-[0.12em] sm:text-[11px]"
+      : "text-[10px] tracking-[0.16em] sm:text-xs sm:tracking-[0.24em]";
+  const bouquetTypeLabel =
+    bouquet.bouquetType ||
+    (String(bouquet.style || "").trim().toUpperCase() === "SEASON"
+      ? "SEASON"
+      : bouquet.isMixed
+      ? "MIXED"
+      : "MONO");
 
   return (
     <div className="glass flex h-full flex-col gap-3 rounded-[24px] border border-white/80 p-[9px] sm:gap-4 sm:rounded-[28px] sm:p-5">
@@ -21,9 +49,13 @@ export default function BouquetCard({
         <BouquetImageCarousel images={galleryImages} alt={bouquet.name} />
       </div>
       <div className="min-w-0 flex-1 space-y-1.5 sm:space-y-2">
-        <div className="flex items-center justify-between gap-2 text-[10px] uppercase tracking-[0.16em] text-stone-500 sm:text-xs sm:tracking-[0.24em]">
-          <span className="truncate">{formatLabel(bouquet.style)}</span>
-          <span className="shrink-0">{bouquet.isMixed ? "Mixed" : "Mono"}</span>
+        <div className="flex items-end justify-between gap-2 text-stone-500 uppercase">
+          <span className={`min-w-0 truncate ${flowerTypeTextClass}`}>
+            {flowerTypeLabel}
+          </span>
+          <span className="shrink-0 text-[10px] tracking-[0.16em] sm:text-xs sm:tracking-[0.24em]">
+            {formatLabel(bouquetTypeLabel)}
+          </span>
         </div>
         <h3 className="break-words text-base font-semibold leading-tight text-stone-900 sm:text-xl">
           {bouquet.name}
@@ -32,24 +64,21 @@ export default function BouquetCard({
           {bouquet.description}
         </p>
       </div>
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
-        <p className="order-1 break-words text-left text-[10px] uppercase tracking-[0.14em] text-stone-500 sm:order-2 sm:text-right sm:text-xs sm:tracking-[0.2em]">
-          {formatLabel(bouquet.flowerType)}
-        </p>
+      <div className="flex items-center justify-between">
         {pricing.discount ? (
-          <div className="order-2 flex min-w-0 max-w-full items-center gap-1 overflow-hidden whitespace-nowrap sm:order-1 sm:gap-1.5">
-            <span className="shrink-0 text-[13px] font-semibold text-[color:var(--brand)] sm:text-sm">
+          <div className="flex min-w-0 max-w-full items-center gap-1.5 overflow-hidden whitespace-nowrap sm:gap-2">
+            <span className="shrink-0 text-[17px] font-semibold text-[color:var(--brand)] sm:text-[20px]">
               {formatMoney(pricing.finalPriceCents)}
             </span>
-            <span className="text-[10px] text-stone-400 line-through sm:text-[11px]">
+            <span className="text-[13px] text-stone-400 line-through sm:text-[14px]">
               {formatMoney(pricing.originalPriceCents)}
             </span>
-            <span className="inline-flex shrink-0 items-center rounded-full bg-[color:var(--brand)]/10 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-[0.06em] text-[color:var(--brand)] sm:px-2 sm:text-[9px]">
+            <span className="inline-flex shrink-0 items-center rounded-full bg-[color:var(--brand)]/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[color:var(--brand)] sm:px-2.5 sm:text-[12px]">
               -{pricing.discount.percent}%
             </span>
           </div>
         ) : (
-          <p className="order-2 text-sm font-semibold text-stone-900 sm:order-1 sm:text-base">
+          <p className="text-[18px] font-semibold text-stone-900 sm:text-[20px]">
             {formatMoney(pricing.originalPriceCents)}
           </p>
         )}
@@ -63,7 +92,11 @@ export default function BouquetCard({
           discountPercent: bouquet.discountPercent,
           discountNote: bouquet.discountNote || undefined,
           flowerType: bouquet.flowerType,
-          style: bouquet.style,
+          flowerTypes: parsedFlowerTypes.length
+            ? parsedFlowerTypes.join(", ")
+            : bouquet.flowerType === "MIXED"
+            ? ""
+            : bouquet.flowerType,
           colors: bouquet.colors,
           isMixed: bouquet.isMixed,
         }}

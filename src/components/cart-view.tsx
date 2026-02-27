@@ -158,7 +158,6 @@ type CartViewProps = {
     percent: number;
     note: string;
     flowerType?: string | null;
-    style?: string | null;
     mixed?: string | null;
     color?: string | null;
     minPriceCents?: number | null;
@@ -385,7 +384,6 @@ export default function CartView({
           bouquetDiscountPercent: item.meta?.bouquetDiscountPercent,
           bouquetDiscountNote: item.meta?.bouquetDiscountNote,
           flowerType: item.meta?.flowerType,
-          style: item.meta?.bouquetStyle,
           isMixed: item.meta?.isMixed,
           colors: item.meta?.bouquetColors,
         },
@@ -395,7 +393,6 @@ export default function CartView({
           categoryDiscountPercent: categoryDiscount?.percent || 0,
           categoryDiscountNote: categoryDiscount?.note || null,
           categoryFlowerType: categoryDiscount?.flowerType || null,
-          categoryStyle: categoryDiscount?.style || null,
           categoryMixed: categoryDiscount?.mixed || null,
           categoryColor: categoryDiscount?.color || null,
           categoryMinPriceCents: categoryDiscount?.minPriceCents ?? null,
