@@ -354,18 +354,19 @@ export default function AdminBouquetForm({
             <p className="text-xs uppercase tracking-[0.2em] text-stone-500">
               Additional bouquet photos (optional)
             </p>
-            <div className="grid gap-4">
+            <div className="grid min-w-0 gap-4">
               {ADDITIONAL_IMAGE_FIELDS.map((field) => (
-                <AdminImageUpload
-                  key={field.key}
-                  name={field.key}
-                  defaultValue={bouquet?.[field.key] || ""}
-                  urlLabel={field.urlLabel}
-                  previewAlt={field.previewAlt}
-                  recommendedSize="1000x1000"
-                  previewClassName="h-24 w-24"
-                  required={false}
-                />
+                <div key={field.key} className="min-w-0">
+                  <AdminImageUpload
+                    name={field.key}
+                    defaultValue={bouquet?.[field.key] || ""}
+                    urlLabel={field.urlLabel}
+                    previewAlt={field.previewAlt}
+                    recommendedSize="1000x1000"
+                    previewClassName="h-24 w-24"
+                    required={false}
+                  />
+                </div>
               ))}
             </div>
           </div>

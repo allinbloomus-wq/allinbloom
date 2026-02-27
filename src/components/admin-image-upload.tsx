@@ -99,7 +99,7 @@ export default function AdminImageUpload({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 space-y-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         <div
           className={`${previewClassName} overflow-hidden rounded-[22px] border border-white/80 bg-white`}

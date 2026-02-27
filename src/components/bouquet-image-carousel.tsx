@@ -22,8 +22,6 @@ export default function BouquetImageCarousel({
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [pageCount, setPageCount] = useState(1);
-  const [canScrollPrev, setCanScrollPrev] = useState(false);
-  const [canScrollNext, setCanScrollNext] = useState(false);
 
   const [emblaRef, emblaApi] = useEmblaCarousel({
     align: "start",
@@ -36,7 +34,6 @@ export default function BouquetImageCarousel({
     duration: 32,
   });
 
-  const activeIndexRef = useRef(0);
   const pageCountRef = useRef(1);
   const interactionStartRef = useRef<{ x: number; y: number } | null>(null);
   const blockImageOpenRef = useRef(false);
@@ -57,12 +54,9 @@ export default function BouquetImageCarousel({
       Math.min(emblaApi.selectedScrollSnap(), nextPageCount - 1)
     );
 
-    activeIndexRef.current = nextIndex;
     pageCountRef.current = nextPageCount;
     setActiveIndex(nextIndex);
     setPageCount(nextPageCount);
-    setCanScrollPrev(emblaApi.canScrollPrev());
-    setCanScrollNext(emblaApi.canScrollNext());
   }, [emblaApi]);
 
   const goToIndex = useCallback(
@@ -75,16 +69,6 @@ export default function BouquetImageCarousel({
     },
     [emblaApi]
   );
-
-  const handlePrev = useCallback(() => {
-    if (!canSlide) return;
-    goToIndex(activeIndexRef.current - 1);
-  }, [canSlide, goToIndex]);
-
-  const handleNext = useCallback(() => {
-    if (!canSlide) return;
-    goToIndex(activeIndexRef.current + 1);
-  }, [canSlide, goToIndex]);
 
   const beginInteraction = useCallback((x: number, y: number) => {
     interactionStartRef.current = { x, y };
@@ -203,57 +187,6 @@ export default function BouquetImageCarousel({
           ))}
         </div>
       </div>
-
-      {canSlide ? (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-between px-2 sm:px-3">
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              handlePrev();
-            }}
-            disabled={!canScrollPrev}
-            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/85 text-stone-700 shadow-sm backdrop-blur transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-45 sm:h-11 sm:w-11"
-            aria-label="Previous bouquet photo"
-          >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              className="h-4 w-4"
-            >
-              <path
-                fillRule="evenodd"
-                d="M12.78 4.22a.75.75 0 0 1 0 1.06L8.06 10l4.72 4.72a.75.75 0 1 1-1.06 1.06l-5.25-5.25a.75.75 0 0 1 0-1.06l5.25-5.25a.75.75 0 0 1 1.06 0Z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </button>
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              handleNext();
-            }}
-            disabled={!canScrollNext}
-            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/85 text-stone-700 shadow-sm backdrop-blur transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-45 sm:h-11 sm:w-11"
-            aria-label="Next bouquet photo"
-          >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              className="h-4 w-4"
-            >
-              <path
-                fillRule="evenodd"
-                d="M7.22 15.78a.75.75 0 0 1 0-1.06L11.94 10 7.22 5.28a.75.75 0 1 1 1.06-1.06l5.25 5.25a.75.75 0 0 1 0 1.06l-5.25 5.25a.75.75 0 0 1-1.06 0Z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </button>
-        </div>
-      ) : null}
 
       {canSlide ? (
         <div className="pointer-events-none absolute inset-x-0 bottom-3 z-10 flex justify-center gap-2">

@@ -81,7 +81,7 @@ export default function AdminBouquetRow({ bouquet }: { bouquet: Bouquet }) {
         ) : null}
       </div>
       <div className="flex max-w-full flex-col gap-4 pr-10 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 items-center gap-4">
+        <div className="flex min-w-0 flex-1 items-center gap-4">
           <div className="h-16 w-16 overflow-hidden rounded-2xl border border-white/80 bg-white">
             <ImageWithFallback
               src={bouquet.image}
@@ -92,7 +92,7 @@ export default function AdminBouquetRow({ bouquet }: { bouquet: Bouquet }) {
             />
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-stone-900">
+            <p className="text-sm font-semibold text-stone-900 break-words [overflow-wrap:anywhere]">
               {bouquet.name}
             </p>
             <p className="break-words text-xs uppercase tracking-[0.2em] text-stone-500">
