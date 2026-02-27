@@ -134,6 +134,10 @@ export default function AdminBouquetForm({
   bouquet,
   action,
 }: AdminBouquetFormProps) {
+  const defaultBouquetType = useMemo(
+    () => resolveDefaultBouquetType(bouquet),
+    [bouquet]
+  );
   const [errors, setErrors] = useState<string[]>([]);
   const [invalidFields, setInvalidFields] = useState<string[]>([]);
   const [selectedColors, setSelectedColors] = useState<string[]>(() =>
@@ -143,6 +147,10 @@ export default function AdminBouquetForm({
     parseSelectedFlowerTypes(bouquet)
   );
   const [flowerTypeLimitWarning, setFlowerTypeLimitWarning] = useState("");
+  const [bouquetTypeWarning, setBouquetTypeWarning] = useState("");
+  const [selectedBouquetType, setSelectedBouquetType] = useState<
+    (typeof BOUQUET_TYPES)[number]
+  >(() => defaultBouquetType);
   const [activeAdditionalImageKeys, setActiveAdditionalImageKeys] = useState<
     AdditionalImageKey[]
   >(() => getDefaultAdditionalImageKeys(bouquet));
@@ -155,6 +163,8 @@ export default function AdminBouquetForm({
     setPhotoLimitWarning("");
     setSelectedFlowerTypes(parseSelectedFlowerTypes(bouquet));
     setFlowerTypeLimitWarning("");
+    setBouquetTypeWarning("");
+    setSelectedBouquetType(resolveDefaultBouquetType(bouquet));
   }, [bouquet?.id]);
 
   useEffect(() => {
@@ -208,10 +218,6 @@ export default function AdminBouquetForm({
     const hiddenCount = selectedColors.length - 3;
     return hiddenCount > 0 ? `${preview} +${hiddenCount}` : preview;
   }, [selectedColors]);
-  const defaultBouquetType = useMemo(
-    () => resolveDefaultBouquetType(bouquet),
-    [bouquet]
-  );
   const flowerTypeOptions = useMemo(
     () =>
       FLOWER_TYPES.map((type) => ({
@@ -235,6 +241,7 @@ export default function AdminBouquetForm({
       if (current.includes(flowerType)) {
         const next = current.filter((value) => value !== flowerType);
         setFlowerTypeLimitWarning("");
+        setBouquetTypeWarning("");
         return next.length ? next : [flowerType];
       }
       if (current.length >= 3) {
@@ -242,8 +249,23 @@ export default function AdminBouquetForm({
         return current;
       }
       setFlowerTypeLimitWarning("");
-      return [...current, flowerType];
+      const next = [...current, flowerType];
+      if (next.length > 1 && selectedBouquetType !== "MIXED") {
+        setSelectedBouquetType("MIXED");
+      }
+      return next;
     });
+  };
+
+  const handleBouquetTypeChange = (
+    nextType: (typeof BOUQUET_TYPES)[number]
+  ) => {
+    if (selectedFlowerTypes.length > 1 && nextType !== "MIXED") {
+      setBouquetTypeWarning("For multiple flower types choose mixed bouquet type.");
+      return;
+    }
+    setBouquetTypeWarning("");
+    setSelectedBouquetType(nextType);
   };
 
   const handleAddPhoto = () => {
@@ -315,6 +337,12 @@ export default function AdminBouquetForm({
     if (!selectedFlowerTypes.length) {
       nextErrors.push("At least one flower type is required.");
       nextInvalid.add("flowerTypes");
+    }
+
+    if (selectedFlowerTypes.length > 1 && selectedBouquetType !== "MIXED") {
+      nextErrors.push("Multiple flower types require mixed bouquet type.");
+      nextInvalid.add("bouquetType");
+      setBouquetTypeWarning("For multiple flower types choose mixed bouquet type.");
     }
 
     if (nextErrors.length) {
@@ -550,8 +578,13 @@ export default function AdminBouquetForm({
             Bouquet type
             <select
               name="bouquetType"
-              defaultValue={defaultBouquetType}
-              className={`select-field ${controlFieldClass(false)}`}
+              value={selectedBouquetType}
+              onChange={(event) =>
+                handleBouquetTypeChange(
+                  event.target.value as (typeof BOUQUET_TYPES)[number]
+                )
+              }
+              className={`select-field ${controlFieldClass(invalidSet.has("bouquetType"))}`}
             >
               {BOUQUET_TYPES.map((type) => (
                 <option key={type} value={type}>
@@ -559,6 +592,11 @@ export default function AdminBouquetForm({
                 </option>
               ))}
             </select>
+            {bouquetTypeWarning ? (
+              <p className="text-[11px] uppercase tracking-[0.18em] text-rose-500">
+                {bouquetTypeWarning}
+              </p>
+            ) : null}
           </label>
           <div className="grid gap-2">
             <label className="flex items-center gap-2 text-sm text-stone-700">

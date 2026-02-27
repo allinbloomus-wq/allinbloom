@@ -61,6 +61,7 @@ export default function CatalogGrid({
     if (filters.bouquetType) params.set("bouquetType", filters.bouquetType);
     if (filters.min) params.set("min", filters.min);
     if (filters.max) params.set("max", filters.max);
+    if (filters.sort) params.set("sort", filters.sort);
     return params;
   }, [
     filters.bouquetType,
@@ -69,6 +70,7 @@ export default function CatalogGrid({
     filters.flower,
     filters.max,
     filters.min,
+    filters.sort,
   ]);
 
   const loadMore = useCallback(async () => {

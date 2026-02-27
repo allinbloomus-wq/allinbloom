@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getAdminBouquets } from "@/lib/data/bouquets";
-import AdminBouquetRow from "@/components/admin-bouquet-row";
+import AdminBouquetsPanel from "@/components/admin-bouquets-panel";
 
 export default async function AdminPage() {
   const bouquets = await getAdminBouquets();
@@ -24,11 +24,7 @@ export default async function AdminPage() {
         </Link>
       </div>
       <div className="glass rounded-[28px] border border-white/80 p-4 sm:p-6">
-        <div className="grid gap-4">
-          {bouquets.map((bouquet) => (
-            <AdminBouquetRow key={bouquet.id} bouquet={bouquet} />
-          ))}
-        </div>
+        <AdminBouquetsPanel bouquets={bouquets} />
       </div>
     </div>
   );

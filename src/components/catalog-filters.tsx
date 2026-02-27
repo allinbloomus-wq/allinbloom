@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   BOUQUET_TYPE_FILTERS,
+  CATALOG_SORT_VALUES,
   COLOR_OPTIONS,
   FLOWER_TYPES,
   PRICE_LIMITS,
@@ -16,9 +17,10 @@ type FilterFormValues = {
   bouquetType: string;
   min: string;
   max: string;
+  sort: string;
 };
 
-type DropdownField = "color" | "bouquetType";
+type DropdownField = "color" | "bouquetType" | "sort";
 
 type FilterOption = {
   value: string;
@@ -62,6 +64,7 @@ const readSearchParams = (searchParams: { get: (key: string) => string | null })
     bouquetType: resolveBouquetType(searchParams),
     min: searchParams.get("min") || "",
     max: searchParams.get("max") || "",
+    sort: searchParams.get("sort") || "",
   };
 };
 
@@ -226,6 +229,21 @@ function CatalogFiltersForm({ initialValues }: CatalogFiltersFormProps) {
           label: `${formatLabel(value)} bouquet`,
         })),
       ],
+      sort: [
+        { value: "", label: "Default order" },
+        ...CATALOG_SORT_VALUES.map((value) => {
+          if (value === "name_asc") {
+            return { value, label: "Name (A-Z)" };
+          }
+          if (value === "name_desc") {
+            return { value, label: "Name (Z-A)" };
+          }
+          if (value === "price_asc") {
+            return { value, label: "Price (low-high)" };
+          }
+          return { value, label: "Price (high-low)" };
+        }),
+      ],
     }),
     []
   );
@@ -252,13 +270,14 @@ function CatalogFiltersForm({ initialValues }: CatalogFiltersFormProps) {
         formValues.bouquetType,
         formValues.min,
         formValues.max,
+        formValues.sort,
       ].some(Boolean),
     [formValues]
   );
 
   const applyFilters = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const { flowers, color, bouquetType, min, max } = formValues;
+    const { flowers, color, bouquetType, min, max, sort } = formValues;
 
     const params = new URLSearchParams();
     params.set("entry", "1");
@@ -269,6 +288,7 @@ function CatalogFiltersForm({ initialValues }: CatalogFiltersFormProps) {
     if (bouquetType) params.set("bouquetType", bouquetType);
     if (min) params.set("min", min);
     if (max) params.set("max", max);
+    if (sort) params.set("sort", sort);
     const query = params.toString();
     router.push(query ? `/catalog?${query}` : "/catalog");
   };
@@ -280,17 +300,15 @@ function CatalogFiltersForm({ initialValues }: CatalogFiltersFormProps) {
         onSubmit={applyFilters}
         className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
       >
-        <div className="md:col-span-2 lg:col-span-3">
-          <MultiCheckboxDropdown
-            label="Flower type"
-            controlId="catalog-filter-flowers"
-            options={dropdownOptions.flower}
-            values={formValues.flowers}
-            onToggle={toggleFlower}
-            onClear={() => setFormValues((current) => ({ ...current, flowers: [] }))}
-            emptyLabel="All flowers"
-          />
-        </div>
+        <MultiCheckboxDropdown
+          label="Flower type"
+          controlId="catalog-filter-flowers"
+          options={dropdownOptions.flower}
+          values={formValues.flowers}
+          onToggle={toggleFlower}
+          onClear={() => setFormValues((current) => ({ ...current, flowers: [] }))}
+          emptyLabel="All flowers"
+        />
         <FilterDropdown
           label="Palette"
           controlId="catalog-filter-color"
@@ -341,6 +359,16 @@ function CatalogFiltersForm({ initialValues }: CatalogFiltersFormProps) {
             className={priceFieldClass}
           />
         </label>
+        <FilterDropdown
+          label="Sort by"
+          controlId="catalog-filter-sort"
+          value={formValues.sort}
+          options={dropdownOptions.sort}
+          isOpen={openDropdown === "sort"}
+          onToggle={() => setOpenDropdown((current) => (current === "sort" ? null : "sort"))}
+          onClose={() => setOpenDropdown(null)}
+          onSelect={(value) => setDropdownValue("sort", value)}
+        />
       </form>
       <div className="mt-6 flex flex-wrap gap-3">
         <button

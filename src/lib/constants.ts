@@ -21,6 +21,13 @@ export const BOUQUET_TYPE_FILTERS = [
   "season",
 ] as const;
 
+export const CATALOG_SORT_VALUES = [
+  "name_asc",
+  "name_desc",
+  "price_asc",
+  "price_desc",
+] as const;
+
 export const COLOR_OPTIONS = [
   "blush",
   "ivory",

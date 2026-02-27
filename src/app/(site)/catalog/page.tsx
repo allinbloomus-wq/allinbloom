@@ -66,7 +66,8 @@ const hasCatalogListingContext = (params: CatalogSearchParams) =>
       params.color ||
       resolveBouquetType(params) ||
       params.min ||
-      params.max
+      params.max ||
+      params.sort
   );
 
 export async function generateMetadata({
@@ -176,6 +177,7 @@ export default async function CatalogPage({
     bouquetType: resolveBouquetType(params),
     min: params.min,
     max: params.max,
+    sort: params.sort,
   };
   const pageSize = await getInitialPageSize();
   const rawBouquets = await getBouquets(listFilters, { take: pageSize + 1 });
@@ -196,6 +198,7 @@ export default async function CatalogPage({
     resolveBouquetType(params),
     params.min || "",
     params.max || "",
+    params.sort || "",
   ].join("|");
 
   return (

@@ -1,5 +1,6 @@
 import type { Bouquet, CatalogResponse } from "@/lib/api-types";
 import {
+  CATALOG_SORT_VALUES,
   BOUQUET_TYPE_FILTERS,
   FLOWER_TYPES,
 } from "@/lib/constants";
@@ -14,6 +15,7 @@ export type CatalogSearchParams = {
   mixed?: string; // legacy URL compatibility
   min?: string;
   max?: string;
+  sort?: string;
   filter?: string;
 };
 
@@ -74,6 +76,14 @@ const normalizeBouquetTypeFilter = (
   return undefined;
 };
 
+const normalizeSortValue = (value?: string) => {
+  if (!value) return undefined;
+  const normalized = String(value).trim().toLowerCase();
+  return (CATALOG_SORT_VALUES as readonly string[]).includes(normalized)
+    ? normalized
+    : undefined;
+};
+
 export async function getFeaturedBouquets(): Promise<Bouquet[]> {
   const response = await apiFetch("/api/catalog?filter=featured&take=6");
   if (!response.ok) return [];
@@ -105,6 +115,7 @@ export async function getBouquets(
   );
   const min = toNumber(filters.min);
   const max = toNumber(filters.max);
+  const sort = normalizeSortValue(filters.sort);
   const { cursor, take } = pagination;
 
   const params = new URLSearchParams();
@@ -114,6 +125,7 @@ export async function getBouquets(
   if (bouquetType) params.set("bouquetType", bouquetType);
   if (min !== undefined) params.set("min", String(min));
   if (max !== undefined) params.set("max", String(max));
+  if (sort) params.set("sort", sort);
   if (cursor) params.set("cursor", cursor);
   if (take) params.set("take", String(take));
 

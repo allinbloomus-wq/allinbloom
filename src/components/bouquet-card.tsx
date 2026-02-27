@@ -66,19 +66,19 @@ export default function BouquetCard({
       </div>
       <div className="flex items-center justify-between">
         {pricing.discount ? (
-          <div className="flex min-w-0 max-w-full items-center gap-1.5 overflow-hidden whitespace-nowrap sm:gap-2">
-            <span className="shrink-0 text-[17px] font-semibold text-[color:var(--brand)] sm:text-[20px]">
+          <div className="flex min-w-0 max-w-full items-center gap-1 overflow-hidden whitespace-nowrap sm:gap-2">
+            <span className="text-[clamp(13px,4.7vw,20px)] font-semibold leading-none text-[color:var(--brand)]">
               {formatMoney(pricing.finalPriceCents)}
             </span>
-            <span className="text-[13px] text-stone-400 line-through sm:text-[14px]">
+            <span className="text-[clamp(10px,3.7vw,14px)] text-stone-400 line-through">
               {formatMoney(pricing.originalPriceCents)}
             </span>
-            <span className="inline-flex shrink-0 items-center rounded-full bg-[color:var(--brand)]/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[color:var(--brand)] sm:px-2.5 sm:text-[12px]">
+            <span className="inline-flex shrink-0 items-center rounded-full bg-[color:var(--brand)]/10 px-1.5 py-0.5 text-[clamp(8px,2.8vw,12px)] font-semibold uppercase tracking-[0.08em] text-[color:var(--brand)] sm:px-2.5">
               -{pricing.discount.percent}%
             </span>
           </div>
         ) : (
-          <p className="text-[18px] font-semibold text-stone-900 sm:text-[20px]">
+          <p className="text-[clamp(14px,4.8vw,20px)] font-semibold leading-none text-stone-900">
             {formatMoney(pricing.originalPriceCents)}
           </p>
         )}

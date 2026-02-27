@@ -56,6 +56,13 @@ def _resolve_bouquet_type_filter(
     return None
 
 
+def _normalize_sort(value: str | None) -> str:
+    normalized = (value or "").strip().lower()
+    if normalized in {"name_asc", "name_desc", "price_asc", "price_desc"}:
+        return normalized
+    return "created_desc"
+
+
 @router.get("", response_model=CatalogResponse)
 def list_catalog(
     flower: str | None = None,
@@ -65,6 +72,7 @@ def list_catalog(
     mixed: str | None = None,
     min: float | None = Query(default=None, alias="min"),
     max: float | None = Query(default=None, alias="max"),
+    sort: str | None = None,
     filter: str | None = None,
     cursor: str | None = None,
     take: int = Query(default=12, ge=1, le=50),
@@ -126,22 +134,67 @@ def list_catalog(
         filters.append(func.lower(Bouquet.colors).contains(needle))
 
     base_query = select(Bouquet).where(and_(*filters))
+    normalized_sort = _normalize_sort(sort)
+    name_sort_expr = func.lower(func.coalesce(Bouquet.name, ""))
 
     if cursor:
         cursor_row = db.execute(select(Bouquet).where(Bouquet.id == cursor)).scalars().first()
         if not cursor_row:
             raise HTTPException(status_code=400, detail="Invalid cursor.")
-        base_query = base_query.where(
-            or_(
-                Bouquet.created_at < cursor_row.created_at,
-                and_(
-                    Bouquet.created_at == cursor_row.created_at,
-                    Bouquet.id < cursor_row.id,
-                ),
-            )
-        )
 
-    query = base_query.order_by(Bouquet.created_at.desc(), Bouquet.id.desc()).limit(take + 1)
+        if normalized_sort == "name_asc":
+            cursor_name = (cursor_row.name or "").lower()
+            base_query = base_query.where(
+                or_(
+                    name_sort_expr > cursor_name,
+                    and_(name_sort_expr == cursor_name, Bouquet.id > cursor_row.id),
+                )
+            )
+        elif normalized_sort == "name_desc":
+            cursor_name = (cursor_row.name or "").lower()
+            base_query = base_query.where(
+                or_(
+                    name_sort_expr < cursor_name,
+                    and_(name_sort_expr == cursor_name, Bouquet.id < cursor_row.id),
+                )
+            )
+        elif normalized_sort == "price_asc":
+            cursor_price = cursor_row.price_cents or 0
+            base_query = base_query.where(
+                or_(
+                    Bouquet.price_cents > cursor_price,
+                    and_(Bouquet.price_cents == cursor_price, Bouquet.id > cursor_row.id),
+                )
+            )
+        elif normalized_sort == "price_desc":
+            cursor_price = cursor_row.price_cents or 0
+            base_query = base_query.where(
+                or_(
+                    Bouquet.price_cents < cursor_price,
+                    and_(Bouquet.price_cents == cursor_price, Bouquet.id < cursor_row.id),
+                )
+            )
+        else:
+            base_query = base_query.where(
+                or_(
+                    Bouquet.created_at < cursor_row.created_at,
+                    and_(
+                        Bouquet.created_at == cursor_row.created_at,
+                        Bouquet.id < cursor_row.id,
+                    ),
+                )
+            )
+
+    if normalized_sort == "name_asc":
+        query = base_query.order_by(name_sort_expr.asc(), Bouquet.id.asc()).limit(take + 1)
+    elif normalized_sort == "name_desc":
+        query = base_query.order_by(name_sort_expr.desc(), Bouquet.id.desc()).limit(take + 1)
+    elif normalized_sort == "price_asc":
+        query = base_query.order_by(Bouquet.price_cents.asc(), Bouquet.id.asc()).limit(take + 1)
+    elif normalized_sort == "price_desc":
+        query = base_query.order_by(Bouquet.price_cents.desc(), Bouquet.id.desc()).limit(take + 1)
+    else:
+        query = base_query.order_by(Bouquet.created_at.desc(), Bouquet.id.desc()).limit(take + 1)
     results = db.execute(query).scalars().all()
 
     has_more = len(results) > take
