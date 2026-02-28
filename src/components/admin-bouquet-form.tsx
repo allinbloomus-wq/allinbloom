@@ -7,6 +7,7 @@ import { BOUQUET_TYPES, COLOR_OPTIONS, FLOWER_TYPES } from "@/lib/constants";
 import { formatLabel } from "@/lib/format";
 import AdminImageUpload from "@/components/admin-image-upload";
 import MultiCheckboxDropdown from "@/components/multi-checkbox-dropdown";
+import SingleSelectDropdown from "@/components/single-select-dropdown";
 
 type AdminBouquetFormProps = {
   bouquet?: Bouquet;
@@ -221,6 +222,14 @@ export default function AdminBouquetForm({
   const flowerTypeOptions = useMemo(
     () =>
       FLOWER_TYPES.map((type) => ({
+        value: type,
+        label: formatLabel(type),
+      })),
+    []
+  );
+  const bouquetTypeOptions = useMemo(
+    () =>
+      BOUQUET_TYPES.map((type) => ({
         value: type,
         label: formatLabel(type),
       })),
@@ -574,30 +583,26 @@ export default function AdminBouquetForm({
               </p>
             ) : null}
           </div>
-          <label className="relative z-10 flex flex-col gap-2 text-sm text-stone-700">
-            Bouquet type
-            <select
+          <div className="relative z-10">
+            <SingleSelectDropdown
+              label="Bouquet type"
+              controlId="admin-bouquet-type"
               name="bouquetType"
               value={selectedBouquetType}
-              onChange={(event) =>
+              options={bouquetTypeOptions}
+              onChange={(value) =>
                 handleBouquetTypeChange(
-                  event.target.value as (typeof BOUQUET_TYPES)[number]
+                  value as (typeof BOUQUET_TYPES)[number]
                 )
               }
-              className={`select-field ${controlFieldClass(invalidSet.has("bouquetType"))}`}
-            >
-              {BOUQUET_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {formatLabel(type)}
-                </option>
-              ))}
-            </select>
+              invalid={invalidSet.has("bouquetType")}
+            />
             {bouquetTypeWarning ? (
               <p className="text-[11px] uppercase tracking-[0.18em] text-rose-500">
                 {bouquetTypeWarning}
               </p>
             ) : null}
-          </label>
+          </div>
           <div className="grid gap-2">
             <label className="flex items-center gap-2 text-sm text-stone-700">
               <input

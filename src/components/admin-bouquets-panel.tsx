@@ -491,6 +491,19 @@ export default function AdminBouquetsPanel({ bouquets }: { bouquets: Bouquet[] }
               placeholder="Search bouquet by name"
               className="h-10 min-w-0 flex-1 rounded-full border-0 bg-transparent px-3 text-sm text-stone-800 outline-none"
             />
+            {searchInput.trim() ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchInput("");
+                  setIsSearchOpen(false);
+                }}
+                aria-label="Clear search"
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-500 transition hover:border-stone-300 hover:text-stone-700"
+              >
+                x
+              </button>
+            ) : null}
             <button
               type="submit"
               className="inline-flex h-10 shrink-0 items-center justify-center rounded-full bg-[color:var(--brand)] px-5 text-[10px] uppercase tracking-[0.24em] text-white transition hover:bg-[color:var(--brand-dark)] sm:text-xs sm:tracking-[0.3em]"

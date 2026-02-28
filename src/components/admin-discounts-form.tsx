@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 import type { StoreSettings } from "@/lib/api-types";
 import { COLOR_OPTIONS, FLOWER_TYPES } from "@/lib/constants";
+import SingleSelectDropdown from "@/components/single-select-dropdown";
 
 type AdminDiscountsFormProps = {
   settings: StoreSettings;
@@ -31,6 +32,9 @@ const parsePrice = (value: FormDataEntryValue | null) => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
+const formatLabel = (value: string) =>
+  value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+
 function SubmitButton() {
   const { pending } = useFormStatus();
 
@@ -51,8 +55,41 @@ export default function AdminDiscountsForm({
 }: AdminDiscountsFormProps) {
   const [errors, setErrors] = useState<string[]>([]);
   const [invalidFields, setInvalidFields] = useState<string[]>([]);
+  const [categoryFlowerType, setCategoryFlowerType] = useState(
+    settings.categoryFlowerType || ""
+  );
+  const [categoryMixed, setCategoryMixed] = useState(settings.categoryMixed || "");
+  const [categoryColor, setCategoryColor] = useState(settings.categoryColor || "");
 
   const invalidSet = useMemo(() => new Set(invalidFields), [invalidFields]);
+  const flowerTypeOptions = useMemo(
+    () => [
+      { value: "", label: "Any" },
+      ...FLOWER_TYPES.map((type) => ({ value: type, label: formatLabel(type) })),
+    ],
+    []
+  );
+  const bouquetTypeOptions = useMemo(
+    () => [
+      { value: "", label: "All bouquets" },
+      { value: "mixed", label: "Mixed" },
+      { value: "mono", label: "Mono" },
+    ],
+    []
+  );
+  const colorOptions = useMemo(
+    () => [
+      { value: "", label: "Any" },
+      ...COLOR_OPTIONS.map((color) => ({ value: color, label: formatLabel(color) })),
+    ],
+    []
+  );
+
+  useEffect(() => {
+    setCategoryFlowerType(settings.categoryFlowerType || "");
+    setCategoryMixed(settings.categoryMixed || "");
+    setCategoryColor(settings.categoryColor || "");
+  }, [settings.categoryColor, settings.categoryFlowerType, settings.categoryMixed]);
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     const formData = new FormData(event.currentTarget);
@@ -210,23 +247,15 @@ export default function AdminDiscountsForm({
               className={fieldClass(invalidSet.has("categoryDiscountPercent"))}
             />
           </label>
-          <label className="relative z-10 flex flex-col gap-2 text-sm text-stone-700">
-            Flower type
-            <select
-              name="categoryFlowerType"
-              defaultValue={settings.categoryFlowerType || ""}
-              className={`select-field ${fieldClass(
-                invalidSet.has("categoryFlowerType")
-              )}`}
-            >
-              <option value="">Any</option>
-              {FLOWER_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
-          </label>
+          <SingleSelectDropdown
+            label="Flower type"
+            controlId="admin-discount-flower-type"
+            name="categoryFlowerType"
+            value={categoryFlowerType}
+            options={flowerTypeOptions}
+            onChange={setCategoryFlowerType}
+            invalid={invalidSet.has("categoryFlowerType")}
+          />
           <label className="flex flex-col gap-2 text-sm text-stone-700">
             Discount comment
             <input
@@ -236,37 +265,24 @@ export default function AdminDiscountsForm({
               className={fieldClass(invalidSet.has("categoryDiscountNote"))}
             />
           </label>
-          <label className="relative z-10 flex flex-col gap-2 text-sm text-stone-700">
-            Bouquet type
-            <select
-              name="categoryMixed"
-              defaultValue={settings.categoryMixed || ""}
-              className={`select-field ${fieldClass(
-                invalidSet.has("categoryMixed")
-              )}`}
-            >
-              <option value="">All bouquets</option>
-              <option value="mixed">Mixed</option>
-              <option value="mono">Mono</option>
-            </select>
-          </label>
-          <label className="relative z-10 flex flex-col gap-2 text-sm text-stone-700">
-            Color
-            <select
-              name="categoryColor"
-              defaultValue={settings.categoryColor || ""}
-              className={`select-field ${fieldClass(
-                invalidSet.has("categoryColor")
-              )}`}
-            >
-              <option value="">Any</option>
-              {COLOR_OPTIONS.map((color) => (
-                <option key={color} value={color}>
-                  {color}
-                </option>
-              ))}
-            </select>
-          </label>
+          <SingleSelectDropdown
+            label="Bouquet type"
+            controlId="admin-discount-bouquet-type"
+            name="categoryMixed"
+            value={categoryMixed}
+            options={bouquetTypeOptions}
+            onChange={setCategoryMixed}
+            invalid={invalidSet.has("categoryMixed")}
+          />
+          <SingleSelectDropdown
+            label="Color"
+            controlId="admin-discount-color"
+            name="categoryColor"
+            value={categoryColor}
+            options={colorOptions}
+            onChange={setCategoryColor}
+            invalid={invalidSet.has("categoryColor")}
+          />
           <label className="flex flex-col gap-2 text-sm text-stone-700">
             Min price (USD)
             <input

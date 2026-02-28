@@ -18,10 +18,12 @@ export default function BouquetCard({
   bouquet,
   pricing,
   enableFlowerQuantityInput = false,
+  splitPriceRows = false,
 }: {
   bouquet: Bouquet;
   pricing: BouquetPricing;
   enableFlowerQuantityInput?: boolean;
+  splitPriceRows?: boolean;
 }) {
   const galleryImages = getBouquetGalleryImages(bouquet);
   const selectableSet = new Set<string>(FLOWER_TYPES);
@@ -67,6 +69,14 @@ export default function BouquetCard({
   const perFlowerFromCents = pricing.discount
     ? pricing.finalPriceCents
     : pricing.originalPriceCents;
+  const compactFinalPriceClassWithDiscount =
+    "text-[clamp(7.54px,2.75vw,11.66px)] font-semibold leading-none text-[color:var(--brand)] sm:text-[clamp(13px,4.7vw,20px)]";
+  const compactFinalPriceClassWithoutDiscount =
+    "text-[clamp(8.16px,2.8vw,11.66px)] font-semibold leading-none text-stone-900 sm:text-[clamp(14px,4.8vw,20px)]";
+  const finalPriceClassWithDiscount =
+    "text-[clamp(8.3px,3.03vw,12.83px)] font-semibold leading-none text-[color:var(--brand)] sm:text-[clamp(13px,4.7vw,20px)]";
+  const finalPriceClassWithoutDiscount =
+    "text-[clamp(8.98px,3.08vw,12.83px)] font-semibold leading-none text-stone-900 sm:text-[clamp(14px,4.8vw,20px)]";
 
   return (
     <div className="glass flex h-full flex-col gap-3 rounded-[24px] border border-white/80 p-[9px] sm:gap-4 sm:rounded-[28px] sm:p-5">
@@ -95,10 +105,24 @@ export default function BouquetCard({
             From {formatMoney(perFlowerFromCents)} per flower
           </p>
         ) : null}
-        <div className="flex items-center justify-between">
-          {pricing.discount ? (
+        {pricing.discount ? (
+          splitPriceRows ? (
+            <div className="space-y-1">
+              <div className="flex min-w-0 max-w-full items-center gap-1 overflow-hidden whitespace-nowrap sm:gap-2">
+                <span className="text-[clamp(5.83px,2.16vw,8.16px)] text-stone-400 line-through sm:text-[clamp(10px,3.7vw,14px)]">
+                  {formatMoney(originalPriceCents)}
+                </span>
+                <span className="inline-flex shrink-0 items-center rounded-full bg-[color:var(--brand)]/10 px-1.5 py-0.5 text-[clamp(4.66px,1.63vw,6.99px)] font-semibold uppercase tracking-[0.08em] text-[color:var(--brand)] sm:px-2.5 sm:text-[clamp(8px,2.8vw,12px)]">
+                  -{pricing.discount.percent}%
+                </span>
+              </div>
+              <p className={finalPriceClassWithDiscount}>
+                {formatMoney(finalPriceCents)}
+              </p>
+            </div>
+          ) : (
             <div className="flex min-w-0 max-w-full items-center gap-1 overflow-hidden whitespace-nowrap sm:gap-2">
-              <span className="text-[clamp(7.54px,2.75vw,11.66px)] font-semibold leading-none text-[color:var(--brand)] sm:text-[clamp(13px,4.7vw,20px)]">
+              <span className={compactFinalPriceClassWithDiscount}>
                 {formatMoney(finalPriceCents)}
               </span>
               <span className="text-[clamp(5.83px,2.16vw,8.16px)] text-stone-400 line-through sm:text-[clamp(10px,3.7vw,14px)]">
@@ -108,15 +132,21 @@ export default function BouquetCard({
                 -{pricing.discount.percent}%
               </span>
             </div>
-          ) : (
-            <p className="text-[clamp(8.16px,2.8vw,11.66px)] font-semibold leading-none text-stone-900 sm:text-[clamp(14px,4.8vw,20px)]">
-              {formatMoney(originalPriceCents)}
-            </p>
-          )}
-        </div>
+          )
+        ) : (
+          <p
+            className={
+              splitPriceRows
+                ? finalPriceClassWithoutDiscount
+                : compactFinalPriceClassWithoutDiscount
+            }
+          >
+            {formatMoney(originalPriceCents)}
+          </p>
+        )}
       </div>
       {isFlowerQuantityEnabled ? (
-        <label className="flex items-center justify-between gap-3 rounded-2xl border border-stone-200 bg-white/80 px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-stone-600 sm:text-xs sm:tracking-[0.24em]">
+        <label className="flex items-center justify-between gap-2 rounded-2xl border border-stone-200 bg-white/80 px-3 py-2 text-[9px] uppercase tracking-[0.12em] text-stone-600 sm:gap-3 sm:text-xs sm:tracking-[0.24em]">
           Flowers
           <input
             type="number"
@@ -128,7 +158,7 @@ export default function BouquetCard({
               const next = Number(event.target.value);
               setFlowerQuantity(clampFlowerQuantity(next));
             }}
-            className="h-8 w-20 rounded-xl border border-stone-200 bg-white px-2 text-right text-sm font-semibold text-stone-800 outline-none focus:border-stone-400"
+            className="h-8 w-16 rounded-xl border border-stone-200 bg-white px-2 text-right text-xs font-semibold text-stone-800 outline-none focus:border-stone-400 sm:w-20 sm:text-sm"
           />
         </label>
       ) : null}

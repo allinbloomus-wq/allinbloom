@@ -550,7 +550,7 @@ export default function CartView({
             </div>
             <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto sm:justify-end">
               {item.isFlowerQuantityEnabled ? (
-                <label className="flex items-center gap-2 rounded-full border border-stone-200 bg-white/80 px-3 py-2 text-xs uppercase tracking-[0.24em] text-stone-600">
+                <label className="flex items-center gap-2 rounded-full border border-stone-200 bg-white/80 px-3 py-2 text-[10px] uppercase tracking-[0.16em] text-stone-600 sm:text-xs sm:tracking-[0.24em]">
                   Flowers
                   <input
                     type="number"
@@ -562,7 +562,7 @@ export default function CartView({
                       const next = Number(event.target.value);
                       updateQuantity(item.id, clampFlowerQuantity(next));
                     }}
-                    className="h-7 w-20 rounded-full border border-stone-200 bg-white px-2 text-right text-sm font-semibold text-stone-700 outline-none focus:border-stone-400"
+                    className="h-7 w-16 rounded-full border border-stone-200 bg-white px-2 text-right text-xs font-semibold text-stone-700 outline-none focus:border-stone-400 sm:w-20 sm:text-sm"
                   />
                 </label>
               ) : (
