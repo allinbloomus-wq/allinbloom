@@ -615,6 +615,16 @@ export default function AdminBouquetForm({
               />
               Visible in catalog
             </label>
+            <label className="flex items-center gap-2 text-sm text-stone-700">
+              <input
+                type="checkbox"
+                name="allowFlowerQuantity"
+                defaultChecked={
+                  bouquet ? bouquet.allowFlowerQuantity : true
+                }
+              />
+              Enable flower quantity input (MONO/SEASON)
+            </label>
           </div>
         </div>
       </div>

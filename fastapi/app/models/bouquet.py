@@ -24,6 +24,9 @@ class Bouquet(Base):
     is_mixed = Column("isMixed", Boolean, default=False, nullable=False)
     is_featured = Column("isFeatured", Boolean, default=False, nullable=False)
     is_active = Column("isActive", Boolean, default=True, nullable=False)
+    allow_flower_quantity = Column(
+        "allowFlowerQuantity", Boolean, default=True, nullable=False
+    )
     discount_percent = Column("discountPercent", Integer, default=0, nullable=False)
     discount_note = Column("discountNote", String, nullable=True)
     image = Column(String, nullable=False)

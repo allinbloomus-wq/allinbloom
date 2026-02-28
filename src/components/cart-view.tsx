@@ -6,6 +6,11 @@ import {
   saveCheckoutFormStorage,
   useCart,
 } from "@/lib/cart";
+import {
+  clampFlowerQuantity,
+  FLOWER_QUANTITY_MAX,
+  FLOWER_QUANTITY_MIN,
+} from "@/lib/flower-quantity";
 import { formatMoney } from "@/lib/format";
 import { getCartItemDiscount } from "@/lib/pricing";
 import CheckoutButton from "@/components/checkout-button";
@@ -412,6 +417,7 @@ export default function CartView({
         basePrice,
         discount,
         discountedPrice,
+        isFlowerQuantityEnabled: Boolean(item.meta?.isFlowerQuantityEnabled),
         lineTotal: discountedPrice * item.quantity,
         lineOriginal: basePrice * item.quantity,
       };
@@ -543,23 +549,41 @@ export default function CartView({
               </div>
             </div>
             <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto sm:justify-end">
-              <div className="flex items-center gap-2 rounded-full border border-stone-200 bg-white/80 px-3 py-2 text-xs uppercase tracking-[0.3em] text-stone-600">
-                <button
-                  type="button"
-                  onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                  className="h-6 w-6 rounded-full border border-stone-200 text-sm"
-                >
-                  -
-                </button>
-                <span>{item.quantity}</span>
-                <button
-                  type="button"
-                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                  className="h-6 w-6 rounded-full border border-stone-200 text-sm"
-                >
-                  +
-                </button>
-              </div>
+              {item.isFlowerQuantityEnabled ? (
+                <label className="flex items-center gap-2 rounded-full border border-stone-200 bg-white/80 px-3 py-2 text-xs uppercase tracking-[0.24em] text-stone-600">
+                  Flowers
+                  <input
+                    type="number"
+                    min={FLOWER_QUANTITY_MIN}
+                    max={FLOWER_QUANTITY_MAX}
+                    inputMode="numeric"
+                    value={item.quantity}
+                    onChange={(event) => {
+                      const next = Number(event.target.value);
+                      updateQuantity(item.id, clampFlowerQuantity(next));
+                    }}
+                    className="h-7 w-20 rounded-full border border-stone-200 bg-white px-2 text-right text-sm font-semibold text-stone-700 outline-none focus:border-stone-400"
+                  />
+                </label>
+              ) : (
+                <div className="flex items-center gap-2 rounded-full border border-stone-200 bg-white/80 px-3 py-2 text-xs uppercase tracking-[0.3em] text-stone-600">
+                  <button
+                    type="button"
+                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                    className="h-6 w-6 rounded-full border border-stone-200 text-sm"
+                  >
+                    -
+                  </button>
+                  <span>{item.quantity}</span>
+                  <button
+                    type="button"
+                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                    className="h-6 w-6 rounded-full border border-stone-200 text-sm"
+                  >
+                    +
+                  </button>
+                </div>
+              )}
               <button
                 type="button"
                 onClick={() => removeItem(item.id)}

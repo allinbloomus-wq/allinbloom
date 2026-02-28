@@ -19,6 +19,7 @@ class BouquetOut(SchemaBase):
     is_mixed: bool
     is_featured: bool
     is_active: bool
+    allow_flower_quantity: bool
     discount_percent: int
     discount_note: Optional[str] = None
     image: str
@@ -41,6 +42,7 @@ class BouquetCreate(SchemaBase):
     is_mixed: bool = False
     is_featured: bool = False
     is_active: bool = True
+    allow_flower_quantity: bool = True
     discount_percent: int = 0
     discount_note: Optional[str] = None
     image: str
@@ -63,6 +65,7 @@ class BouquetUpdate(SchemaBase):
     is_mixed: Optional[bool] = None
     is_featured: Optional[bool] = None
     is_active: Optional[bool] = None
+    allow_flower_quantity: Optional[bool] = None
     discount_percent: Optional[int] = None
     discount_note: Optional[str] = None
     image: Optional[str] = None

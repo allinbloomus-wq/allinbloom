@@ -144,6 +144,7 @@ export default function CatalogGrid({
             key={entry.bouquet.id}
             bouquet={entry.bouquet}
             pricing={entry.pricing}
+            enableFlowerQuantityInput
           />
         ))}
       </div>

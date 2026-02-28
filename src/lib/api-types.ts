@@ -20,6 +20,7 @@ export type Bouquet = {
   isMixed: boolean;
   isFeatured: boolean;
   isActive: boolean;
+  allowFlowerQuantity: boolean;
   discountPercent: number;
   discountNote: string | null;
   image: string;

@@ -14,7 +14,7 @@ from app.core.config import settings
 from app.core.critical_logging import log_critical_event
 from app.core.security import create_checkout_cancel_token, decode_checkout_cancel_token
 from app.models.bouquet import Bouquet
-from app.models.enums import OrderStatus
+from app.models.enums import BouquetType, OrderStatus
 from app.models.order import Order
 from app.models.order_item import OrderItem
 from app.models.user import User
@@ -45,6 +45,15 @@ from app.services.pricing import apply_percent_discount, get_bouquet_discount
 from app.services.settings import get_store_settings
 
 router = APIRouter(prefix="/api/checkout", tags=["checkout"])
+FLOWER_QUANTITY_MIN = 1
+FLOWER_QUANTITY_MAX = 1001
+
+
+def _is_flower_quantity_enabled_for_bouquet(bouquet: Bouquet) -> bool:
+    bouquet_type = str(getattr(bouquet, "bouquet_type", "") or "").strip().upper()
+    if bouquet_type not in {BouquetType.MONO.value, BouquetType.SEASON.value}:
+        return False
+    return bool(getattr(bouquet, "allow_flower_quantity", False))
 
 
 def _set_order_status_safely(db: Session, order: Order, status: OrderStatus) -> None:
@@ -340,13 +349,29 @@ async def start_checkout(
             if discount
             else bouquet.price_cents
         )
+        has_flower_quantity = _is_flower_quantity_enabled_for_bouquet(bouquet)
+        raw_quantity = int(item.quantity or 0)
+        quantity = max(1, raw_quantity)
+        details = None
+        if has_flower_quantity:
+            if raw_quantity < FLOWER_QUANTITY_MIN or raw_quantity > FLOWER_QUANTITY_MAX:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        "Flower quantity must be between "
+                        f"{FLOWER_QUANTITY_MIN} and {FLOWER_QUANTITY_MAX}."
+                    ),
+                )
+            quantity = raw_quantity
+            details = f"Flowers: {quantity}"
         normalized_items.append(
             {
                 "id": bouquet.id,
                 "name": bouquet.name,
                 "image": bouquet.image,
-                "quantity": max(1, item.quantity),
+                "quantity": quantity,
                 "unit_price": unit_price,
+                "details": details,
             }
         )
 
