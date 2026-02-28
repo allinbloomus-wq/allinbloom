@@ -134,17 +134,17 @@ const PaymentIcon = ({ icon }: { icon: PaymentIconSpec }) => {
   }
 
   return (
-      <span className="inline-flex shrink-0 items-center justify-center" title={icon.label}>
-        <img
-          src={src}
-          alt={icon.label}
-          loading="lazy"
-          className="h-2.5 w-auto"
-          onError={() => {
-            if (icon.fallbackSrc && src !== icon.fallbackSrc) {
-              setSrc(icon.fallbackSrc);
-              return;
-            }
+    <span className="inline-flex shrink-0 items-center justify-center" title={icon.label}>
+      <img
+        src={src}
+        alt={icon.label}
+        loading="lazy"
+        className="h-2.5 w-auto"
+        onError={() => {
+          if (icon.fallbackSrc && src !== icon.fallbackSrc) {
+            setSrc(icon.fallbackSrc);
+            return;
+          }
           setFailed(true);
         }}
       />
@@ -390,6 +390,7 @@ export default function CartView({
           bouquetDiscountNote: item.meta?.bouquetDiscountNote,
           flowerType: item.meta?.flowerType,
           isMixed: item.meta?.isMixed,
+          bouquetType: item.meta?.bouquetType,
           colors: item.meta?.bouquetColors,
         },
         {
@@ -550,7 +551,7 @@ export default function CartView({
             </div>
             <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto sm:justify-end">
               {item.isFlowerQuantityEnabled ? (
-                <label className="flex items-center gap-2 rounded-full border border-stone-200 bg-white/80 px-3 py-2 text-[10px] uppercase tracking-[0.16em] text-stone-600 sm:text-xs sm:tracking-[0.24em]">
+                <label className="flex items-center gap-2 rounded-full border border-stone-200 bg-white/80 px-3 py-2 text-[10px] uppercase tracking-[0.16em] text-stone-600 max-[410px]:text-[8px] max-[410px]:tracking-[0.06em] sm:text-xs sm:tracking-[0.24em]">
                   Flowers
                   <input
                     type="number"
@@ -562,7 +563,7 @@ export default function CartView({
                       const next = Number(event.target.value);
                       updateQuantity(item.id, clampFlowerQuantity(next));
                     }}
-                    className="h-7 w-16 rounded-full border border-stone-200 bg-white px-2 text-right text-xs font-semibold text-stone-700 outline-none focus:border-stone-400 sm:w-20 sm:text-sm"
+                    className="h-7 w-16 rounded-full border border-stone-200 bg-white px-2 text-right text-xs font-semibold text-stone-700 outline-none focus:border-stone-400 max-[410px]:w-14 max-[410px]:px-1.5 max-[410px]:text-[11px] sm:w-20 sm:text-sm"
                   />
                 </label>
               ) : (

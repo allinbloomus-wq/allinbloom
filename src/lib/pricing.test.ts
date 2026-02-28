@@ -116,6 +116,38 @@ describe("getBouquetDiscount", () => {
     });
   });
 
+  it("matches season bouquet type filter only for season bouquets", () => {
+    const seasonBouquet: Bouquet = {
+      ...baseBouquet,
+      bouquetType: "SEASON",
+      isMixed: false,
+    };
+
+    const seasonDiscount = getBouquetDiscount(
+      seasonBouquet,
+      makeSettings({
+        categoryDiscountPercent: 18,
+        categoryMixed: "season",
+      })
+    );
+
+    expect(seasonDiscount).toEqual({
+      percent: 18,
+      note: "Discount",
+      source: "category",
+    });
+
+    const monoDiscount = getBouquetDiscount(
+      seasonBouquet,
+      makeSettings({
+        categoryDiscountPercent: 18,
+        categoryMixed: "mono",
+      })
+    );
+
+    expect(monoDiscount).toBeNull();
+  });
+
   it("falls back to global discount when category filters are missing", () => {
     const discount = getBouquetDiscount(
       baseBouquet,
@@ -193,6 +225,28 @@ describe("pricing composition", () => {
         categoryFlowerType: "ROSE",
         categoryMixed: "mono",
         categoryColor: "red",
+      })
+    );
+
+    expect(discount).toEqual({
+      percent: 12,
+      note: "Discount",
+      source: "category",
+    });
+  });
+
+  it("uses season cart metadata for category matching", () => {
+    const discount = getCartItemDiscount(
+      {
+        basePriceCents: 10000,
+        flowerType: "ROSE",
+        isMixed: false,
+        bouquetType: "SEASON",
+        colors: "Deep RED",
+      },
+      makeSettings({
+        categoryDiscountPercent: 12,
+        categoryMixed: "season",
       })
     );
 

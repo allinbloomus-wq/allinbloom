@@ -74,9 +74,13 @@ export default function BouquetCard({
   const compactFinalPriceClassWithoutDiscount =
     "text-[clamp(8.16px,2.8vw,11.66px)] font-semibold leading-none text-stone-900 sm:text-[clamp(14px,4.8vw,20px)]";
   const finalPriceClassWithDiscount =
-    "text-[clamp(8.3px,3.03vw,12.83px)] font-semibold leading-none text-[color:var(--brand)] sm:text-[clamp(13px,4.7vw,20px)]";
+    "text-[clamp(10.79px,3.94vw,16.68px)] font-semibold leading-none text-[color:var(--brand)] sm:text-[clamp(13px,4.7vw,20px)]";
   const finalPriceClassWithoutDiscount =
-    "text-[clamp(8.98px,3.08vw,12.83px)] font-semibold leading-none text-stone-900 sm:text-[clamp(14px,4.8vw,20px)]";
+    "text-[clamp(11.67px,4vw,16.68px)] font-semibold leading-none text-stone-900 sm:text-[clamp(14px,4.8vw,20px)]";
+  const splitOldPriceClass =
+    "text-[clamp(7.58px,2.81vw,10.61px)] text-stone-400 line-through sm:text-[clamp(10px,3.7vw,14px)]";
+  const splitDiscountBadgeClass =
+    "inline-flex shrink-0 items-center rounded-full bg-[color:var(--brand)]/10 px-1.5 py-0.5 text-[clamp(6.06px,2.12vw,9.09px)] font-semibold uppercase tracking-[0.08em] text-[color:var(--brand)] sm:px-2.5 sm:text-[clamp(8px,2.8vw,12px)]";
 
   return (
     <div className="glass flex h-full flex-col gap-3 rounded-[24px] border border-white/80 p-[9px] sm:gap-4 sm:rounded-[28px] sm:p-5">
@@ -99,6 +103,23 @@ export default function BouquetCard({
           {bouquet.description}
         </p>
       </div>
+      {isFlowerQuantityEnabled ? (
+        <label className="flex items-center justify-between gap-2 rounded-2xl border border-stone-200 bg-white/80 px-3 py-2 text-[9px] uppercase tracking-[0.12em] text-stone-600 max-[410px]:text-[8px] max-[410px]:tracking-[0.06em] sm:gap-3 sm:text-xs sm:tracking-[0.24em]">
+          Flowers
+          <input
+            type="number"
+            min={FLOWER_QUANTITY_MIN}
+            max={FLOWER_QUANTITY_MAX}
+            inputMode="numeric"
+            value={flowerQuantity}
+            onChange={(event) => {
+              const next = Number(event.target.value);
+              setFlowerQuantity(clampFlowerQuantity(next));
+            }}
+            className="h-8 w-16 rounded-xl border border-stone-200 bg-white px-2 text-right text-xs font-semibold text-stone-800 outline-none focus:border-stone-400 max-[410px]:w-14 max-[410px]:px-1.5 max-[410px]:text-[11px] sm:w-20 sm:text-sm"
+          />
+        </label>
+      ) : null}
       <div className="space-y-2">
         {isFlowerQuantityEnabled ? (
           <p className="text-[10px] uppercase tracking-[0.2em] text-stone-500">
@@ -109,10 +130,10 @@ export default function BouquetCard({
           splitPriceRows ? (
             <div className="space-y-1">
               <div className="flex min-w-0 max-w-full items-center gap-1 overflow-hidden whitespace-nowrap sm:gap-2">
-                <span className="text-[clamp(5.83px,2.16vw,8.16px)] text-stone-400 line-through sm:text-[clamp(10px,3.7vw,14px)]">
+                <span className={splitOldPriceClass}>
                   {formatMoney(originalPriceCents)}
                 </span>
-                <span className="inline-flex shrink-0 items-center rounded-full bg-[color:var(--brand)]/10 px-1.5 py-0.5 text-[clamp(4.66px,1.63vw,6.99px)] font-semibold uppercase tracking-[0.08em] text-[color:var(--brand)] sm:px-2.5 sm:text-[clamp(8px,2.8vw,12px)]">
+                <span className={splitDiscountBadgeClass}>
                   -{pricing.discount.percent}%
                 </span>
               </div>
@@ -145,23 +166,6 @@ export default function BouquetCard({
           </p>
         )}
       </div>
-      {isFlowerQuantityEnabled ? (
-        <label className="flex items-center justify-between gap-2 rounded-2xl border border-stone-200 bg-white/80 px-3 py-2 text-[9px] uppercase tracking-[0.12em] text-stone-600 sm:gap-3 sm:text-xs sm:tracking-[0.24em]">
-          Flowers
-          <input
-            type="number"
-            min={FLOWER_QUANTITY_MIN}
-            max={FLOWER_QUANTITY_MAX}
-            inputMode="numeric"
-            value={flowerQuantity}
-            onChange={(event) => {
-              const next = Number(event.target.value);
-              setFlowerQuantity(clampFlowerQuantity(next));
-            }}
-            className="h-8 w-16 rounded-xl border border-stone-200 bg-white px-2 text-right text-xs font-semibold text-stone-800 outline-none focus:border-stone-400 sm:w-20 sm:text-sm"
-          />
-        </label>
-      ) : null}
       <AddToCartControls
         selectedQuantity={effectiveQuantity}
         item={{
@@ -179,6 +183,7 @@ export default function BouquetCard({
             : bouquet.flowerType,
           colors: bouquet.colors,
           isMixed: bouquet.isMixed,
+          bouquetType: bouquet.bouquetType,
           isFlowerQuantityEnabled,
         }}
       />

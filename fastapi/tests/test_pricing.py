@@ -38,6 +38,7 @@ def make_bouquet(**overrides):
         "discount_note": None,
         "flower_type": "ROSE",
         "is_mixed": False,
+        "bouquet_type": "MONO",
         "colors": "Red,White",
     }
     defaults.update(overrides)
@@ -98,6 +99,24 @@ class PricingTests(unittest.TestCase):
         self.assertEqual(discount.note, "Category")
         self.assertEqual(discount.source, "category")
 
+    def test_category_discount_season_matches_only_season_bouquets(self):
+        season_bouquet = make_bouquet(bouquet_type="SEASON", is_mixed=False)
+        season_settings = make_settings(
+            category_discount_percent=17,
+            category_mixed="season",
+        )
+        season_discount = get_bouquet_discount(season_bouquet, season_settings)
+        self.assertIsNotNone(season_discount)
+        self.assertEqual(season_discount.percent, 17)
+        self.assertEqual(season_discount.source, "category")
+
+        mono_settings = make_settings(
+            category_discount_percent=17,
+            category_mixed="mono",
+        )
+        mono_discount = get_bouquet_discount(season_bouquet, mono_settings)
+        self.assertIsNone(mono_discount)
+
     def test_get_bouquet_pricing_calculates_final_price(self):
         bouquet = make_bouquet()
         settings = make_settings(global_discount_percent=10, global_discount_note="Weekend")
@@ -137,6 +156,25 @@ class PricingTests(unittest.TestCase):
                 "base_price_cents": 10000,
                 "flower_type": "ROSE",
                 "is_mixed": False,
+                "colors": "Deep RED",
+            },
+            settings,
+        )
+        self.assertIsNotNone(discount)
+        self.assertEqual(discount.percent, 11)
+        self.assertEqual(discount.source, "category")
+
+    def test_get_cart_item_discount_can_match_season_category(self):
+        settings = make_settings(
+            category_discount_percent=11,
+            category_mixed="season",
+        )
+        discount = get_cart_item_discount(
+            {
+                "base_price_cents": 10000,
+                "flower_type": "ROSE",
+                "is_mixed": False,
+                "bouquet_type": "SEASON",
                 "colors": "Deep RED",
             },
             settings,

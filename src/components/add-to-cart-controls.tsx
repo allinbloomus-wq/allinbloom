@@ -16,6 +16,7 @@ type AddToCartControlsProps = {
     flowerTypes?: string;
     colors?: string;
     isMixed?: boolean;
+    bouquetType?: string;
     isFlowerQuantityEnabled?: boolean;
   };
   selectedQuantity?: number;
@@ -60,6 +61,7 @@ export default function AddToCartControls({
                 bouquetFlowerTypes: item.flowerTypes,
                 bouquetColors: item.colors,
                 isMixed: item.isMixed,
+                bouquetType: item.bouquetType,
                 isFlowerQuantityEnabled: true,
               },
             });
@@ -92,6 +94,7 @@ export default function AddToCartControls({
               bouquetFlowerTypes: item.flowerTypes,
               bouquetColors: item.colors,
               isMixed: item.isMixed,
+              bouquetType: item.bouquetType,
             },
           });
           showToast("Added to cart.");

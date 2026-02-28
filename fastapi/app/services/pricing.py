@@ -40,10 +40,22 @@ def _matches_category(bouquet, settings) -> bool:
 
     if settings.category_flower_type and settings.category_flower_type != bouquet.flower_type:
         return False
-    if settings.category_mixed == "mixed" and not bouquet.is_mixed:
-        return False
-    if settings.category_mixed == "mono" and bouquet.is_mixed:
-        return False
+    bouquet_type = str(getattr(bouquet, "bouquet_type", "") or "").strip().lower()
+    if settings.category_mixed == "mixed":
+        if bouquet_type:
+            if bouquet_type != "mixed":
+                return False
+        elif not bouquet.is_mixed:
+            return False
+    if settings.category_mixed == "mono":
+        if bouquet_type:
+            if bouquet_type != "mono":
+                return False
+        elif bouquet.is_mixed:
+            return False
+    if settings.category_mixed == "season":
+        if bouquet_type != "season":
+            return False
     if settings.category_color:
         palette = (bouquet.colors or "").lower()
         if settings.category_color.lower() not in palette:
@@ -114,6 +126,7 @@ def get_cart_item_discount(item, settings) -> Optional[DiscountInfo]:
     bouquet = Obj()
     bouquet.flower_type = item.get("flower_type")
     bouquet.is_mixed = bool(item.get("is_mixed"))
+    bouquet.bouquet_type = item.get("bouquet_type")
     bouquet.colors = item.get("colors") or ""
     bouquet.price_cents = item.get("base_price_cents") or 0
     bouquet.discount_percent = 0

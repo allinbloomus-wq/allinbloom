@@ -74,6 +74,7 @@ export default function AdminDiscountsForm({
       { value: "", label: "All bouquets" },
       { value: "mixed", label: "Mixed" },
       { value: "mono", label: "Mono" },
+      { value: "season", label: "Season" },
     ],
     []
   );

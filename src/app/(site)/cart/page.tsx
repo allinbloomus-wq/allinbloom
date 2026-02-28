@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import CartView from "@/components/cart-view";
 import { getStoreSettings } from "@/lib/data/settings";
-import { cancelCheckoutOrder, countOrdersByEmail } from "@/lib/data/orders";
+import { cancelCheckoutOrder, getOrdersByEmail } from "@/lib/data/orders";
 import { getAuthSession } from "@/lib/auth-session";
 
 export const metadata: Metadata = {
@@ -45,8 +45,16 @@ export default async function CartPage({
       : null;
 
   const settings = await getStoreSettings();
-  const orderCount = email ? await countOrdersByEmail(email) : 0;
-  const isFirstOrderEligible = Boolean(email && orderCount === 0);
+  const orders = email ? await getOrdersByEmail(email) : [];
+  const paidOrdersCount = orders.filter((order) => order.status === "PAID").length;
+  const hasExistingFirstOrderDiscount = orders.some(
+    (order) =>
+      (order.firstOrderDiscountPercent || 0) > 0 &&
+      (order.status === "PENDING" || order.status === "PAID")
+  );
+  const isFirstOrderEligible = Boolean(
+    email && paidOrdersCount === 0 && !hasExistingFirstOrderDiscount
+  );
 
   return (
     <div className="space-y-4 sm:space-y-6">
