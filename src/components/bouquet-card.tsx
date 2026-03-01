@@ -114,7 +114,12 @@ export default function BouquetCard({
       </div>
       {isFlowerQuantityEnabled ? (
         <label className="flex items-center justify-between gap-2 px-0.5 py-1 text-[9px] uppercase tracking-[0.12em] text-stone-600 max-[410px]:text-[8px] max-[410px]:tracking-[0.06em] sm:gap-3 sm:text-xs sm:tracking-[0.24em]">
-          Flowers
+          <span className="flex flex-col gap-0.5">
+            <span>Flowers</span>
+            <span className="text-[8px] normal-case tracking-normal text-stone-500 sm:text-[10px]">
+              {perStemPriceLabel}/stem
+            </span>
+          </span>
           <input
             type="number"
             min={FLOWER_QUANTITY_MIN}
@@ -145,11 +150,6 @@ export default function BouquetCard({
                 <p className={finalPriceClassWithDiscount}>
                   {formatMoney(finalPriceCents)}
                 </p>
-                {isFlowerQuantityEnabled ? (
-                  <span className="block text-[9px] text-stone-500 sm:inline sm:text-[11px]">
-                    ({perStemPriceLabel}/stem)
-                  </span>
-                ) : null}
               </div>
             </div>
           ) : (
@@ -158,11 +158,6 @@ export default function BouquetCard({
                 <span className={compactFinalPriceClassWithDiscount}>
                   {formatMoney(finalPriceCents)}
                 </span>
-                {isFlowerQuantityEnabled ? (
-                  <span className="text-[8px] text-stone-500 sm:text-[11px]">
-                    ({perStemPriceLabel}/stem)
-                  </span>
-                ) : null}
               </div>
               <span className="text-[clamp(5.83px,2.16vw,8.16px)] text-stone-400 line-through sm:text-[clamp(10px,3.7vw,14px)]">
                 {formatMoney(originalPriceCents)}
@@ -183,11 +178,6 @@ export default function BouquetCard({
             >
               {formatMoney(originalPriceCents)}
             </p>
-            {isFlowerQuantityEnabled ? (
-              <span className="block text-[9px] text-stone-500 sm:inline sm:text-[11px]">
-                ({perStemPriceLabel}/stem)
-              </span>
-            ) : null}
           </div>
         )}
       </div>
