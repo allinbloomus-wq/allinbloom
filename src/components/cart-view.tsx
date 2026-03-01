@@ -543,13 +543,6 @@ export default function CartView({
                 ) : null}
                 {item.isFlowerQuantityEnabled ? (
                   <div className="space-y-1">
-                    {item.discount ? (
-                      <p className="text-xs text-stone-400 line-through">
-                        {formatMoney(item.basePrice)}/stem x {item.flowerQuantityPerBouquet} =
-                        {" "}
-                        {formatMoney(item.basePrice * item.flowerQuantityPerBouquet)}
-                      </p>
-                    ) : null}
                     <p className="text-xs text-stone-600">
                       {formatMoney(item.discountedPrice)}/stem x {item.flowerQuantityPerBouquet} =
                       {" "}
@@ -564,11 +557,6 @@ export default function CartView({
                         Total: {formatMoney(item.lineTotal)}
                       </p>
                     )}
-                    {item.lineOriginal > item.lineTotal ? (
-                      <p className="text-xs text-stone-400 line-through">
-                        {formatMoney(item.lineOriginal)}
-                      </p>
-                    ) : null}
                     {item.discount ? (
                       <p className="text-xs text-stone-500">
                         -{item.discount.percent}% - {item.discount.note}

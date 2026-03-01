@@ -50,6 +50,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
     () => (slides.length ? slides : FALLBACK_SLIDES),
     [slides]
   );
+  const shouldCenterSlides = items.length < 3;
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [pageCount, setPageCount] = useState(1);
@@ -58,9 +59,9 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
   const [canScrollNext, setCanScrollNext] = useState(false);
 
   const [emblaRef, emblaApi] = useEmblaCarousel({
-    align: "start",
+    align: shouldCenterSlides ? "center" : "start",
     loop: false,
-    containScroll: "trimSnaps",
+    containScroll: shouldCenterSlides ? "keepSnaps" : "trimSnaps",
     slidesToScroll: 1,
     dragFree: false,
     skipSnaps: false,

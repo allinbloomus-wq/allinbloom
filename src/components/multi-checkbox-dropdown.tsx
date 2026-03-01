@@ -109,7 +109,7 @@ export default function MultiCheckboxDropdown({
           role="listbox"
           id={`${controlId}-listbox`}
           aria-labelledby={`${controlId}-button`}
-          className="custom-select-panel"
+          className="custom-select-panel max-h-none overflow-visible"
         >
           <div className="max-h-56 space-y-1 overflow-auto pr-1">
             {options.map((option) => {
