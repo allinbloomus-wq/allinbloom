@@ -202,6 +202,23 @@
     backdrop-filter: blur(10px);
   }
 
+  /* Multi-select should have only one scrollbar (inside option list). */
+  .custom-select-panel.custom-select-panel--single-scroll {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .custom-select-panel-list {
+    max-height: 14rem;
+    overflow-y: auto;
+  }
+
+  @media (min-width: 1024px) {
+    .custom-select-panel-list {
+      max-height: calc(14rem + 50px);
+    }
+  }
+
   .custom-select-option {
     width: 100%;
     display: flex;

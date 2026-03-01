@@ -109,9 +109,9 @@ export default function MultiCheckboxDropdown({
           role="listbox"
           id={`${controlId}-listbox`}
           aria-labelledby={`${controlId}-button`}
-          className="custom-select-panel max-h-none overflow-visible"
+          className="custom-select-panel custom-select-panel--single-scroll"
         >
-          <div className="max-h-56 space-y-1 overflow-auto pr-1">
+          <div className="custom-select-panel-list space-y-1 pr-1">
             {options.map((option) => {
               const checked = valueSet.has(option.value);
               const disableUnchecked =
