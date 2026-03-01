@@ -146,22 +146,24 @@ export default function BouquetCard({
                   {formatMoney(finalPriceCents)}
                 </p>
                 {isFlowerQuantityEnabled ? (
-                  <span className="text-[9px] text-stone-500 sm:text-[11px]">
+                  <span className="block text-[9px] text-stone-500 sm:inline sm:text-[11px]">
                     ({perStemPriceLabel}/stem)
                   </span>
                 ) : null}
               </div>
             </div>
           ) : (
-            <div className="flex min-w-0 max-w-full items-center gap-1 overflow-hidden whitespace-nowrap sm:gap-2">
-              <span className={compactFinalPriceClassWithDiscount}>
-                {formatMoney(finalPriceCents)}
-              </span>
-              {isFlowerQuantityEnabled ? (
-                <span className="text-[8px] text-stone-500 sm:text-[11px]">
-                  ({perStemPriceLabel}/stem)
+            <div className="flex min-w-0 max-w-full items-center gap-1 overflow-hidden sm:gap-2">
+              <div className="flex min-w-0 flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:gap-1">
+                <span className={compactFinalPriceClassWithDiscount}>
+                  {formatMoney(finalPriceCents)}
                 </span>
-              ) : null}
+                {isFlowerQuantityEnabled ? (
+                  <span className="text-[8px] text-stone-500 sm:text-[11px]">
+                    ({perStemPriceLabel}/stem)
+                  </span>
+                ) : null}
+              </div>
               <span className="text-[clamp(5.83px,2.16vw,8.16px)] text-stone-400 line-through sm:text-[clamp(10px,3.7vw,14px)]">
                 {formatMoney(originalPriceCents)}
               </span>
@@ -182,7 +184,7 @@ export default function BouquetCard({
               {formatMoney(originalPriceCents)}
             </p>
             {isFlowerQuantityEnabled ? (
-              <span className="text-[9px] text-stone-500 sm:text-[11px]">
+              <span className="block text-[9px] text-stone-500 sm:inline sm:text-[11px]">
                 ({perStemPriceLabel}/stem)
               </span>
             ) : null}
