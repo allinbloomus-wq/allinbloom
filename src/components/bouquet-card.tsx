@@ -77,6 +77,7 @@ export default function BouquetCard({
   const perFlowerFromCents = pricing.discount
     ? pricing.finalPriceCents
     : pricing.originalPriceCents;
+  const perStemPriceLabel = formatMoney(perFlowerFromCents).replace(/\.00$/, "");
   const compactFinalPriceClassWithDiscount =
     "text-[clamp(7.54px,2.75vw,11.66px)] font-semibold leading-none text-[color:var(--brand)] sm:text-[clamp(13px,4.7vw,20px)]";
   const compactFinalPriceClassWithoutDiscount =
@@ -129,11 +130,6 @@ export default function BouquetCard({
         </label>
       ) : null}
       <div className="space-y-2">
-        {isFlowerQuantityEnabled ? (
-          <p className="text-[10px] uppercase tracking-[0.2em] text-stone-500">
-            From {formatMoney(perFlowerFromCents)} per flower
-          </p>
-        ) : null}
         {pricing.discount ? (
           splitPriceRows ? (
             <div className="space-y-1">
@@ -145,15 +141,27 @@ export default function BouquetCard({
                   -{pricing.discount.percent}%
                 </span>
               </div>
-              <p className={finalPriceClassWithDiscount}>
-                {formatMoney(finalPriceCents)}
-              </p>
+              <div className="flex items-baseline gap-1.5">
+                <p className={finalPriceClassWithDiscount}>
+                  {formatMoney(finalPriceCents)}
+                </p>
+                {isFlowerQuantityEnabled ? (
+                  <span className="text-[9px] text-stone-500 sm:text-[11px]">
+                    ({perStemPriceLabel}/stem)
+                  </span>
+                ) : null}
+              </div>
             </div>
           ) : (
             <div className="flex min-w-0 max-w-full items-center gap-1 overflow-hidden whitespace-nowrap sm:gap-2">
               <span className={compactFinalPriceClassWithDiscount}>
                 {formatMoney(finalPriceCents)}
               </span>
+              {isFlowerQuantityEnabled ? (
+                <span className="text-[8px] text-stone-500 sm:text-[11px]">
+                  ({perStemPriceLabel}/stem)
+                </span>
+              ) : null}
               <span className="text-[clamp(5.83px,2.16vw,8.16px)] text-stone-400 line-through sm:text-[clamp(10px,3.7vw,14px)]">
                 {formatMoney(originalPriceCents)}
               </span>
@@ -163,15 +171,22 @@ export default function BouquetCard({
             </div>
           )
         ) : (
-          <p
-            className={
-              splitPriceRows
-                ? finalPriceClassWithoutDiscount
-                : compactFinalPriceClassWithoutDiscount
-            }
-          >
-            {formatMoney(originalPriceCents)}
-          </p>
+          <div className="flex items-baseline gap-1.5">
+            <p
+              className={
+                splitPriceRows
+                  ? finalPriceClassWithoutDiscount
+                  : compactFinalPriceClassWithoutDiscount
+              }
+            >
+              {formatMoney(originalPriceCents)}
+            </p>
+            {isFlowerQuantityEnabled ? (
+              <span className="text-[9px] text-stone-500 sm:text-[11px]">
+                ({perStemPriceLabel}/stem)
+              </span>
+            ) : null}
+          </div>
         )}
       </div>
       <AddToCartControls

@@ -418,7 +418,7 @@ export default function AdminBouquetForm({
               className={textareaFieldClass(invalidSet.has("description"))}
             />
           </label>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2 sm:items-end">
             <label className="flex flex-col gap-2 text-sm text-stone-700">
               Price (USD)
               <input
@@ -434,7 +434,7 @@ export default function AdminBouquetForm({
               />
             </label>
             <label className="flex flex-col gap-2 text-sm text-stone-700">
-              Default flowers quantity
+              Default quantity
               <input
                 name="defaultFlowerQuantity"
                 type="number"

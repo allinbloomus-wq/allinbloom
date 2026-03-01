@@ -29,22 +29,22 @@ export default function AddToCartControls({
   const { items, addItem, updateQuantity } = useCart();
   const { showToast } = useToast();
   const existing = items.find((entry) => entry.id === item.id);
-  const flowerQuantity = clampFlowerQuantity(selectedQuantity);
+  const flowerQuantityPerBouquet = clampFlowerQuantity(selectedQuantity);
 
   if (item.isFlowerQuantityEnabled) {
     return (
       <div className="space-y-2">
         {existing ? (
           <p className="text-[10px] uppercase tracking-[0.2em] text-stone-500">
-            In cart: {existing.quantity} flowers
+            In cart: {existing.quantity} bouquets
           </p>
         ) : null}
         <button
           type="button"
           onClick={() => {
             if (existing) {
-              updateQuantity(item.id, flowerQuantity);
-              showToast("Cart updated.");
+              updateQuantity(item.id, existing.quantity + 1);
+              showToast("Bouquet added.");
               return;
             }
             addItem({
@@ -52,7 +52,7 @@ export default function AddToCartControls({
               name: item.name,
               priceCents: item.priceCents,
               image: item.image,
-              quantity: flowerQuantity,
+              quantity: 1,
               meta: {
                 basePriceCents: item.priceCents,
                 bouquetDiscountPercent: item.discountPercent || 0,
@@ -63,13 +63,14 @@ export default function AddToCartControls({
                 isMixed: item.isMixed,
                 bouquetType: item.bouquetType,
                 isFlowerQuantityEnabled: true,
+                flowerQuantityPerBouquet,
               },
             });
             showToast("Added to cart.");
           }}
           className="w-full rounded-full bg-[color:var(--brand)] px-3 py-2 text-[10px] uppercase tracking-[0.16em] text-white transition hover:bg-[color:var(--brand-dark)] sm:px-4 sm:text-xs sm:tracking-[0.3em]"
         >
-          {existing ? "Update cart" : "Add to cart"}
+          Add to cart
         </button>
       </div>
     );

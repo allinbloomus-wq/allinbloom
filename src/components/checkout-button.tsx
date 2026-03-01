@@ -63,30 +63,52 @@ export default function CheckoutButton({
     onBusyChange?.(true);
 
     try {
+      const checkoutItems = items.flatMap((item) => {
+        if (item.meta?.isCustom) {
+          return [
+            {
+              id: item.id,
+              quantity: item.quantity,
+              name: item.name,
+              priceCents: item.priceCents,
+              price_cents: item.priceCents,
+              image: item.image,
+              details: item.meta?.details || item.meta?.note || undefined,
+              isCustom: true,
+              is_custom: true,
+            },
+          ];
+        }
+
+        if (item.meta?.isFlowerQuantityEnabled) {
+          const bouquetsCount = Math.max(1, Math.round(item.quantity || 1));
+          const flowersPerBouquet = Math.max(
+            1,
+            Math.round(item.meta?.flowerQuantityPerBouquet || 1)
+          );
+          return Array.from({ length: bouquetsCount }, () => ({
+            id: item.id,
+            quantity: flowersPerBouquet,
+            isCustom: false,
+            is_custom: false,
+          }));
+        }
+
+        return [
+          {
+            id: item.id,
+            quantity: item.quantity,
+            isCustom: false,
+            is_custom: false,
+          },
+        ];
+      });
+
       const response = await clientFetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items: items.map((item) =>
-            item.meta?.isCustom
-              ? {
-                  id: item.id,
-                  quantity: item.quantity,
-                  name: item.name,
-                  priceCents: item.priceCents,
-                  price_cents: item.priceCents,
-                  image: item.image,
-                  details: item.meta?.details || item.meta?.note || undefined,
-                  isCustom: true,
-                  is_custom: true,
-                }
-              : {
-                  id: item.id,
-                  quantity: item.quantity,
-                  isCustom: false,
-                  is_custom: false,
-                }
-          ),
+          items: checkoutItems,
           address: deliveryAddress,
           addressLine1: deliveryAddressLine1,
           addressLine2: deliveryAddressLine2,

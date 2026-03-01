@@ -8,6 +8,10 @@ import {
   useMemo,
   useReducer,
 } from "react";
+import {
+  clampFlowerQuantity,
+  FLOWER_QUANTITY_MIN,
+} from "@/lib/flower-quantity";
 
 export type CartItem = {
   id: string;
@@ -29,6 +33,7 @@ export type CartItem = {
     bouquetType?: string;
     bouquetColors?: string;
     isFlowerQuantityEnabled?: boolean;
+    flowerQuantityPerBouquet?: number;
     isCustom?: boolean;
     details?: string;
   };
@@ -158,7 +163,33 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (raw) {
       try {
         const parsed = JSON.parse(raw) as CartState;
-        dispatch({ type: "hydrate", payload: parsed });
+        const normalized: CartState = {
+          items: (parsed.items || []).map((item) => {
+            if (!item.meta?.isFlowerQuantityEnabled) return item;
+            const metaFlowerQty = Number(item.meta?.flowerQuantityPerBouquet);
+            if (Number.isFinite(metaFlowerQty)) {
+              return {
+                ...item,
+                quantity: Math.max(1, Math.round(item.quantity || 1)),
+                meta: {
+                  ...item.meta,
+                  flowerQuantityPerBouquet: clampFlowerQuantity(metaFlowerQty),
+                },
+              };
+            }
+            // Legacy migration: old carts stored flowers count in quantity.
+            const migratedFlowerQty = clampFlowerQuantity(Number(item.quantity || 1));
+            return {
+              ...item,
+              quantity: 1,
+              meta: {
+                ...item.meta,
+                flowerQuantityPerBouquet: migratedFlowerQty,
+              },
+            };
+          }),
+        };
+        dispatch({ type: "hydrate", payload: normalized });
       } catch {
         localStorage.removeItem(CART_KEY);
       }
@@ -192,7 +223,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       0
     );
     const subtotalCents = state.items.reduce(
-      (sum, item) => sum + item.priceCents * item.quantity,
+      (sum, item) => {
+        if (!item.meta?.isFlowerQuantityEnabled) {
+          return sum + item.priceCents * item.quantity;
+        }
+        const flowerQty = clampFlowerQuantity(
+          Number(item.meta?.flowerQuantityPerBouquet || FLOWER_QUANTITY_MIN)
+        );
+        return sum + item.priceCents * flowerQty * item.quantity;
+      },
       0
     );
     return {

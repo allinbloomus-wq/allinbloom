@@ -383,6 +383,15 @@ export default function CartView({
   const lineItems = useMemo(() => {
     return items.map((item) => {
       const basePrice = item.meta?.basePriceCents ?? item.priceCents;
+      const isFlowerQuantityEnabled = Boolean(item.meta?.isFlowerQuantityEnabled);
+      const flowerQuantityPerBouquet = isFlowerQuantityEnabled
+        ? clampFlowerQuantity(
+            Number(item.meta?.flowerQuantityPerBouquet || FLOWER_QUANTITY_MIN)
+          )
+        : 1;
+      const bouquetsCount = isFlowerQuantityEnabled
+        ? Math.max(1, Math.round(item.quantity || 1))
+        : item.quantity;
       const discount = getCartItemDiscount(
         {
           basePriceCents: basePrice,
@@ -415,12 +424,14 @@ export default function CartView({
 
       return {
         ...item,
+        quantity: bouquetsCount,
         basePrice,
         discount,
         discountedPrice,
-        isFlowerQuantityEnabled: Boolean(item.meta?.isFlowerQuantityEnabled),
-        lineTotal: discountedPrice * item.quantity,
-        lineOriginal: basePrice * item.quantity,
+        isFlowerQuantityEnabled,
+        flowerQuantityPerBouquet,
+        lineTotal: discountedPrice * flowerQuantityPerBouquet * bouquetsCount,
+        lineOriginal: basePrice * flowerQuantityPerBouquet * bouquetsCount,
       };
     });
   }, [items, globalDiscount, categoryDiscount]);
@@ -530,7 +541,41 @@ export default function CartView({
                 {item.meta?.note ? (
                   <p className="break-words text-xs text-stone-500">{item.meta.note}</p>
                 ) : null}
-                {item.discount ? (
+                {item.isFlowerQuantityEnabled ? (
+                  <div className="space-y-1">
+                    {item.discount ? (
+                      <p className="text-xs text-stone-400 line-through">
+                        {formatMoney(item.basePrice)}/stem x {item.flowerQuantityPerBouquet} =
+                        {" "}
+                        {formatMoney(item.basePrice * item.flowerQuantityPerBouquet)}
+                      </p>
+                    ) : null}
+                    <p className="text-xs text-stone-600">
+                      {formatMoney(item.discountedPrice)}/stem x {item.flowerQuantityPerBouquet} =
+                      {" "}
+                      {formatMoney(item.discountedPrice * item.flowerQuantityPerBouquet)}
+                    </p>
+                    {item.quantity > 1 ? (
+                      <p className="text-xs text-stone-500">
+                        x {item.quantity} bouquets = {formatMoney(item.lineTotal)}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-stone-500">
+                        Total: {formatMoney(item.lineTotal)}
+                      </p>
+                    )}
+                    {item.lineOriginal > item.lineTotal ? (
+                      <p className="text-xs text-stone-400 line-through">
+                        {formatMoney(item.lineOriginal)}
+                      </p>
+                    ) : null}
+                    {item.discount ? (
+                      <p className="text-xs text-stone-500">
+                        -{item.discount.percent}% - {item.discount.note}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : item.discount ? (
                   <div className="space-y-1">
                     <p className="text-xs uppercase tracking-[0.2em] text-stone-400 line-through">
                       {formatMoney(item.basePrice)}
@@ -551,21 +596,26 @@ export default function CartView({
             </div>
             <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto sm:justify-end">
               {item.isFlowerQuantityEnabled ? (
-                <label className="flex items-center gap-2 rounded-full border border-stone-200 bg-white/80 px-3 py-2 text-[10px] uppercase tracking-[0.16em] text-stone-600 max-[410px]:text-[8px] max-[410px]:tracking-[0.06em] sm:text-xs sm:tracking-[0.24em]">
-                  Flowers
-                  <input
-                    type="number"
-                    min={FLOWER_QUANTITY_MIN}
-                    max={FLOWER_QUANTITY_MAX}
-                    inputMode="numeric"
-                    value={item.quantity}
-                    onChange={(event) => {
-                      const next = Number(event.target.value);
-                      updateQuantity(item.id, clampFlowerQuantity(next));
-                    }}
-                    className="h-7 w-16 rounded-full border border-stone-200 bg-white px-2 text-right text-xs font-semibold text-stone-700 outline-none focus:border-stone-400 max-[410px]:w-14 max-[410px]:px-1.5 max-[410px]:text-[11px] sm:w-20 sm:text-sm"
-                  />
-                </label>
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-stone-500">
+                    {item.flowerQuantityPerBouquet} stems each
+                  </p>
+                  <label className="flex items-center gap-2 rounded-full border border-stone-200 bg-white/80 px-3 py-2 text-[10px] uppercase tracking-[0.16em] text-stone-600 max-[410px]:text-[8px] max-[410px]:tracking-[0.06em] sm:text-xs sm:tracking-[0.24em]">
+                    Bouquets
+                    <input
+                      type="number"
+                      min={FLOWER_QUANTITY_MIN}
+                      max={FLOWER_QUANTITY_MAX}
+                      inputMode="numeric"
+                      value={item.quantity}
+                      onChange={(event) => {
+                        const next = Number(event.target.value);
+                        updateQuantity(item.id, clampFlowerQuantity(next));
+                      }}
+                      className="h-7 w-16 rounded-full border border-stone-200 bg-white px-2 text-right text-xs font-semibold text-stone-700 outline-none focus:border-stone-400 max-[410px]:w-14 max-[410px]:px-1.5 max-[410px]:text-[11px] sm:w-20 sm:text-sm"
+                    />
+                  </label>
+                </div>
               ) : (
                 <div className="flex items-center gap-2 rounded-full border border-stone-200 bg-white/80 px-3 py-2 text-xs uppercase tracking-[0.3em] text-stone-600">
                   <button
