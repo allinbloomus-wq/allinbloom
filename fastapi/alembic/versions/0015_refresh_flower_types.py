@@ -23,20 +23,6 @@ def upgrade():
         WHERE UPPER(COALESCE("categoryFlowerType", '')) = 'LILY'
         """
     )
-    op.execute(
-        """
-        UPDATE "Bouquet"
-        SET
-            "flowerType" = 'HYDRANGEAS',
-            "style" = REPLACE(
-                REPLACE(COALESCE("style", ''), 'LILY', 'HYDRANGEAS'),
-                'lily',
-                'hydrangeas'
-            )
-        WHERE "flowerType"::text = 'LILY'
-           OR UPPER(COALESCE("style", '')) LIKE '%LILY%'
-        """
-    )
 
     op.execute('ALTER TYPE "FlowerType" RENAME TO "FlowerType_old"')
     op.execute(
@@ -57,10 +43,26 @@ def upgrade():
         """
         ALTER TABLE "Bouquet"
         ALTER COLUMN "flowerType" TYPE "FlowerType"
-        USING ("flowerType"::text::"FlowerType")
+        USING (
+            CASE
+                WHEN "flowerType"::text = 'LILY' THEN 'HYDRANGEAS'
+                ELSE "flowerType"::text
+            END::"FlowerType"
+        )
         """
     )
     op.execute('DROP TYPE "FlowerType_old"')
+    op.execute(
+        """
+        UPDATE "Bouquet"
+        SET "style" = REPLACE(
+            REPLACE(COALESCE("style", ''), 'LILY', 'HYDRANGEAS'),
+            'lily',
+            'hydrangeas'
+        )
+        WHERE UPPER(COALESCE("style", '')) LIKE '%LILY%'
+        """
+    )
 
 
 def downgrade():
@@ -73,30 +75,6 @@ def downgrade():
             'SPRAY_ROSES',
             'RANUNCULUSES'
         )
-        """
-    )
-    op.execute(
-        """
-        UPDATE "Bouquet"
-        SET
-            "flowerType" = 'LILY',
-            "style" = REPLACE(
-                REPLACE(
-                    REPLACE(
-                        UPPER(COALESCE("style", '')),
-                        'HYDRANGEAS',
-                        'LILY'
-                    ),
-                    'SPRAY_ROSES',
-                    'LILY'
-                ),
-                'RANUNCULUSES',
-                'LILY'
-            )
-        WHERE "flowerType"::text IN ('HYDRANGEAS', 'SPRAY_ROSES', 'RANUNCULUSES')
-           OR UPPER(COALESCE("style", '')) LIKE '%HYDRANGEAS%'
-           OR UPPER(COALESCE("style", '')) LIKE '%SPRAY_ROSES%'
-           OR UPPER(COALESCE("style", '')) LIKE '%RANUNCULUSES%'
         """
     )
 
@@ -117,7 +95,30 @@ def downgrade():
         """
         ALTER TABLE "Bouquet"
         ALTER COLUMN "flowerType" TYPE "FlowerType"
-        USING ("flowerType"::text::"FlowerType")
+        USING (
+            CASE
+                WHEN "flowerType"::text IN ('HYDRANGEAS', 'SPRAY_ROSES', 'RANUNCULUSES')
+                    THEN 'LILY'
+                ELSE "flowerType"::text
+            END::"FlowerType"
+        )
         """
     )
     op.execute('DROP TYPE "FlowerType_new"')
+    op.execute(
+        """
+        UPDATE "Bouquet"
+        SET "style" = REPLACE(
+            REPLACE(
+                REPLACE(UPPER(COALESCE("style", '')), 'HYDRANGEAS', 'LILY'),
+                'SPRAY_ROSES',
+                'LILY'
+            ),
+            'RANUNCULUSES',
+            'LILY'
+        )
+        WHERE UPPER(COALESCE("style", '')) LIKE '%HYDRANGEAS%'
+           OR UPPER(COALESCE("style", '')) LIKE '%SPRAY_ROSES%'
+           OR UPPER(COALESCE("style", '')) LIKE '%RANUNCULUSES%'
+        """
+    )
