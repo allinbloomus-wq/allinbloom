@@ -57,14 +57,21 @@ export default function BouquetCard({
     Number(bouquet.defaultFlowerQuantity || FLOWER_QUANTITY_MIN)
   );
   const [flowerQuantity, setFlowerQuantity] = useState(defaultFlowerQuantity);
+  const isSoldOut = bouquet.isSoldOut;
   const isFlowerQuantityEnabled = useMemo(
     () =>
+      !isSoldOut &&
       enableFlowerQuantityInput &&
       isFlowerQuantityEnabledForBouquet(
         bouquetTypeLabel,
         bouquet.allowFlowerQuantity
       ),
-    [bouquet.allowFlowerQuantity, bouquetTypeLabel, enableFlowerQuantityInput]
+    [
+      bouquet.allowFlowerQuantity,
+      bouquetTypeLabel,
+      enableFlowerQuantityInput,
+      isSoldOut,
+    ]
   );
 
   useEffect(() => {
@@ -181,27 +188,33 @@ export default function BouquetCard({
           </div>
         )}
       </div>
-      <AddToCartControls
-        selectedQuantity={effectiveQuantity}
-        item={{
-          id: bouquet.id,
-          name: bouquet.name,
-          priceCents: bouquet.priceCents,
-          image: bouquet.image,
-          discountPercent: bouquet.discountPercent,
-          discountNote: bouquet.discountNote || undefined,
-          flowerType: bouquet.flowerType,
-          flowerTypes: parsedFlowerTypes.length
-            ? parsedFlowerTypes.join(", ")
-            : bouquet.flowerType === "MIXED"
-            ? ""
-            : bouquet.flowerType,
-          colors: bouquet.colors,
-          isMixed: bouquet.isMixed,
-          bouquetType: bouquet.bouquetType,
-          isFlowerQuantityEnabled,
-        }}
-      />
+      {isSoldOut ? (
+        <div className="w-full rounded-full border border-stone-200 bg-stone-100 px-3 py-2 text-center text-[10px] uppercase tracking-[0.16em] text-stone-500 sm:px-4 sm:text-xs sm:tracking-[0.3em]">
+          Sold out
+        </div>
+      ) : (
+        <AddToCartControls
+          selectedQuantity={effectiveQuantity}
+          item={{
+            id: bouquet.id,
+            name: bouquet.name,
+            priceCents: bouquet.priceCents,
+            image: bouquet.image,
+            discountPercent: bouquet.discountPercent,
+            discountNote: bouquet.discountNote || undefined,
+            flowerType: bouquet.flowerType,
+            flowerTypes: parsedFlowerTypes.length
+              ? parsedFlowerTypes.join(", ")
+              : bouquet.flowerType === "MIXED"
+              ? ""
+              : bouquet.flowerType,
+            colors: bouquet.colors,
+            isMixed: bouquet.isMixed,
+            bouquetType: bouquet.bouquetType,
+            isFlowerQuantityEnabled,
+          }}
+        />
+      )}
     </div>
   );
 }

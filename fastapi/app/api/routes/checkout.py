@@ -282,7 +282,13 @@ async def start_checkout(
 
     bouquet_ids = [item.id for item in items if not item.is_custom]
     bouquets = (
-        db.execute(select(Bouquet).where(Bouquet.id.in_(bouquet_ids), Bouquet.is_active.is_(True)))
+        db.execute(
+            select(Bouquet).where(
+                Bouquet.id.in_(bouquet_ids),
+                Bouquet.is_active.is_(True),
+                Bouquet.is_sold_out.is_(False),
+            )
+        )
         .scalars()
         .all()
     )
@@ -335,7 +341,7 @@ async def start_checkout(
             log_critical_event(
                 domain="cart",
                 event="checkout_item_not_found",
-                message="Checkout item does not exist or is inactive.",
+                message="Checkout item does not exist, is inactive, or is sold out.",
                 request=request,
                 context={"user_id": user_id, "item_id": item.id},
                 level=logging.WARNING,

@@ -16,6 +16,7 @@ export type BouquetFormPayload = {
   isMixed: boolean;
   isFeatured: boolean;
   isActive: boolean;
+  isSoldOut: boolean;
   allowFlowerQuantity: boolean;
   defaultFlowerQuantity: number;
   discountPercent: number;
@@ -110,6 +111,7 @@ export const parseBouquetForm = (formData: FormData): BouquetFormPayload => {
     isMixed: bouquetType === "MIXED",
     isFeatured: formData.get("isFeatured") === "on",
     isActive: formData.get("isActive") === "on",
+    isSoldOut: formData.get("isSoldOut") === "on",
     allowFlowerQuantity,
     defaultFlowerQuantity,
     discountPercent,

@@ -19,6 +19,7 @@ class BouquetOut(SchemaBase):
     is_mixed: bool
     is_featured: bool
     is_active: bool
+    is_sold_out: bool = False
     allow_flower_quantity: bool
     default_flower_quantity: int = 1
     discount_percent: int
@@ -43,6 +44,7 @@ class BouquetCreate(SchemaBase):
     is_mixed: bool = False
     is_featured: bool = False
     is_active: bool = True
+    is_sold_out: bool = False
     allow_flower_quantity: bool = True
     default_flower_quantity: int = 1
     discount_percent: int = 0
@@ -67,6 +69,7 @@ class BouquetUpdate(SchemaBase):
     is_mixed: Optional[bool] = None
     is_featured: Optional[bool] = None
     is_active: Optional[bool] = None
+    is_sold_out: Optional[bool] = None
     allow_flower_quantity: Optional[bool] = None
     default_flower_quantity: Optional[int] = None
     discount_percent: Optional[int] = None

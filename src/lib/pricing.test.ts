@@ -54,6 +54,7 @@ const baseBouquet: Bouquet = {
   isMixed: false,
   isFeatured: true,
   isActive: true,
+  isSoldOut: false,
   allowFlowerQuantity: true,
   defaultFlowerQuantity: 1,
   discountPercent: 0,

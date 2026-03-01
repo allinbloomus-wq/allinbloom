@@ -112,6 +112,11 @@ export default function AdminBouquetRow({ bouquet }: { bouquet: Bouquet }) {
                 Hidden
               </span>
             )}
+            {bouquet.isSoldOut && (
+              <span className="rounded-full bg-amber-100 px-3 py-1 text-amber-700">
+                Sold out
+              </span>
+            )}
           </div>
           <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
             <Link

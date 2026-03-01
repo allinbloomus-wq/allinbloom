@@ -643,7 +643,7 @@ export default function AdminBouquetForm({
               </p>
             ) : null}
           </div>
-          <div className="grid gap-2">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <label className="flex items-center gap-2 text-sm text-stone-700">
               <input
                 type="checkbox"
@@ -659,6 +659,14 @@ export default function AdminBouquetForm({
                 defaultChecked={bouquet ? bouquet.isActive : true}
               />
               Visible in catalog
+            </label>
+            <label className="flex items-center gap-2 text-sm text-stone-700">
+              <input
+                type="checkbox"
+                name="isSoldOut"
+                defaultChecked={bouquet?.isSoldOut}
+              />
+              Sold out
             </label>
             <label className="flex items-center gap-2 text-sm text-stone-700">
               <input

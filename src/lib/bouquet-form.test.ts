@@ -29,6 +29,7 @@ describe("parseBouquetForm", () => {
         colors: "  Blush, Ivory ",
         isFeatured: "on",
         isActive: "on",
+        isSoldOut: "on",
         allowFlowerQuantity: "on",
         defaultFlowerQuantity: "100",
         discountPercent: "14.7",
@@ -48,6 +49,7 @@ describe("parseBouquetForm", () => {
       isMixed: true,
       isFeatured: true,
       isActive: true,
+      isSoldOut: true,
       allowFlowerQuantity: true,
       defaultFlowerQuantity: 100,
       discountPercent: 15,
@@ -82,6 +84,7 @@ describe("parseBouquetForm", () => {
     expect(payload.priceCents).toBe(0);
     expect(payload.allowFlowerQuantity).toBe(false);
     expect(payload.defaultFlowerQuantity).toBe(1);
+    expect(payload.isSoldOut).toBe(false);
     expect(payload.discountPercent).toBe(90);
     expect(payload.discountNote).toBe("Discount");
     expect(payload.image).toBe("/images/bouquet-1.webp");
