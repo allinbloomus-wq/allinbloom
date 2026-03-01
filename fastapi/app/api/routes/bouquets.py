@@ -12,6 +12,9 @@ from app.schemas.bouquet import BouquetCreate, BouquetOut, BouquetUpdate
 router = APIRouter(prefix="/api/bouquets", tags=["bouquets"])
 
 FLOWER_TYPE_VALUES = {member.value for member in FlowerType}
+FLOWER_QUANTITY_MIN = 1
+FLOWER_QUANTITY_MAX = 1001
+FLOWER_QUANTITY_ELIGIBLE_TYPES = {BouquetType.MONO, BouquetType.SEASON}
 
 
 def _normalize_flower_types_csv(value: str | None, fallback: FlowerType | str | None) -> str:
@@ -53,6 +56,14 @@ def _resolve_bouquet_type(data: dict, existing: Bouquet | None = None) -> Bouque
     return BouquetType.MONO
 
 
+def _normalize_default_flower_quantity(value: object) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return FLOWER_QUANTITY_MIN
+    return max(FLOWER_QUANTITY_MIN, min(FLOWER_QUANTITY_MAX, parsed))
+
+
 @router.get("", response_model=list[BouquetOut])
 def list_bouquets(
     include_inactive: bool = Query(default=False),
@@ -83,6 +94,14 @@ def create_bouquet(
     bouquet_type = _resolve_bouquet_type(data)
     data["bouquet_type"] = bouquet_type.value
     data["is_mixed"] = bouquet_type == BouquetType.MIXED
+    allow_flower_quantity = bool(data.get("allow_flower_quantity", True))
+    data["allow_flower_quantity"] = allow_flower_quantity
+    default_flower_quantity = _normalize_default_flower_quantity(
+        data.get("default_flower_quantity")
+    )
+    if not allow_flower_quantity or bouquet_type not in FLOWER_QUANTITY_ELIGIBLE_TYPES:
+        default_flower_quantity = FLOWER_QUANTITY_MIN
+    data["default_flower_quantity"] = default_flower_quantity
     data["style"] = _normalize_flower_types_csv(data.get("style"), data.get("flower_type"))
     data["flower_type"] = FlowerType(data["style"].split(",")[0].strip())
     bouquet = Bouquet(**data)
@@ -112,6 +131,16 @@ def update_bouquet(
     bouquet_type = _resolve_bouquet_type(data, bouquet)
     data["bouquet_type"] = bouquet_type.value
     data["is_mixed"] = bouquet_type == BouquetType.MIXED
+    allow_flower_quantity = bool(
+        data.get("allow_flower_quantity", bouquet.allow_flower_quantity)
+    )
+    data["allow_flower_quantity"] = allow_flower_quantity
+    default_flower_quantity = _normalize_default_flower_quantity(
+        data.get("default_flower_quantity", bouquet.default_flower_quantity)
+    )
+    if not allow_flower_quantity or bouquet_type not in FLOWER_QUANTITY_ELIGIBLE_TYPES:
+        default_flower_quantity = FLOWER_QUANTITY_MIN
+    data["default_flower_quantity"] = default_flower_quantity
     for key, value in data.items():
         setattr(bouquet, key, value)
     db.commit()

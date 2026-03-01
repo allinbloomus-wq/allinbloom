@@ -1,4 +1,8 @@
 import { BOUQUET_TYPES, FLOWER_TYPES } from "@/lib/constants";
+import {
+  clampFlowerQuantity,
+  FLOWER_QUANTITY_MIN,
+} from "@/lib/flower-quantity";
 
 export type BouquetFormPayload = {
   name: string;
@@ -12,6 +16,7 @@ export type BouquetFormPayload = {
   isFeatured: boolean;
   isActive: boolean;
   allowFlowerQuantity: boolean;
+  defaultFlowerQuantity: number;
   discountPercent: number;
   discountNote: string | null;
   image: string;
@@ -88,6 +93,10 @@ export const parseBouquetForm = (formData: FormData): BouquetFormPayload => {
     BOUQUET_TYPES,
     formData.get("isMixed") === "on" ? "MIXED" : "MONO"
   );
+  const allowFlowerQuantity = formData.get("allowFlowerQuantity") === "on";
+  const defaultFlowerQuantity = allowFlowerQuantity
+    ? clampFlowerQuantity(Number(formData.get("defaultFlowerQuantity")))
+    : FLOWER_QUANTITY_MIN;
 
   return {
     name,
@@ -100,7 +109,8 @@ export const parseBouquetForm = (formData: FormData): BouquetFormPayload => {
     isMixed: bouquetType === "MIXED",
     isFeatured: formData.get("isFeatured") === "on",
     isActive: formData.get("isActive") === "on",
-    allowFlowerQuantity: formData.get("allowFlowerQuantity") === "on",
+    allowFlowerQuantity,
+    defaultFlowerQuantity,
     discountPercent,
     discountNote: normalizedDiscountNote,
     image,

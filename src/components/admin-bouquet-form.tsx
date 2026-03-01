@@ -4,6 +4,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import type { Bouquet } from "@/lib/api-types";
 import { BOUQUET_TYPES, COLOR_OPTIONS, FLOWER_TYPES } from "@/lib/constants";
+import {
+  FLOWER_QUANTITY_MAX,
+  FLOWER_QUANTITY_MIN,
+} from "@/lib/flower-quantity";
 import { formatLabel } from "@/lib/format";
 import AdminImageUpload from "@/components/admin-image-upload";
 import MultiCheckboxDropdown from "@/components/multi-checkbox-dropdown";
@@ -152,6 +156,9 @@ export default function AdminBouquetForm({
   const [selectedBouquetType, setSelectedBouquetType] = useState<
     (typeof BOUQUET_TYPES)[number]
   >(() => defaultBouquetType);
+  const [isFlowerQuantityEnabled, setIsFlowerQuantityEnabled] = useState(
+    bouquet ? bouquet.allowFlowerQuantity : true
+  );
   const [activeAdditionalImageKeys, setActiveAdditionalImageKeys] = useState<
     AdditionalImageKey[]
   >(() => getDefaultAdditionalImageKeys(bouquet));
@@ -166,6 +173,7 @@ export default function AdminBouquetForm({
     setFlowerTypeLimitWarning("");
     setBouquetTypeWarning("");
     setSelectedBouquetType(resolveDefaultBouquetType(bouquet));
+    setIsFlowerQuantityEnabled(bouquet ? bouquet.allowFlowerQuantity : true);
   }, [bouquet?.id]);
 
   useEffect(() => {
@@ -317,6 +325,10 @@ export default function AdminBouquetForm({
       Math.min(90, Math.round(parseNumber(formData.get("discountPercent")) || 0))
     );
     const discountNote = String(formData.get("discountNote") || "").trim();
+    const allowFlowerQuantity = formData.get("allowFlowerQuantity") === "on";
+    const defaultFlowerQuantity = parseNumber(
+      formData.get("defaultFlowerQuantity")
+    );
 
     if (!name) {
       nextErrors.push("Bouquet name is required.");
@@ -341,6 +353,18 @@ export default function AdminBouquetForm({
     if (discountPercent > 0 && !discountNote) {
       nextErrors.push("Discount comment is required when discount percent is greater than 0.");
       nextInvalid.add("discountNote");
+    }
+
+    if (
+      allowFlowerQuantity &&
+      (!Number.isFinite(defaultFlowerQuantity) ||
+        defaultFlowerQuantity < FLOWER_QUANTITY_MIN ||
+        defaultFlowerQuantity > FLOWER_QUANTITY_MAX)
+    ) {
+      nextErrors.push(
+        `Default flowers quantity must be between ${FLOWER_QUANTITY_MIN} and ${FLOWER_QUANTITY_MAX}.`
+      );
+      nextInvalid.add("defaultFlowerQuantity");
     }
 
     if (!selectedFlowerTypes.length) {
@@ -407,6 +431,21 @@ export default function AdminBouquetForm({
                 }
                 required
                 className={controlFieldClass(invalidSet.has("price"))}
+              />
+            </label>
+            <label className="flex flex-col gap-2 text-sm text-stone-700">
+              Default flowers quantity
+              <input
+                name="defaultFlowerQuantity"
+                type="number"
+                min={FLOWER_QUANTITY_MIN}
+                max={FLOWER_QUANTITY_MAX}
+                step="1"
+                defaultValue={bouquet?.defaultFlowerQuantity ?? FLOWER_QUANTITY_MIN}
+                disabled={!isFlowerQuantityEnabled}
+                className={`${controlFieldClass(
+                  invalidSet.has("defaultFlowerQuantity")
+                )} disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-stone-400`}
               />
             </label>
             <label className="flex flex-col gap-2 text-sm text-stone-700">
@@ -624,8 +663,9 @@ export default function AdminBouquetForm({
               <input
                 type="checkbox"
                 name="allowFlowerQuantity"
-                defaultChecked={
-                  bouquet ? bouquet.allowFlowerQuantity : true
+                checked={isFlowerQuantityEnabled}
+                onChange={(event) =>
+                  setIsFlowerQuantityEnabled(event.target.checked)
                 }
               />
               Enable flower quantity input (MONO/SEASON)

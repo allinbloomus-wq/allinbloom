@@ -55,6 +55,7 @@ const baseBouquet: Bouquet = {
   isFeatured: true,
   isActive: true,
   allowFlowerQuantity: true,
+  defaultFlowerQuantity: 1,
   discountPercent: 0,
   discountNote: null,
   image: "/images/bouquet-1.webp",

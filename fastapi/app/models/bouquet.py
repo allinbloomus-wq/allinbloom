@@ -27,6 +27,9 @@ class Bouquet(Base):
     allow_flower_quantity = Column(
         "allowFlowerQuantity", Boolean, default=True, nullable=False
     )
+    default_flower_quantity = Column(
+        "defaultFlowerQuantity", Integer, default=1, nullable=False
+    )
     discount_percent = Column("discountPercent", Integer, default=0, nullable=False)
     discount_note = Column("discountNote", String, nullable=True)
     image = Column(String, nullable=False)

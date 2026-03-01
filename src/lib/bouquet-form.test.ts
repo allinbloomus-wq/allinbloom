@@ -30,6 +30,7 @@ describe("parseBouquetForm", () => {
         isFeatured: "on",
         isActive: "on",
         allowFlowerQuantity: "on",
+        defaultFlowerQuantity: "100",
         discountPercent: "14.7",
         discountNote: "  Spring promo ",
         image: " /images/custom.webp ",
@@ -48,6 +49,7 @@ describe("parseBouquetForm", () => {
       isFeatured: true,
       isActive: true,
       allowFlowerQuantity: true,
+      defaultFlowerQuantity: 100,
       discountPercent: 15,
       discountNote: "Spring promo",
       image: "/images/custom.webp",
@@ -79,6 +81,7 @@ describe("parseBouquetForm", () => {
     expect(payload.bouquetType).toBe(BOUQUET_TYPES[0]);
     expect(payload.priceCents).toBe(0);
     expect(payload.allowFlowerQuantity).toBe(false);
+    expect(payload.defaultFlowerQuantity).toBe(1);
     expect(payload.discountPercent).toBe(90);
     expect(payload.discountNote).toBe("Discount");
     expect(payload.image).toBe("/images/bouquet-1.webp");
@@ -107,6 +110,7 @@ describe("parseBouquetForm", () => {
     expect(payload.discountPercent).toBe(0);
     expect(payload.discountNote).toBeNull();
     expect(payload.allowFlowerQuantity).toBe(true);
+    expect(payload.defaultFlowerQuantity).toBe(1);
   });
 
   it("normalizes additional gallery image URLs", () => {
@@ -132,6 +136,7 @@ describe("parseBouquetForm", () => {
     expect(payload.style).toBe("ROSE, TULIP, ORCHID");
     expect(payload.bouquetType).toBe("SEASON");
     expect(payload.allowFlowerQuantity).toBe(true);
+    expect(payload.defaultFlowerQuantity).toBe(1);
     expect(payload.image).toBe("/images/main.webp");
     expect(payload.image2).toBe("/images/2.webp");
     expect(payload.image3).toBeNull();

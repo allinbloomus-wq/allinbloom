@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatLabel, formatMoney } from "@/lib/format";
 import AddToCartControls from "@/components/add-to-cart-controls";
 import BouquetImageCarousel from "@/components/bouquet-image-carousel";
@@ -53,7 +53,10 @@ export default function BouquetCard({
       : bouquet.isMixed
       ? "MIXED"
       : "MONO");
-  const [flowerQuantity, setFlowerQuantity] = useState(FLOWER_QUANTITY_MIN);
+  const defaultFlowerQuantity = clampFlowerQuantity(
+    Number(bouquet.defaultFlowerQuantity || FLOWER_QUANTITY_MIN)
+  );
+  const [flowerQuantity, setFlowerQuantity] = useState(defaultFlowerQuantity);
   const isFlowerQuantityEnabled = useMemo(
     () =>
       enableFlowerQuantityInput &&
@@ -63,6 +66,11 @@ export default function BouquetCard({
       ),
     [bouquet.allowFlowerQuantity, bouquetTypeLabel, enableFlowerQuantityInput]
   );
+
+  useEffect(() => {
+    setFlowerQuantity(defaultFlowerQuantity);
+  }, [defaultFlowerQuantity, bouquet.id]);
+
   const effectiveQuantity = isFlowerQuantityEnabled ? flowerQuantity : 1;
   const originalPriceCents = pricing.originalPriceCents * effectiveQuantity;
   const finalPriceCents = pricing.finalPriceCents * effectiveQuantity;
@@ -104,7 +112,7 @@ export default function BouquetCard({
         </p>
       </div>
       {isFlowerQuantityEnabled ? (
-        <label className="flex items-center justify-between gap-2 rounded-2xl border border-stone-200 bg-white/80 px-3 py-2 text-[9px] uppercase tracking-[0.12em] text-stone-600 max-[410px]:text-[8px] max-[410px]:tracking-[0.06em] sm:gap-3 sm:text-xs sm:tracking-[0.24em]">
+        <label className="flex items-center justify-between gap-2 px-0.5 py-1 text-[9px] uppercase tracking-[0.12em] text-stone-600 max-[410px]:text-[8px] max-[410px]:tracking-[0.06em] sm:gap-3 sm:text-xs sm:tracking-[0.24em]">
           Flowers
           <input
             type="number"
