@@ -9,6 +9,7 @@ import {
   FLOWER_TYPES,
   PRICE_LIMITS,
 } from "@/lib/constants";
+import { normalizeColorValue, normalizePaletteText } from "@/lib/colors";
 import AdminBouquetRow from "@/components/admin-bouquet-row";
 import MultiCheckboxDropdown from "@/components/multi-checkbox-dropdown";
 import FiltersToggleButton from "@/components/filters-toggle-button";
@@ -32,7 +33,11 @@ type FilterOption = {
 const ADMIN_BOUQUETS_STATE_STORAGE_KEY = "admin-bouquets-panel-state";
 
 const formatLabel = (value: string) =>
-  value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+  value
+    .split(/[_\s]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
 
 const toUniqueArray = (values: string[]) =>
   values.filter((value, index) => values.indexOf(value) === index);
@@ -67,12 +72,7 @@ const normalizePersistedFilters = (value: unknown): AdminFilterValues => {
         .filter((entry, index, list) => list.indexOf(entry) === index)
     : [];
 
-  const colorValue = String(source.color || "")
-    .trim()
-    .toLowerCase();
-  const color = COLOR_OPTIONS.includes(colorValue as (typeof COLOR_OPTIONS)[number])
-    ? colorValue
-    : "";
+  const color = normalizeColorValue(String(source.color || ""));
 
   const bouquetTypeValue = String(source.bouquetType || "")
     .trim()
@@ -384,7 +384,7 @@ export default function AdminBouquetsPanel({ bouquets }: { bouquets: Bouquet[] }
       }
 
       if (selectedColor) {
-        const normalizedColors = String(bouquet.colors || "").toLowerCase();
+        const normalizedColors = normalizePaletteText(bouquet.colors);
         if (!normalizedColors.includes(selectedColor)) {
           return false;
         }

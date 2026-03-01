@@ -9,6 +9,7 @@ from app.models.bouquet import Bouquet
 from app.models.enums import BouquetType, FlowerType
 from app.schemas.catalog import CatalogResponse
 from app.schemas.bouquet import BouquetOut
+from app.services.colors import color_filter_candidates
 from app.services.pricing import get_bouquet_pricing
 from app.services.settings import get_store_settings
 
@@ -130,8 +131,11 @@ def list_catalog(
             filters.append(Bouquet.price_cents <= max_cents)
 
     if color:
-        needle = color.lower()
-        filters.append(func.lower(Bouquet.colors).contains(needle))
+        candidates = color_filter_candidates(color)
+        if candidates:
+            filters.append(
+                or_(*[func.lower(Bouquet.colors).contains(candidate) for candidate in candidates])
+            )
 
     base_query = select(Bouquet).where(and_(*filters))
     normalized_sort = _normalize_sort(sort)

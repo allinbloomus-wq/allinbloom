@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
+from app.services.colors import normalize_color_value, normalize_palette_text
+
 
 @dataclass
 class DiscountInfo:
@@ -57,8 +59,9 @@ def _matches_category(bouquet, settings) -> bool:
         if bouquet_type != "season":
             return False
     if settings.category_color:
-        palette = (bouquet.colors or "").lower()
-        if settings.category_color.lower() not in palette:
+        palette = normalize_palette_text(bouquet.colors)
+        needle = normalize_color_value(settings.category_color) or settings.category_color.lower()
+        if needle not in palette:
             return False
     if (
         settings.category_min_price_cents is not None

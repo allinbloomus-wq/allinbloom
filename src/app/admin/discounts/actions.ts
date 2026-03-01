@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth-session";
+import { normalizeColorValue } from "@/lib/colors";
 import { updateStoreSettings } from "@/lib/data/settings";
 import { clampPercent } from "@/lib/pricing";
 
@@ -30,7 +31,9 @@ export async function updateDiscountSettings(formData: FormData) {
     formData.get("categoryFlowerType") || ""
   ).trim();
   const categoryMixed = String(formData.get("categoryMixed") || "").trim();
-  const categoryColor = String(formData.get("categoryColor") || "").trim();
+  const categoryColor = normalizeColorValue(
+    String(formData.get("categoryColor") || "").trim()
+  );
   const categoryMinPriceCents = parsePriceCents(
     formData.get("categoryMinPrice")
   );

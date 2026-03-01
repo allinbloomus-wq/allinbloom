@@ -3,6 +3,7 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from app.models.store_settings import StoreSettings
+from app.services.colors import normalize_color_value
 
 
 DEFAULT_SETTINGS = {
@@ -36,6 +37,11 @@ DEFAULT_SETTINGS = {
 def get_store_settings(db: Session) -> StoreSettings:
     settings = db.get(StoreSettings, "default")
     if settings:
+        normalized_category_color = normalize_color_value(settings.category_color)
+        if settings.category_color and normalized_category_color != settings.category_color:
+            settings.category_color = normalized_category_color
+            db.commit()
+            db.refresh(settings)
         return settings
     settings = StoreSettings(**DEFAULT_SETTINGS)
     db.add(settings)
@@ -46,6 +52,8 @@ def get_store_settings(db: Session) -> StoreSettings:
 
 def update_store_settings(db: Session, data: dict) -> StoreSettings:
     settings = get_store_settings(db)
+    if "category_color" in data:
+        data["category_color"] = normalize_color_value(data.get("category_color"))
     for key, value in data.items():
         if hasattr(settings, key):
             setattr(settings, key, value)

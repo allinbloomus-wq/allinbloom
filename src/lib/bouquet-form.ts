@@ -1,4 +1,5 @@
 import { BOUQUET_TYPES, FLOWER_TYPES } from "@/lib/constants";
+import { normalizeColorCsv } from "@/lib/colors";
 import {
   clampFlowerQuantity,
   FLOWER_QUANTITY_MIN,
@@ -79,7 +80,7 @@ export const parseBouquetForm = (formData: FormData): BouquetFormPayload => {
   const price = Number(formData.get("price") || 0);
   const rawImage = String(formData.get("image") || "").trim();
   const image = rawImage || "/images/bouquet-1.webp";
-  const colors = String(formData.get("colors") || "").toLowerCase().trim();
+  const colors = normalizeColorCsv(String(formData.get("colors") || ""));
   const discountPercent = Math.min(
     90,
     Math.max(0, Math.round(Number(formData.get("discountPercent") || 0)))

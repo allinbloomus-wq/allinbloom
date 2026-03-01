@@ -3,16 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCart } from "@/lib/cart";
 import { useToast } from "@/components/toast-provider";
-import { FLOWER_TYPES } from "@/lib/constants";
+import { COLOR_OPTIONS, FLOWER_TYPES } from "@/lib/constants";
+import { formatLabel } from "@/lib/format";
 import MultiCheckboxDropdown from "@/components/multi-checkbox-dropdown";
 
-const paletteOptions = [
-  "Blush & Ivory",
-  "Peach & Champagne",
-  "Lavender Mist",
-  "Sage & Cream",
-  "Ruby & Blush",
-];
+const paletteOptions = COLOR_OPTIONS.map((value) => formatLabel(value));
 
 type ChoiceDropdownProps = {
   label: string;
@@ -151,7 +146,7 @@ export default function FloristChoiceForm() {
     () =>
       FLOWER_TYPES.map((option) => ({
         value: option.toLowerCase(),
-        label: option.charAt(0) + option.slice(1).toLowerCase(),
+        label: formatLabel(option),
       })),
     []
   );
@@ -180,7 +175,7 @@ export default function FloristChoiceForm() {
       normalizedFlowerTypes.push(FLOWER_TYPES[0]);
     }
     const flowerLabel = normalizedFlowerTypes
-      .map((value) => value.charAt(0) + value.slice(1).toLowerCase())
+      .map((value) => formatLabel(value))
       .join(", ");
     const detailsParts = [
       `Palette: ${palette}`,

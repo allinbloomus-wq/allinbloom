@@ -5,7 +5,13 @@ export const formatMoney = (cents: number) =>
   }).format(cents / 100);
 
 export const formatLabel = (value: string) =>
-  value ? value.charAt(0) + value.slice(1).toLowerCase() : value;
+  value
+    ? value
+        .split(/[_\s]+/)
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+        .join(" ")
+    : value;
 
 export const formatDateTime = (value: Date | string) => {
   const date = typeof value === "string" ? new Date(value) : value;

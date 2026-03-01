@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import type { Bouquet } from "@/lib/api-types";
 import { BOUQUET_TYPES, COLOR_OPTIONS, FLOWER_TYPES } from "@/lib/constants";
+import { normalizeColorValue } from "@/lib/colors";
 import {
   FLOWER_QUANTITY_MAX,
   FLOWER_QUANTITY_MIN,
@@ -39,7 +40,7 @@ const FLOWER_TYPE_SET = new Set<string>(FLOWER_TYPES);
 const parsePaletteColors = (value: string | undefined) =>
   String(value || "")
     .split(",")
-    .map((item) => item.trim().toLowerCase())
+    .map((item) => normalizeColorValue(item) || item.trim().toLowerCase())
     .filter(Boolean)
     .filter((item, idx, arr) => arr.indexOf(item) === idx);
 
@@ -50,7 +51,7 @@ const sortPaletteColors = (values: string[]) => {
 };
 
 const formatPaletteLabel = (value: string) =>
-  value ? value.charAt(0).toUpperCase() + value.slice(1) : value;
+  formatLabel(value);
 
 const parseNumber = (value: FormDataEntryValue | null) => {
   const raw = String(value || "").trim();

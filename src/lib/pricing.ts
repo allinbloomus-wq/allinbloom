@@ -1,4 +1,5 @@
 import type { Bouquet, StoreSettings } from "@/lib/api-types";
+import { normalizeColorValue, normalizePaletteText } from "@/lib/colors";
 
 export type DiscountInfo = {
   percent: number;
@@ -77,8 +78,9 @@ const matchesCategory = (
   }
 
   if (settings.categoryColor) {
-    const palette = bouquet.colors.toLowerCase();
-    if (!palette.includes(settings.categoryColor.toLowerCase())) {
+    const palette = normalizePaletteText(bouquet.colors);
+    const needle = normalizeColorValue(settings.categoryColor) || settings.categoryColor.toLowerCase();
+    if (!palette.includes(needle)) {
       return false;
     }
   }

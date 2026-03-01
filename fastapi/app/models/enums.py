@@ -11,9 +11,11 @@ class Role(str, Enum):
 class FlowerType(str, Enum):
     ROSE = "ROSE"
     TULIP = "TULIP"
-    LILY = "LILY"
     PEONY = "PEONY"
     ORCHID = "ORCHID"
+    HYDRANGEAS = "HYDRANGEAS"
+    SPRAY_ROSES = "SPRAY_ROSES"
+    RANUNCULUSES = "RANUNCULUSES"
     MIXED = "MIXED"
 
 

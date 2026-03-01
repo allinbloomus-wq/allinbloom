@@ -8,6 +8,7 @@ from app.api.deps import get_db, require_admin
 from app.models.bouquet import Bouquet
 from app.models.enums import BouquetType, FlowerType
 from app.schemas.bouquet import BouquetCreate, BouquetOut, BouquetUpdate
+from app.services.colors import normalize_color_csv
 
 router = APIRouter(prefix="/api/bouquets", tags=["bouquets"])
 
@@ -91,6 +92,7 @@ def create_bouquet(
     _admin=Depends(require_admin),
 ):
     data = payload.model_dump()
+    data["colors"] = normalize_color_csv(data.get("colors"))
     bouquet_type = _resolve_bouquet_type(data)
     data["bouquet_type"] = bouquet_type.value
     data["is_mixed"] = bouquet_type == BouquetType.MIXED
@@ -122,6 +124,8 @@ def update_bouquet(
     if not bouquet:
         raise HTTPException(status_code=404, detail="Not found")
     data = payload.model_dump(exclude_unset=True)
+    if "colors" in data:
+        data["colors"] = normalize_color_csv(data.get("colors"))
     if "style" in data or "flower_type" in data:
         data["style"] = _normalize_flower_types_csv(
             data.get("style"),

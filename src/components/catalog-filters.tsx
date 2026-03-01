@@ -9,6 +9,7 @@ import {
   FLOWER_TYPES,
   PRICE_LIMITS,
 } from "@/lib/constants";
+import { normalizeColorValue } from "@/lib/colors";
 import MultiCheckboxDropdown from "@/components/multi-checkbox-dropdown";
 import FiltersToggleButton from "@/components/filters-toggle-button";
 
@@ -61,7 +62,7 @@ const readSearchParams = (searchParams: { get: (key: string) => string | null })
 
   return {
     flowers: selectedFlowers,
-    color: searchParams.get("color") || "",
+    color: normalizeColorValue(searchParams.get("color") || ""),
     bouquetType: resolveBouquetType(searchParams),
     min: searchParams.get("min") || "",
     max: searchParams.get("max") || "",
@@ -70,7 +71,11 @@ const readSearchParams = (searchParams: { get: (key: string) => string | null })
 };
 
 const formatLabel = (value: string) =>
-  value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+  value
+    .split(/[_\s]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
 
 type FilterDropdownProps = {
   label: string;

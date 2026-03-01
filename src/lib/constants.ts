@@ -1,9 +1,11 @@
 export const FLOWER_TYPES = [
   "ROSE",
   "TULIP",
-  "LILY",
   "PEONY",
   "ORCHID",
+  "HYDRANGEAS",
+  "SPRAY_ROSES",
+  "RANUNCULUSES",
 ] as const;
 
 export const FLOWER_TYPES_WITH_MIXED = [...FLOWER_TYPES, "MIXED"] as const;
@@ -29,13 +31,16 @@ export const CATALOG_SORT_VALUES = [
 ] as const;
 
 export const COLOR_OPTIONS = [
-  "blush",
-  "ivory",
+  "pink",
+  "white",
+  "red",
   "peach",
-  "sage",
+  "blue",
   "lavender",
-  "ruby",
-  "champagne",
+  "orange",
+  "light blue",
+  "burgundy",
+  "yellow",
 ] as const;
 
 export const PRICE_LIMITS = {

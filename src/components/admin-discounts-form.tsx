@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 import type { StoreSettings } from "@/lib/api-types";
 import { COLOR_OPTIONS, FLOWER_TYPES } from "@/lib/constants";
+import { normalizeColorValue } from "@/lib/colors";
 import SingleSelectDropdown from "@/components/single-select-dropdown";
 
 type AdminDiscountsFormProps = {
@@ -33,7 +34,11 @@ const parsePrice = (value: FormDataEntryValue | null) => {
 };
 
 const formatLabel = (value: string) =>
-  value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+  value
+    .split(/[_\s]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -59,7 +64,9 @@ export default function AdminDiscountsForm({
     settings.categoryFlowerType || ""
   );
   const [categoryMixed, setCategoryMixed] = useState(settings.categoryMixed || "");
-  const [categoryColor, setCategoryColor] = useState(settings.categoryColor || "");
+  const [categoryColor, setCategoryColor] = useState(
+    normalizeColorValue(settings.categoryColor || "")
+  );
 
   const invalidSet = useMemo(() => new Set(invalidFields), [invalidFields]);
   const flowerTypeOptions = useMemo(
@@ -89,7 +96,7 @@ export default function AdminDiscountsForm({
   useEffect(() => {
     setCategoryFlowerType(settings.categoryFlowerType || "");
     setCategoryMixed(settings.categoryMixed || "");
-    setCategoryColor(settings.categoryColor || "");
+    setCategoryColor(normalizeColorValue(settings.categoryColor || ""));
   }, [settings.categoryColor, settings.categoryFlowerType, settings.categoryMixed]);
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -107,7 +114,7 @@ export default function AdminDiscountsForm({
 
     const categoryFlowerType = String(formData.get("categoryFlowerType") || "").trim();
     const categoryMixed = String(formData.get("categoryMixed") || "").trim();
-    const categoryColor = String(formData.get("categoryColor") || "").trim();
+    const categoryColor = normalizeColorValue(String(formData.get("categoryColor") || "").trim());
     const categoryMinPrice = parsePrice(formData.get("categoryMinPrice"));
     const categoryMaxPrice = parsePrice(formData.get("categoryMaxPrice"));
 
