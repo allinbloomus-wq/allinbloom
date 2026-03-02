@@ -41,6 +41,12 @@ export const COLOR_OPTIONS = [
   "light blue",
   "burgundy",
   "yellow",
+  "coral",
+  "cream",
+  "hot pink",
+  "ivory",
+  "dusty Rose",
+  "wine",
 ] as const;
 
 export const PRICE_LIMITS = {

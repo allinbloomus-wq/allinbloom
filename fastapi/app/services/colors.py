@@ -23,6 +23,12 @@ COLOR_VALUES = {
     "light blue",
     "burgundy",
     "yellow",
+    "coral",
+    "cream",
+    "hot pink",
+    "ivory",
+    "dusty Rose",
+    "wine",
 }
 
 
