@@ -550,13 +550,12 @@ export default function CartView({
                     </p>
                     {item.quantity > 1 ? (
                       <p className="text-xs text-stone-500">
-                        x {item.quantity} bouquets = {formatMoney(item.lineTotal)}
+                        x {item.quantity} bouquets
                       </p>
-                    ) : (
-                      <p className="text-xs text-stone-500">
-                        Total: {formatMoney(item.lineTotal)}
-                      </p>
-                    )}
+                    ) : null}
+                    <p className="text-xs text-stone-500">
+                      Total: {formatMoney(item.lineTotal)}
+                    </p>
                     {item.discount ? (
                       <p className="text-xs text-stone-500">
                         -{item.discount.percent}% - {item.discount.note}
@@ -566,11 +565,16 @@ export default function CartView({
                 ) : item.discount ? (
                   <div className="space-y-1">
                     <p className="text-xs uppercase tracking-[0.2em] text-stone-400 line-through">
-                      {formatMoney(item.basePrice)}
+                      {formatMoney(item.quantity > 1 ? item.lineOriginal : item.basePrice)}
                     </p>
                     <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--brand)]">
-                      {formatMoney(item.discountedPrice)}
+                      {formatMoney(item.quantity > 1 ? item.lineTotal : item.discountedPrice)}
                     </p>
+                    {item.quantity > 1 ? (
+                      <p className="text-xs text-stone-500">
+                        x {item.quantity} bouquets
+                      </p>
+                    ) : null}
                     <p className="text-xs text-stone-500">
                       -{item.discount.percent}% - {item.discount.note}
                     </p>
