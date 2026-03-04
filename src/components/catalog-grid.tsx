@@ -10,6 +10,10 @@ type CatalogGridProps = {
   initialCursor: string | null;
   filters: CatalogSearchParams;
   filtersKey: string;
+  firstOrderDiscount: {
+    percent: number;
+    note: string;
+  } | null;
 };
 
 const MOBILE_PAGE_SIZE = 6;
@@ -36,6 +40,7 @@ export default function CatalogGrid({
   initialCursor,
   filters,
   filtersKey,
+  firstOrderDiscount,
 }: CatalogGridProps) {
   const [items, setItems] = useState<CatalogItem[]>(initialItems);
   const [cursor, setCursor] = useState<string | null>(initialCursor);
@@ -144,6 +149,7 @@ export default function CatalogGrid({
             key={entry.bouquet.id}
             bouquet={entry.bouquet}
             pricing={entry.pricing}
+            firstOrderDiscount={firstOrderDiscount}
             enableFlowerQuantityInput
             splitPriceRows
           />

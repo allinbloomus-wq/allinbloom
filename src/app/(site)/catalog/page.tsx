@@ -9,6 +9,9 @@ import { getStoreSettings } from "@/lib/data/settings";
 import { getCatalogCategoryImages } from "@/lib/home-images";
 import { getBouquetPricing } from "@/lib/pricing";
 import { SITE_DESCRIPTION } from "@/lib/site";
+import { getAuthSession } from "@/lib/auth-session";
+import { getOrdersByEmail } from "@/lib/data/orders";
+import { isFirstOrderEligibleForKnownHistory } from "@/lib/first-order-discount";
 import { headers } from "next/headers";
 
 const MOBILE_UA =
@@ -179,6 +182,19 @@ export default async function CatalogPage({
     max: params.max,
     sort: params.sort,
   };
+  const { user } = await getAuthSession();
+  const email = user?.email || null;
+  const orders = email ? await getOrdersByEmail(email) : [];
+  const isFirstOrderEligible = Boolean(
+    user ? email && isFirstOrderEligibleForKnownHistory(orders) : true
+  );
+  const firstOrderDiscount =
+    isFirstOrderEligible && settings.firstOrderDiscountPercent > 0
+      ? {
+          percent: settings.firstOrderDiscountPercent,
+          note: settings.firstOrderDiscountNote || "10% off your first order",
+        }
+      : null;
   const pageSize = await getInitialPageSize();
   const rawBouquets = await getBouquets(listFilters, { take: pageSize + 1 });
   const hasMore = rawBouquets.length > pageSize;
@@ -222,6 +238,7 @@ export default async function CatalogPage({
         initialCursor={initialCursor}
         filters={listFilters}
         filtersKey={filtersKey}
+        firstOrderDiscount={firstOrderDiscount}
       />
     </div>
   );

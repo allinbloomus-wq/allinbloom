@@ -7,6 +7,7 @@ import BouquetImageCarousel from "@/components/bouquet-image-carousel";
 import type { Bouquet, BouquetPricing } from "@/lib/api-types";
 import { getBouquetGalleryImages } from "@/lib/bouquet-images";
 import { FLOWER_TYPES } from "@/lib/constants";
+import { applyPercentDiscount } from "@/lib/pricing";
 import {
   clampFlowerQuantity,
   FLOWER_QUANTITY_MAX,
@@ -17,11 +18,16 @@ import {
 export default function BouquetCard({
   bouquet,
   pricing,
+  firstOrderDiscount = null,
   enableFlowerQuantityInput = false,
   splitPriceRows = false,
 }: {
   bouquet: Bouquet;
   pricing: BouquetPricing;
+  firstOrderDiscount?: {
+    percent: number;
+    note: string;
+  } | null;
   enableFlowerQuantityInput?: boolean;
   splitPriceRows?: boolean;
 }) {
@@ -78,11 +84,17 @@ export default function BouquetCard({
     setFlowerQuantity(defaultFlowerQuantity);
   }, [defaultFlowerQuantity, bouquet.id]);
 
+  const appliedDiscount = pricing.discount || firstOrderDiscount;
+  const discountedUnitPriceCents = pricing.discount
+    ? pricing.finalPriceCents
+    : firstOrderDiscount
+    ? applyPercentDiscount(pricing.originalPriceCents, firstOrderDiscount.percent)
+    : pricing.originalPriceCents;
   const effectiveQuantity = isFlowerQuantityEnabled ? flowerQuantity : 1;
   const originalPriceCents = pricing.originalPriceCents * effectiveQuantity;
-  const finalPriceCents = pricing.finalPriceCents * effectiveQuantity;
-  const perFlowerFromCents = pricing.discount
-    ? pricing.finalPriceCents
+  const finalPriceCents = discountedUnitPriceCents * effectiveQuantity;
+  const perFlowerFromCents = appliedDiscount
+    ? discountedUnitPriceCents
     : pricing.originalPriceCents;
   const perStemPriceLabel = formatMoney(perFlowerFromCents).replace(/\.00$/, "");
   const compactFinalPriceClassWithDiscount =
@@ -142,7 +154,7 @@ export default function BouquetCard({
         </label>
       ) : null}
       <div className="space-y-2">
-        {pricing.discount ? (
+        {appliedDiscount ? (
           splitPriceRows ? (
             <div className="space-y-1">
               <div className="flex min-w-0 max-w-full items-center gap-1 overflow-hidden whitespace-nowrap sm:gap-2">
@@ -150,7 +162,7 @@ export default function BouquetCard({
                   {formatMoney(originalPriceCents)}
                 </span>
                 <span className={splitDiscountBadgeClass}>
-                  -{pricing.discount.percent}%
+                  -{appliedDiscount.percent}%
                 </span>
               </div>
               <div className="flex items-baseline gap-1.5">
@@ -170,7 +182,7 @@ export default function BouquetCard({
                 {formatMoney(originalPriceCents)}
               </span>
               <span className="inline-flex shrink-0 items-center rounded-full bg-[color:var(--brand)]/10 px-1.5 py-0.5 text-[clamp(4.66px,1.63vw,6.99px)] font-semibold uppercase tracking-[0.08em] text-[color:var(--brand)] sm:px-2.5 sm:text-[clamp(8px,2.8vw,12px)]">
-                -{pricing.discount.percent}%
+                -{appliedDiscount.percent}%
               </span>
             </div>
           )

@@ -12,7 +12,7 @@ import {
   FLOWER_QUANTITY_MIN,
 } from "@/lib/flower-quantity";
 import { formatMoney } from "@/lib/format";
-import { getCartItemDiscount } from "@/lib/pricing";
+import { applyPercentDiscount, getCartItemDiscount } from "@/lib/pricing";
 import CheckoutButton from "@/components/checkout-button";
 import ImageWithFallback from "@/components/image-with-fallback";
 
@@ -446,15 +446,27 @@ export default function CartView({
     [lineItems]
   );
 
+  const showFirstOrderDiscount = Boolean(firstOrderDiscount) && !hasAnyDiscount;
+
+  const discountedSubtotalCents = useMemo(() => {
+    if (!showFirstOrderDiscount || !firstOrderDiscount) {
+      return subtotalCents;
+    }
+
+    return lineItems.reduce((sum, item) => {
+      const unitPrice = applyPercentDiscount(item.basePrice, firstOrderDiscount.percent);
+      return sum + unitPrice * item.flowerQuantityPerBouquet * item.quantity;
+    }, 0);
+  }, [firstOrderDiscount, lineItems, showFirstOrderDiscount, subtotalCents]);
+
   const firstOrderDiscountCents = useMemo(() => {
-    if (!firstOrderDiscount || hasAnyDiscount) return 0;
-    return Math.round(subtotalCents * (firstOrderDiscount.percent / 100));
-  }, [firstOrderDiscount, subtotalCents, hasAnyDiscount]);
+    return Math.max(0, subtotalCents - discountedSubtotalCents);
+  }, [discountedSubtotalCents, subtotalCents]);
 
   const shippingCents = quote?.feeCents ?? 0;
   const totalCents = Math.max(
     0,
-    subtotalCents - firstOrderDiscountCents + shippingCents
+    discountedSubtotalCents + shippingCents
   );
   const stripeCheckoutDisabled =
     !quote ||
@@ -519,124 +531,147 @@ export default function CartView({
   return (
     <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
       <div className="min-w-0 space-y-4">
-        {lineItems.map((item) => (
-          <div
-            key={item.id}
-            className="glass flex flex-col gap-4 rounded-[28px] border border-white/80 p-4 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <div className="flex min-w-0 items-center gap-4">
-              <div className="h-20 w-20 overflow-hidden rounded-2xl border border-white/80 bg-white">
-                <ImageWithFallback
-                  src={item.image}
-                  alt={item.name}
-                  width={120}
-                  height={140}
-                  className="h-full w-full object-cover"
-                />
+        {lineItems.map((item) => {
+          const displayDiscount =
+            item.discount || (showFirstOrderDiscount ? firstOrderDiscount : null);
+          const displayUnitPrice = displayDiscount
+            ? applyPercentDiscount(item.basePrice, displayDiscount.percent)
+            : item.basePrice;
+          const displayLineTotal =
+            displayUnitPrice * item.flowerQuantityPerBouquet * item.quantity;
+          const displayLineOriginal =
+            item.basePrice * item.flowerQuantityPerBouquet * item.quantity;
+
+          return (
+            <div
+              key={item.id}
+              className="glass flex flex-col gap-4 rounded-[28px] border border-white/80 p-4 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div className="flex min-w-0 items-center gap-4">
+                <div className="h-20 w-20 overflow-hidden rounded-2xl border border-white/80 bg-white">
+                  <ImageWithFallback
+                    src={item.image}
+                    alt={item.name}
+                    width={120}
+                    height={140}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-stone-900">
+                    {item.name}
+                  </p>
+                  {item.meta?.note ? (
+                    <p className="break-words text-xs text-stone-500">{item.meta.note}</p>
+                  ) : null}
+                  {item.isFlowerQuantityEnabled ? (
+                    <div className="space-y-1">
+                      {displayDiscount ? (
+                        <p className="text-xs text-stone-400 line-through">
+                          {formatMoney(item.basePrice)}/stem x {item.flowerQuantityPerBouquet} ={" "}
+                          {formatMoney(item.basePrice * item.flowerQuantityPerBouquet)}
+                        </p>
+                      ) : null}
+                      <p
+                        className={
+                          displayDiscount
+                            ? "text-xs text-[color:var(--brand)]"
+                            : "text-xs text-stone-600"
+                        }
+                      >
+                        {formatMoney(displayUnitPrice)}/stem x {item.flowerQuantityPerBouquet} ={" "}
+                        {formatMoney(displayUnitPrice * item.flowerQuantityPerBouquet)}
+                      </p>
+                      {item.quantity > 1 ? (
+                        <p className="text-xs text-stone-500">
+                          x {item.quantity} bouquets
+                        </p>
+                      ) : null}
+                      <p className="text-xs text-stone-500">
+                        Total: {formatMoney(displayLineTotal)}
+                      </p>
+                      {displayDiscount ? (
+                        <p className="text-xs text-stone-500">
+                          -{displayDiscount.percent}% - {displayDiscount.note}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : displayDiscount ? (
+                    <div className="space-y-1">
+                      <p className="text-xs uppercase tracking-[0.2em] text-stone-400 line-through">
+                        {formatMoney(item.quantity > 1 ? displayLineOriginal : item.basePrice)}
+                      </p>
+                      <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--brand)]">
+                        {formatMoney(item.quantity > 1 ? displayLineTotal : displayUnitPrice)}
+                      </p>
+                      {item.quantity > 1 ? (
+                        <p className="text-xs text-stone-500">
+                          x {item.quantity} bouquets
+                        </p>
+                      ) : null}
+                      <p className="text-xs text-stone-500">
+                        -{displayDiscount.percent}% - {displayDiscount.note}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-xs uppercase tracking-[0.2em] text-stone-500">
+                      {formatMoney(item.basePrice)}
+                    </p>
+                  )}
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-stone-900">
-                  {item.name}
-                </p>
-                {item.meta?.note ? (
-                  <p className="break-words text-xs text-stone-500">{item.meta.note}</p>
-                ) : null}
+              <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto sm:justify-end">
                 {item.isFlowerQuantityEnabled ? (
                   <div className="space-y-1">
-                    <p className="text-xs text-stone-600">
-                      {formatMoney(item.discountedPrice)}/stem x {item.flowerQuantityPerBouquet} =
-                      {" "}
-                      {formatMoney(item.discountedPrice * item.flowerQuantityPerBouquet)}
+                    <p className="text-[10px] uppercase tracking-[0.16em] text-stone-500">
+                      {item.flowerQuantityPerBouquet} stems each
                     </p>
-                    {item.quantity > 1 ? (
-                      <p className="text-xs text-stone-500">
-                        x {item.quantity} bouquets
-                      </p>
-                    ) : null}
-                    <p className="text-xs text-stone-500">
-                      Total: {formatMoney(item.lineTotal)}
-                    </p>
-                    {item.discount ? (
-                      <p className="text-xs text-stone-500">
-                        -{item.discount.percent}% - {item.discount.note}
-                      </p>
-                    ) : null}
-                  </div>
-                ) : item.discount ? (
-                  <div className="space-y-1">
-                    <p className="text-xs uppercase tracking-[0.2em] text-stone-400 line-through">
-                      {formatMoney(item.quantity > 1 ? item.lineOriginal : item.basePrice)}
-                    </p>
-                    <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--brand)]">
-                      {formatMoney(item.quantity > 1 ? item.lineTotal : item.discountedPrice)}
-                    </p>
-                    {item.quantity > 1 ? (
-                      <p className="text-xs text-stone-500">
-                        x {item.quantity} bouquets
-                      </p>
-                    ) : null}
-                    <p className="text-xs text-stone-500">
-                      -{item.discount.percent}% - {item.discount.note}
-                    </p>
+                    <label className="flex items-center gap-2 rounded-full border border-stone-200 bg-white/80 px-3 py-2 text-[10px] uppercase tracking-[0.16em] text-stone-600 max-[410px]:text-[8px] max-[410px]:tracking-[0.06em] sm:text-xs sm:tracking-[0.24em]">
+                      Bouquets
+                      <input
+                        type="number"
+                        min={FLOWER_QUANTITY_MIN}
+                        max={FLOWER_QUANTITY_MAX}
+                        inputMode="numeric"
+                        value={item.quantity}
+                        onChange={(event) => {
+                          const next = Number(event.target.value);
+                          updateQuantity(item.id, clampFlowerQuantity(next));
+                        }}
+                        className="h-7 w-16 rounded-full border border-stone-200 bg-white px-2 text-right text-xs font-semibold text-stone-700 outline-none focus:border-stone-400 max-[410px]:w-14 max-[410px]:px-1.5 max-[410px]:text-[11px] sm:w-20 sm:text-sm"
+                      />
+                    </label>
                   </div>
                 ) : (
-                  <p className="text-xs uppercase tracking-[0.2em] text-stone-500">
-                    {formatMoney(item.basePrice)}
-                  </p>
+                  <div className="flex items-center gap-2 rounded-full border border-stone-200 bg-white/80 px-3 py-2 text-xs uppercase tracking-[0.3em] text-stone-600">
+                    <button
+                      type="button"
+                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                      className="h-6 w-6 rounded-full border border-stone-200 text-sm"
+                    >
+                      -
+                    </button>
+                    <span>{item.quantity}</span>
+                    <button
+                      type="button"
+                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                      className="h-6 w-6 rounded-full border border-stone-200 text-sm"
+                    >
+                      +
+                    </button>
+                  </div>
                 )}
+                <button
+                  type="button"
+                  onClick={() => removeItem(item.id)}
+                  className="rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-xs uppercase tracking-[0.3em] text-rose-700"
+                >
+                  Remove
+                </button>
               </div>
             </div>
-            <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto sm:justify-end">
-              {item.isFlowerQuantityEnabled ? (
-                <div className="space-y-1">
-                  <p className="text-[10px] uppercase tracking-[0.16em] text-stone-500">
-                    {item.flowerQuantityPerBouquet} stems each
-                  </p>
-                  <label className="flex items-center gap-2 rounded-full border border-stone-200 bg-white/80 px-3 py-2 text-[10px] uppercase tracking-[0.16em] text-stone-600 max-[410px]:text-[8px] max-[410px]:tracking-[0.06em] sm:text-xs sm:tracking-[0.24em]">
-                    Bouquets
-                    <input
-                      type="number"
-                      min={FLOWER_QUANTITY_MIN}
-                      max={FLOWER_QUANTITY_MAX}
-                      inputMode="numeric"
-                      value={item.quantity}
-                      onChange={(event) => {
-                        const next = Number(event.target.value);
-                        updateQuantity(item.id, clampFlowerQuantity(next));
-                      }}
-                      className="h-7 w-16 rounded-full border border-stone-200 bg-white px-2 text-right text-xs font-semibold text-stone-700 outline-none focus:border-stone-400 max-[410px]:w-14 max-[410px]:px-1.5 max-[410px]:text-[11px] sm:w-20 sm:text-sm"
-                    />
-                  </label>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 rounded-full border border-stone-200 bg-white/80 px-3 py-2 text-xs uppercase tracking-[0.3em] text-stone-600">
-                  <button
-                    type="button"
-                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                    className="h-6 w-6 rounded-full border border-stone-200 text-sm"
-                  >
-                    -
-                  </button>
-                  <span>{item.quantity}</span>
-                  <button
-                    type="button"
-                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                    className="h-6 w-6 rounded-full border border-stone-200 text-sm"
-                  >
-                    +
-                  </button>
-                </div>
-              )}
-              <button
-                type="button"
-                onClick={() => removeItem(item.id)}
-                className="rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-xs uppercase tracking-[0.3em] text-rose-700"
-              >
-                Remove
-              </button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       <div className="glass h-fit min-w-0 space-y-4 rounded-[28px] border border-white/80 p-5 sm:p-6">
         <h2 className="text-xl font-semibold text-stone-900">Order summary</h2>
@@ -836,7 +871,7 @@ export default function CartView({
             <span>Subtotal</span>
             <span>{formatMoney(subtotalCents)}</span>
           </div>
-          {firstOrderDiscount && !hasAnyDiscount ? (
+          {showFirstOrderDiscount && firstOrderDiscount ? (
             <div className="flex justify-between text-sm text-stone-600">
               <span>
                 First order discount ({firstOrderDiscount.percent}%)
