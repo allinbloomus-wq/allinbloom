@@ -29,6 +29,7 @@ from app.schemas.checkout import (
 from app.services.delivery import get_delivery_quote
 from app.services.orders import (
     STRIPE_CHECKOUT_SESSION_EXPIRATION_SECONDS,
+    expire_pending_orders,
     resolve_order_status_from_paypal_order,
     resolve_order_status_from_session,
     sync_order_with_paypal,
@@ -138,6 +139,25 @@ def _is_order_access_allowed(order: Order, *, user, cancel_token: str | None) ->
     token_order_id = str(token_payload.get("order_id") or "").strip()
     token_email = str(token_payload.get("email") or "").strip().lower()
     return token_order_id == order.id and token_email == order_email
+
+
+def _resolve_first_order_discount_percent(
+    *,
+    configured_percent: int | None,
+    paid_orders_count: int,
+    has_existing_first_order_discount: bool,
+    has_any_discount: bool,
+) -> int:
+    percent = int(configured_percent or 0)
+    if percent <= 0:
+        return 0
+    if paid_orders_count > 0:
+        return 0
+    if has_existing_first_order_discount:
+        return 0
+    if has_any_discount:
+        return 0
+    return percent
 
 
 @router.post("", response_model=CheckoutResponse)
@@ -381,39 +401,39 @@ async def start_checkout(
             }
         )
 
-    orders_count = 0
-    has_existing_first_order_discount = False
+    # Normalize stale pending orders before first-order eligibility checks.
+    expire_pending_orders(db)
+
     if user:
-        # Serialize first-order-discount calculation for the same user.
+        # Serialize first-order-discount calculation for authenticated users.
         db.execute(select(User.id).where(User.id == user.id).with_for_update()).first()
-        orders_count = (
-            db.execute(
-                select(func.count())
-                .select_from(Order)
-                .where(Order.email == checkout_email, Order.status == OrderStatus.PAID)
-            ).scalar_one()
-        )
-        has_existing_first_order_discount = (
-            db.execute(
-                select(Order.id)
-                .where(
-                    Order.email == checkout_email,
-                    Order.first_order_discount_percent > 0,
-                    Order.status.in_([OrderStatus.PENDING, OrderStatus.PAID]),
-                )
-                .limit(1)
+
+    orders_count = (
+        db.execute(
+            select(func.count())
+            .select_from(Order)
+            .where(Order.email == checkout_email, Order.status == OrderStatus.PAID)
+        ).scalar_one()
+    )
+    has_existing_first_order_discount = (
+        db.execute(
+            select(Order.id)
+            .where(
+                Order.email == checkout_email,
+                Order.first_order_discount_percent > 0,
+                Order.status.in_([OrderStatus.PENDING, OrderStatus.PAID]),
             )
-            .scalars()
-            .first()
-            is not None
+            .limit(1)
         )
-    first_order_discount_percent = (
-        settings_row.first_order_discount_percent
-        if user
-        and orders_count == 0
-        and not has_existing_first_order_discount
-        and not has_any_discount
-        else 0
+        .scalars()
+        .first()
+        is not None
+    )
+    first_order_discount_percent = _resolve_first_order_discount_percent(
+        configured_percent=settings_row.first_order_discount_percent,
+        paid_orders_count=orders_count,
+        has_existing_first_order_discount=has_existing_first_order_discount,
+        has_any_discount=has_any_discount,
     )
 
     discounted_items = []

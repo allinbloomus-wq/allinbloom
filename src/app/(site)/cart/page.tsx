@@ -3,6 +3,7 @@ import CartView from "@/components/cart-view";
 import { getStoreSettings } from "@/lib/data/settings";
 import { cancelCheckoutOrder, getOrdersByEmail } from "@/lib/data/orders";
 import { getAuthSession } from "@/lib/auth-session";
+import { isFirstOrderEligibleForKnownHistory } from "@/lib/first-order-discount";
 
 export const metadata: Metadata = {
   title: "Cart",
@@ -46,14 +47,8 @@ export default async function CartPage({
 
   const settings = await getStoreSettings();
   const orders = email ? await getOrdersByEmail(email) : [];
-  const paidOrdersCount = orders.filter((order) => order.status === "PAID").length;
-  const hasExistingFirstOrderDiscount = orders.some(
-    (order) =>
-      (order.firstOrderDiscountPercent || 0) > 0 &&
-      (order.status === "PENDING" || order.status === "PAID")
-  );
   const isFirstOrderEligible = Boolean(
-    email && paidOrdersCount === 0 && !hasExistingFirstOrderDiscount
+    user ? email && isFirstOrderEligibleForKnownHistory(orders) : true
   );
 
   return (
