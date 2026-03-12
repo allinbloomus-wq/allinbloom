@@ -39,6 +39,9 @@ const formatLabel = (value: string) =>
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
     .join(" ");
 
+const formatBouquetTypeLabel = (value: string) =>
+  value.trim().toLowerCase() === "season" ? "Seasonal" : formatLabel(value);
+
 const toUniqueArray = (values: string[]) =>
   values.filter((value, index) => values.indexOf(value) === index);
 
@@ -312,7 +315,7 @@ export default function AdminBouquetsPanel({ bouquets }: { bouquets: Bouquet[] }
         { value: "", label: "All bouquets" },
         ...BOUQUET_TYPE_FILTERS.filter((value) => value !== "all").map((value) => ({
           value,
-          label: `${formatLabel(value)} bouquet`,
+          label: `${formatBouquetTypeLabel(value)} bouquet`,
         })),
       ],
       sort: [

@@ -59,6 +59,8 @@ export default function BouquetCard({
       : bouquet.isMixed
       ? "MIXED"
       : "MONO");
+  const bouquetTypeDisplay =
+    bouquetTypeLabel === "SEASON" ? "Seasonal" : formatLabel(bouquetTypeLabel);
   const defaultFlowerQuantity = clampFlowerQuantity(
     Number(bouquet.defaultFlowerQuantity || FLOWER_QUANTITY_MIN)
   );
@@ -121,7 +123,7 @@ export default function BouquetCard({
             {flowerTypeLabel}
           </span>
           <span className="shrink-0 text-[10px] tracking-[0.16em] sm:text-xs sm:tracking-[0.24em]">
-            {formatLabel(bouquetTypeLabel)}
+            {bouquetTypeDisplay}
           </span>
         </div>
         <h3 className="break-words text-base font-semibold leading-tight text-stone-900 sm:text-xl">

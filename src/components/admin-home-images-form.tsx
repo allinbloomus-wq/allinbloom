@@ -114,8 +114,8 @@ export default function AdminHomeImagesForm({
           />
           <AdminImageUpload
             name="catalogCategoryImageSeason"
-            urlLabel="Catalog Season category image URL"
-            previewAlt="Catalog season category image preview"
+            urlLabel="Catalog Seasonal category image URL"
+            previewAlt="Catalog seasonal category image preview"
             defaultValue={settings.catalogCategoryImageSeason}
             recommendedSize="1000x1000"
           />

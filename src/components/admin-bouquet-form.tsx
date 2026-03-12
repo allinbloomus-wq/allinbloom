@@ -240,7 +240,7 @@ export default function AdminBouquetForm({
     () =>
       BOUQUET_TYPES.map((type) => ({
         value: type,
-        label: formatLabel(type),
+        label: type === "SEASON" ? "Seasonal" : formatLabel(type),
       })),
     []
   );
