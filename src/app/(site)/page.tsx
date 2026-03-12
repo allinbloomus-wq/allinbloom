@@ -113,7 +113,7 @@ export default async function HomePage() {
                     Floral atelier
                   </p>
                   <p className="mt-1 text-2xl font-semibold leading-tight text-balance">
-                    Modern bouquets for your softest moments
+                    Modern bouquets for your most special moments
                   </p>
                 </div>
               </div>

@@ -30,7 +30,7 @@ const CATALOG_CATEGORY_TILES = [
   },
   {
     key: "season",
-    title: "Season bouquets",
+    title: "Seasonal bouquets",
     href: "/catalog?entry=1&bouquetType=season",
   },
   {
@@ -135,7 +135,7 @@ export default async function CatalogPage({
             Choose your bouquet category
           </h1>
           <p className="max-w-2xl text-balance text-sm leading-relaxed text-stone-600">
-            Start with a category and then refine the selection with filters.
+            Start with a category, then refine your selection with filters.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
