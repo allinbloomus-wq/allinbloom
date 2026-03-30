@@ -10,6 +10,14 @@ from sqlalchemy.orm import Session, joinedload
 from app.core.config import settings
 from app.models.order import Order
 from app.models.enums import OrderStatus
+from app.services.payment_diagnostics import (
+    apply_order_values,
+    build_paypal_failure_diagnostics,
+    build_stripe_session_failure_diagnostics,
+    build_timeout_failure_diagnostics,
+    payment_failure_values,
+    payment_success_values,
+)
 from app.services.paypal import (
     PayPalApiError,
     paypal_capture_order,
@@ -130,7 +138,11 @@ def expire_pending_orders(db: Session) -> None:
             Order.is_deleted.is_(False),
             Order.created_at < cutoff_with_session,
         )
-        .values(status=OrderStatus.FAILED)
+        .values(
+            **payment_failure_values(
+                build_timeout_failure_diagnostics(has_provider_session=True)
+            )
+        )
     )
     db.execute(
         update(Order)
@@ -141,7 +153,11 @@ def expire_pending_orders(db: Session) -> None:
             Order.is_deleted.is_(False),
             Order.created_at < cutoff_without_session,
         )
-        .values(status=OrderStatus.FAILED)
+        .values(
+            **payment_failure_values(
+                build_timeout_failure_diagnostics(has_provider_session=False)
+            )
+        )
     )
     db.commit()
 
@@ -165,11 +181,19 @@ def _sync_with_stripe(db: Session, orders: Iterable[Order]) -> dict[str, OrderSt
             order, session, now_seconds=now_seconds
         )
         if next_status and next_status != order.status:
+            values = (
+                payment_success_values()
+                if next_status == OrderStatus.PAID
+                else payment_failure_values(
+                    build_stripe_session_failure_diagnostics(session)
+                )
+            )
             db.execute(
                 update(Order)
                 .where(Order.id == order.id, Order.status == OrderStatus.PENDING)
-                .values(status=next_status)
+                .values(**values)
             )
+            apply_order_values(order, values)
             updates[order.id] = next_status
 
     if updates:
@@ -239,14 +263,22 @@ def _sync_with_paypal(db: Session, orders: Iterable[Order]) -> dict[str, OrderSt
 
         next_status, capture_id = resolve_order_status_from_paypal_order(order, payload)
         if next_status and next_status != order.status:
-            db.execute(
-                update(Order)
-                .where(Order.id == order.id, Order.status == OrderStatus.PENDING)
-                .values(
-                    status=next_status,
+            values = (
+                payment_success_values(
+                    paypal_capture_id=capture_id or order.paypal_capture_id,
+                )
+                if next_status == OrderStatus.PAID
+                else payment_failure_values(
+                    build_paypal_failure_diagnostics(payload),
                     paypal_capture_id=capture_id or order.paypal_capture_id,
                 )
             )
+            db.execute(
+                update(Order)
+                .where(Order.id == order.id, Order.status == OrderStatus.PENDING)
+                .values(**values)
+            )
+            apply_order_values(order, values)
             updates[order.id] = next_status
 
     if updates:
@@ -272,13 +304,18 @@ def sync_order_with_stripe(db: Session, order: Order) -> OrderStatus | None:
     if not next_status or next_status == order.status:
         return None
 
+    values = (
+        payment_success_values()
+        if next_status == OrderStatus.PAID
+        else payment_failure_values(build_stripe_session_failure_diagnostics(session))
+    )
     db.execute(
         update(Order)
         .where(Order.id == order.id, Order.status == OrderStatus.PENDING)
-        .values(status=next_status)
+        .values(**values)
     )
     db.commit()
-    order.status = next_status
+    apply_order_values(order, values)
     return next_status
 
 
@@ -311,16 +348,23 @@ def sync_order_with_paypal(db: Session, order: Order) -> OrderStatus | None:
     if not next_status or next_status == order.status:
         return None
 
-    db.execute(
-        update(Order)
-        .where(Order.id == order.id, Order.status == OrderStatus.PENDING)
-        .values(
-            status=next_status,
+    values = (
+        payment_success_values(
+            paypal_capture_id=capture_id or order.paypal_capture_id,
+        )
+        if next_status == OrderStatus.PAID
+        else payment_failure_values(
+            build_paypal_failure_diagnostics(payload),
             paypal_capture_id=capture_id or order.paypal_capture_id,
         )
     )
+    db.execute(
+        update(Order)
+        .where(Order.id == order.id, Order.status == OrderStatus.PENDING)
+        .values(**values)
+    )
     db.commit()
-    order.status = next_status
+    apply_order_values(order, values)
     return next_status
 
 

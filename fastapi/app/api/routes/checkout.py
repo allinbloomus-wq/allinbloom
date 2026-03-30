@@ -35,6 +35,13 @@ from app.services.orders import (
     sync_order_with_paypal,
     sync_order_with_stripe,
 )
+from app.services.payment_diagnostics import (
+    build_exception_failure_diagnostics,
+    build_paypal_failure_diagnostics,
+    build_stripe_session_failure_diagnostics,
+    payment_failure_values,
+    payment_success_values,
+)
 from app.services.paypal import (
     PayPalApiError,
     paypal_create_order,
@@ -59,7 +66,27 @@ def _is_flower_quantity_enabled_for_bouquet(bouquet: Bouquet) -> bool:
 
 def _set_order_status_safely(db: Session, order: Order, status: OrderStatus) -> None:
     try:
-        order.status = status
+        if status == OrderStatus.PAID:
+            values = payment_success_values()
+        else:
+            values = {"status": status}
+        for key, value in values.items():
+            setattr(order, key, value)
+        db.commit()
+    except Exception:
+        db.rollback()
+
+
+def _set_order_failed_safely(
+    db: Session,
+    order: Order,
+    *,
+    diagnostics,
+) -> None:
+    try:
+        values = payment_failure_values(diagnostics)
+        for key, value in values.items():
+            setattr(order, key, value)
         db.commit()
     except Exception:
         db.rollback()
@@ -530,7 +557,17 @@ async def start_checkout(
                 context={"order_id": order.id, "user_id": user_id, "item_count": len(discounted_items)},
                 exc=exc,
             )
-            _set_order_status_safely(db, order, OrderStatus.FAILED)
+            _set_order_failed_safely(
+                db,
+                order,
+                diagnostics=build_exception_failure_diagnostics(
+                    stage="paypal_order_create",
+                    code="paypal_order_create_failed",
+                    message="Failed to create the PayPal order.",
+                    exc=exc,
+                    provider="paypal",
+                ),
+            )
             raise HTTPException(status_code=502, detail="Unable to start checkout.")
 
         order.paypal_order_id = paypal_order.order_id
@@ -610,7 +647,17 @@ async def start_checkout(
             context={"order_id": order.id, "user_id": user_id, "item_count": len(discounted_items)},
             exc=exc,
         )
-        _set_order_status_safely(db, order, OrderStatus.FAILED)
+        _set_order_failed_safely(
+            db,
+            order,
+            diagnostics=build_exception_failure_diagnostics(
+                stage="stripe_checkout_create",
+                code="stripe_checkout_session_failed",
+                message="Failed to create the Stripe Checkout session.",
+                exc=exc,
+                provider="stripe",
+            ),
+        )
         raise HTTPException(status_code=502, detail="Unable to start checkout.")
 
     order.stripe_session_id = session.id
@@ -624,7 +671,17 @@ async def start_checkout(
             request=request,
             context={"order_id": order.id, "user_id": user_id},
         )
-        _set_order_status_safely(db, order, OrderStatus.FAILED)
+        _set_order_failed_safely(
+            db,
+            order,
+            diagnostics=build_exception_failure_diagnostics(
+                stage="stripe_checkout_redirect",
+                code="stripe_session_missing_url",
+                message="Stripe created a checkout session without a redirect URL.",
+                provider="stripe",
+                extra_details={"Session ID": session.id},
+            ),
+        )
         raise HTTPException(status_code=500, detail="Unable to start checkout.")
     return CheckoutResponse(url=session.url)
 
@@ -695,7 +752,11 @@ async def cancel_checkout(
                 _set_order_status_safely(db, order, OrderStatus.PAID)
                 return CheckoutCancelResponse(canceled=False, status=OrderStatus.PAID.value)
             if resolved_status == OrderStatus.FAILED:
-                _set_order_status_safely(db, order, OrderStatus.FAILED)
+                _set_order_failed_safely(
+                    db,
+                    order,
+                    diagnostics=build_stripe_session_failure_diagnostics(session),
+                )
                 return CheckoutCancelResponse(canceled=True, status=OrderStatus.FAILED.value)
 
             session_status = (getattr(session, "status", None) or "").lower()
@@ -735,7 +796,11 @@ async def cancel_checkout(
                 _set_order_status_safely(db, order, OrderStatus.PAID)
                 return CheckoutCancelResponse(canceled=False, status=OrderStatus.PAID.value)
             if resolved_status == OrderStatus.FAILED:
-                _set_order_status_safely(db, order, OrderStatus.FAILED)
+                _set_order_failed_safely(
+                    db,
+                    order,
+                    diagnostics=build_paypal_failure_diagnostics(paypal_order_payload),
+                )
                 return CheckoutCancelResponse(canceled=True, status=OrderStatus.FAILED.value)
 
             paypal_order_status = (

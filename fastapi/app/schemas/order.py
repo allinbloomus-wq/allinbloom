@@ -41,6 +41,11 @@ class OrderOut(SchemaBase):
     delivery_miles: Optional[str] = None
     delivery_fee_cents: Optional[int] = None
     first_order_discount_percent: Optional[int] = None
+    payment_failure_stage: Optional[str] = None
+    payment_failure_code: Optional[str] = None
+    payment_failure_message: Optional[str] = None
+    payment_failure_details: Optional[str] = None
+    payment_failed_at: Optional[datetime] = None
     created_at: datetime
     items: list[OrderItemOut]
 
@@ -95,6 +100,11 @@ class StripeShippingOut(SchemaBase):
 class StripeSessionOut(SchemaBase):
     payment_status: Optional[str] = None
     status: Optional[str] = None
+    payment_intent_id: Optional[str] = None
+    payment_intent_status: Optional[str] = None
+    last_payment_error_code: Optional[str] = None
+    last_payment_error_decline_code: Optional[str] = None
+    last_payment_error_message: Optional[str] = None
     shipping: Optional[StripeShippingOut] = None
     delivery_address: Optional[str] = None
     delivery_miles: Optional[str] = None

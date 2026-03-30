@@ -16,6 +16,12 @@ from app.models.order import Order
 from app.schemas.paypal import PayPalCaptureRequest, PayPalCaptureResponse
 from app.services.email import send_admin_order_email, send_customer_order_email
 from app.services.orders import resolve_order_status_from_paypal_order
+from app.services.payment_diagnostics import (
+    build_exception_failure_diagnostics,
+    build_paypal_failure_diagnostics,
+    payment_failure_values,
+    payment_success_values,
+)
 from app.services.paypal import (
     PayPalApiError,
     paypal_capture_order,
@@ -113,14 +119,17 @@ def _set_order_failed(
     order: Order,
     paypal_order_id: str,
     capture_id: str | None,
+    diagnostics,
 ) -> None:
     db.execute(
         update(Order)
         .where(Order.id == order.id, Order.status != OrderStatus.PAID)
         .values(
-            status=OrderStatus.FAILED,
-            paypal_order_id=paypal_order_id,
-            paypal_capture_id=capture_id or order.paypal_capture_id,
+            **payment_failure_values(
+                diagnostics,
+                paypal_order_id=paypal_order_id,
+                paypal_capture_id=capture_id or order.paypal_capture_id,
+            )
         )
     )
     db.commit()
@@ -309,6 +318,13 @@ async def capture_paypal_order(
                         capture_id=metadata.get("capture_id")
                         if isinstance(metadata.get("capture_id"), str)
                         else None,
+                        diagnostics=build_exception_failure_diagnostics(
+                            stage="paypal_capture",
+                            code="paypal_capture_failed",
+                            message="PayPal capture failed and the order could not be reloaded.",
+                            exc=exc,
+                            provider="paypal",
+                        ),
                     )
                     raise HTTPException(
                         status_code=400,
@@ -367,9 +383,10 @@ async def capture_paypal_order(
             update(Order)
             .where(Order.id == order.id, Order.status != OrderStatus.PAID)
             .values(
-                status=OrderStatus.PAID,
-                paypal_order_id=paypal_order_id,
-                paypal_capture_id=capture_id,
+                **payment_success_values(
+                    paypal_order_id=paypal_order_id,
+                    paypal_capture_id=capture_id,
+                )
             )
         )
         db.commit()
@@ -395,6 +412,7 @@ async def capture_paypal_order(
             order=order,
             paypal_order_id=paypal_order_id,
             capture_id=capture_id,
+            diagnostics=build_paypal_failure_diagnostics(order_payload),
         )
         return PayPalCaptureResponse(status=OrderStatus.FAILED.value)
 
@@ -404,6 +422,7 @@ async def capture_paypal_order(
             order=order,
             paypal_order_id=paypal_order_id,
             capture_id=capture_id,
+            diagnostics=build_paypal_failure_diagnostics(order_payload),
         )
         return PayPalCaptureResponse(status=OrderStatus.FAILED.value)
 
@@ -606,9 +625,10 @@ async def paypal_webhook(request: Request, db: Session = Depends(get_db)):
             update(Order)
             .where(Order.id == order.id, Order.status != OrderStatus.PAID)
             .values(
-                status=OrderStatus.PAID,
-                paypal_order_id=paypal_order_id,
-                paypal_capture_id=capture_id or order.paypal_capture_id,
+                **payment_success_values(
+                    paypal_order_id=paypal_order_id,
+                    paypal_capture_id=capture_id or order.paypal_capture_id,
+                )
             )
         )
         db.commit()
@@ -631,9 +651,14 @@ async def paypal_webhook(request: Request, db: Session = Depends(get_db)):
             update(Order)
             .where(Order.id == order.id, Order.status != OrderStatus.PAID)
             .values(
-                status=OrderStatus.FAILED,
-                paypal_order_id=paypal_order_id,
-                paypal_capture_id=capture_id or order.paypal_capture_id,
+                **payment_failure_values(
+                    build_paypal_failure_diagnostics(
+                        order_payload,
+                        event_type=event_type,
+                    ),
+                    paypal_order_id=paypal_order_id,
+                    paypal_capture_id=capture_id or order.paypal_capture_id,
+                )
             )
         )
         db.commit()

@@ -4,6 +4,18 @@ import { getOrderById, getOrderStripeSession } from "@/lib/data/orders";
 import { formatDateTime, formatMoney, formatOrderStatus } from "@/lib/format";
 import { sanitizeOrderItemDetails } from "@/lib/order-details";
 
+const FAILURE_STAGE_LABELS: Record<string, string> = {
+  checkout_timeout: "Pending payment timed out",
+  checkout_setup_timeout: "Checkout setup timed out",
+  stripe_checkout_create: "Stripe checkout creation",
+  stripe_checkout_redirect: "Stripe redirect creation",
+  stripe_checkout: "Stripe checkout",
+  stripe_payment_intent: "Stripe payment intent",
+  paypal_order_create: "PayPal order creation",
+  paypal_order: "PayPal order",
+  paypal_capture: "PayPal capture",
+};
+
 export default async function AdminOrderDetailPage({
   params,
 }: {
@@ -57,6 +69,29 @@ export default async function AdminOrderDetailPage({
     : order.stripeSessionId
     ? "Stripe"
     : "Unknown";
+  const failureStage = order.paymentFailureStage?.trim() || "";
+  const failureStageLabel = FAILURE_STAGE_LABELS[failureStage] || failureStage;
+  const storedFailureMessage = order.paymentFailureMessage?.trim() || "";
+  const storedFailureCode = order.paymentFailureCode?.trim() || "";
+  const storedFailureDetails = order.paymentFailureDetails?.trim() || "";
+  const liveStripeErrorMessage = stripeSession?.lastPaymentErrorMessage?.trim() || "";
+  const liveStripeErrorCode = stripeSession?.lastPaymentErrorCode?.trim() || "";
+  const liveStripeDeclineCode =
+    stripeSession?.lastPaymentErrorDeclineCode?.trim() || "";
+  const liveStripeIntentId = stripeSession?.paymentIntentId?.trim() || "";
+  const liveStripeIntentStatus = stripeSession?.paymentIntentStatus?.trim() || "";
+  const hasPaymentDiagnostics = Boolean(
+    storedFailureMessage ||
+      storedFailureCode ||
+      storedFailureDetails ||
+      failureStage ||
+      order.paymentFailedAt ||
+      liveStripeErrorMessage ||
+      liveStripeErrorCode ||
+      liveStripeDeclineCode ||
+      liveStripeIntentId ||
+      liveStripeIntentStatus
+  );
 
   return (
     <div className="space-y-6">
@@ -146,6 +181,53 @@ export default async function AdminOrderDetailPage({
               ) : null}
             </div>
           </div>
+
+          {hasPaymentDiagnostics ? (
+            <div className="glass rounded-[28px] border border-white/80 p-4 text-sm text-stone-600 sm:p-6">
+              <h2 className="text-lg font-semibold text-stone-900">
+                Payment diagnostics
+              </h2>
+              <div className="mt-3 space-y-2">
+                {storedFailureMessage ? (
+                  <p className="text-stone-800">
+                    Failure reason: {storedFailureMessage}
+                  </p>
+                ) : null}
+                {failureStageLabel ? <p>Failure stage: {failureStageLabel}</p> : null}
+                {storedFailureCode ? <p>Stored failure code: {storedFailureCode}</p> : null}
+                {order.paymentFailedAt ? (
+                  <p>Recorded: {formatDateTime(order.paymentFailedAt)}</p>
+                ) : null}
+                {liveStripeErrorMessage ? (
+                  <p className="text-stone-800">
+                    Stripe live error: {liveStripeErrorMessage}
+                  </p>
+                ) : null}
+                {liveStripeErrorCode ? (
+                  <p>Stripe error code: {liveStripeErrorCode}</p>
+                ) : null}
+                {liveStripeDeclineCode ? (
+                  <p>Stripe decline code: {liveStripeDeclineCode}</p>
+                ) : null}
+                {liveStripeIntentId ? (
+                  <p>Stripe PaymentIntent: {liveStripeIntentId}</p>
+                ) : null}
+                {liveStripeIntentStatus ? (
+                  <p>Stripe intent status: {liveStripeIntentStatus}</p>
+                ) : null}
+                {storedFailureDetails ? (
+                  <div className="pt-2">
+                    <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
+                      Technical details
+                    </p>
+                    <p className="break-words whitespace-pre-line">
+                      {storedFailureDetails}
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
 
           <div className="glass rounded-[28px] border border-white/80 p-4 text-sm text-stone-600 sm:p-6">
             <h2 className="text-lg font-semibold text-stone-900">

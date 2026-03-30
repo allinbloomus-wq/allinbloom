@@ -93,6 +93,11 @@ export type Order = {
   deliveryMiles: string | null;
   deliveryFeeCents: number | null;
   firstOrderDiscountPercent: number | null;
+  paymentFailureStage: string | null;
+  paymentFailureCode: string | null;
+  paymentFailureMessage: string | null;
+  paymentFailureDetails: string | null;
+  paymentFailedAt: string | null;
   createdAt: string;
   items: OrderItem[];
 };
@@ -164,6 +169,11 @@ export type OrderStripeShipping = {
 export type OrderStripeSession = {
   paymentStatus: string | null;
   status: string | null;
+  paymentIntentId: string | null;
+  paymentIntentStatus: string | null;
+  lastPaymentErrorCode: string | null;
+  lastPaymentErrorDeclineCode: string | null;
+  lastPaymentErrorMessage: string | null;
   shipping: OrderStripeShipping | null;
   deliveryAddress: string | null;
   deliveryMiles: string | null;

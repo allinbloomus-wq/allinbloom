@@ -24,6 +24,7 @@ from app.schemas.order import (
     StripeSessionOut,
     StripeShippingOut,
 )
+from app.services.payment_diagnostics import resolve_stripe_payment_intent
 from app.services.orders import (
     expire_pending_orders,
     get_admin_orders,
@@ -45,6 +46,12 @@ def _parse_optional_int(value: object) -> int | None:
         return int(str(value))
     except (TypeError, ValueError):
         return None
+
+
+def _read_provider_attr(obj: object, key: str) -> object:
+    if isinstance(obj, dict):
+        return obj.get(key)
+    return getattr(obj, key, None)
 
 
 @router.get("/orders/me", response_model=list[OrderOut])
@@ -224,9 +231,20 @@ def get_order_stripe_session(
     shipping = getattr(session, "shipping_details", None)
     address = getattr(shipping, "address", None) if shipping else None
     metadata = getattr(session, "metadata", None) or {}
+    payment_intent = resolve_stripe_payment_intent(getattr(session, "payment_intent", None))
+    last_payment_error = (
+        _read_provider_attr(payment_intent, "last_payment_error") if payment_intent else None
+    )
     return StripeSessionOut(
         payment_status=getattr(session, "payment_status", None),
         status=getattr(session, "status", None),
+        payment_intent_id=_read_provider_attr(payment_intent, "id"),
+        payment_intent_status=_read_provider_attr(payment_intent, "status"),
+        last_payment_error_code=_read_provider_attr(last_payment_error, "code"),
+        last_payment_error_decline_code=_read_provider_attr(
+            last_payment_error, "decline_code"
+        ),
+        last_payment_error_message=_read_provider_attr(last_payment_error, "message"),
         shipping=StripeShippingOut(
             name=getattr(shipping, "name", None),
             phone=getattr(shipping, "phone", None),

@@ -13,6 +13,12 @@ from app.core.critical_logging import log_critical_event
 from app.models.order import Order
 from app.models.enums import OrderStatus
 from app.services.email import send_admin_order_email, send_customer_order_email
+from app.services.payment_diagnostics import (
+    build_stripe_payment_intent_failure_diagnostics,
+    build_stripe_session_failure_diagnostics,
+    payment_failure_values,
+    payment_success_values,
+)
 from app.services.orders import resolve_order_status_from_session
 from app.services.webhook_events import (
     is_webhook_event_processed,
@@ -139,8 +145,9 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                     update(Order)
                     .where(Order.id == order.id, Order.status != OrderStatus.PAID)
                     .values(
-                        status=OrderStatus.PAID,
-                        stripe_session_id=session_id or order.stripe_session_id,
+                        **payment_success_values(
+                            stripe_session_id=session_id or order.stripe_session_id,
+                        )
                     )
                 )
                 db.commit()
@@ -198,8 +205,13 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                     update(Order)
                     .where(Order.id == order.id, Order.status != OrderStatus.PAID)
                     .values(
-                        status=OrderStatus.FAILED,
-                        stripe_session_id=session_id or order.stripe_session_id,
+                        **payment_failure_values(
+                            build_stripe_session_failure_diagnostics(
+                                session,
+                                event_type=event["type"],
+                            ),
+                            stripe_session_id=session_id or order.stripe_session_id,
+                        )
                     )
                 )
                 db.commit()
@@ -233,8 +245,13 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                 update(Order)
                 .where(Order.id == order.id, Order.status != OrderStatus.PAID)
                 .values(
-                    status=OrderStatus.FAILED,
-                    stripe_session_id=session_id or order.stripe_session_id,
+                    **payment_failure_values(
+                        build_stripe_session_failure_diagnostics(
+                            session,
+                            event_type=event["type"],
+                        ),
+                        stripe_session_id=session_id or order.stripe_session_id,
+                    )
                 )
             )
             db.commit()
@@ -264,7 +281,14 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
             db.execute(
                 update(Order)
                 .where(Order.id == order.id, Order.status == OrderStatus.PENDING)
-                .values(status=OrderStatus.FAILED)
+                .values(
+                    **payment_failure_values(
+                        build_stripe_payment_intent_failure_diagnostics(
+                            payment_intent,
+                            event_type=event["type"],
+                        )
+                    )
+                )
             )
             db.commit()
 
