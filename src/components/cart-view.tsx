@@ -51,19 +51,33 @@ type GoogleAutocompleteInstance = {
   getPlace: () => GooglePlaceResult | undefined;
 };
 
+type GoogleFormattableText = {
+  text?: string;
+};
+
+type GoogleAutocompleteSessionTokenInstance = object;
+
 type GooglePlacePrediction = {
+  text?: GoogleFormattableText;
+  placeId?: string;
   toPlace: () => GooglePlaceDetailsResult;
 };
 
-type GooglePlaceAutocompleteSelectEvent = Event & {
+type GoogleAutocompleteSuggestionItem = {
   placePrediction?: GooglePlacePrediction;
 };
 
-type GooglePlaceAutocompleteElementInstance = HTMLElement & {
-  addEventListener: (
-    eventName: "gmp-select" | "gmp-error",
-    handler: (event: Event) => void
-  ) => void;
+type GoogleAutocompleteSuggestionRequest = {
+  input: string;
+  includedRegionCodes?: string[];
+  includedPrimaryTypes?: string[];
+  sessionToken?: GoogleAutocompleteSessionTokenInstance;
+};
+
+type GoogleAutocompleteSuggestionFetcher = {
+  fetchAutocompleteSuggestions: (
+    request: GoogleAutocompleteSuggestionRequest
+  ) => Promise<{ suggestions?: GoogleAutocompleteSuggestionItem[] }>;
 };
 
 type GoogleMapsPlacesNamespace = {
@@ -75,11 +89,8 @@ type GoogleMapsPlacesNamespace = {
       fields: string[];
     }
   ) => GoogleAutocompleteInstance;
-  PlaceAutocompleteElement?: new (options?: {
-    includedRegionCodes?: string[];
-    requestedLanguage?: string;
-    requestedRegion?: string;
-  }) => GooglePlaceAutocompleteElementInstance;
+  AutocompleteSuggestion?: GoogleAutocompleteSuggestionFetcher;
+  AutocompleteSessionToken?: new () => GoogleAutocompleteSessionTokenInstance;
 };
 
 type GoogleMapsWindow = Window & {
@@ -98,6 +109,8 @@ type ParsedGoogleAddress = {
   state: string;
   postalCode: string;
   country: string;
+  hasStreetNumber: boolean;
+  hasRoute: boolean;
 };
 
 type PaymentIconSpec = {
@@ -195,8 +208,13 @@ const parseGoogleAddressComponents = <T extends { types?: string[] }>({
     state,
     postalCode: buildPostalCode(postalCode, postalCodeSuffix),
     country,
+    hasStreetNumber: Boolean(streetNumber),
+    hasRoute: Boolean(route),
   };
 };
+
+const getGoogleSuggestionLabel = (suggestion: GoogleAutocompleteSuggestionItem) =>
+  suggestion.placePrediction?.text?.text?.trim() || "";
 
 const PaymentIcon = ({ icon }: { icon: PaymentIconSpec }) => {
   const [src, setSrc] = useState(icon.src);
@@ -278,15 +296,20 @@ export default function CartView({
   const [phoneLocal, setPhoneLocal] = useState(() => toLocalPhoneDigits(userPhone));
   const inputRef = useRef<HTMLInputElement | null>(null);
   const autocompleteRef = useRef<GoogleAutocompleteInstance | null>(null);
-  const placesElementRef = useRef<GooglePlaceAutocompleteElementInstance | null>(null);
-  const autocompleteContainerRef = useRef<HTMLDivElement | null>(null);
+  const placesApiRef = useRef<GoogleMapsPlacesNamespace | null>(null);
+  const autocompleteSessionTokenRef = useRef<GoogleAutocompleteSessionTokenInstance | null>(null);
+  const suggestionsRequestIdRef = useRef(0);
+  const skipNextSuggestionFetchRef = useRef(false);
+  const closeSuggestionsTimeoutRef = useRef<number | null>(null);
   const [googleAutocompleteMode, setGoogleAutocompleteMode] = useState<
-    "none" | "new" | "legacy"
+    "none" | "data" | "legacy"
   >("none");
-  const [googleAutocompleteLoading, setGoogleAutocompleteLoading] = useState(
-    Boolean(mapsKey)
-  );
-  const [googleAutocompleteError, setGoogleAutocompleteError] = useState<string | null>(null);
+  const [addressSuggestions, setAddressSuggestions] = useState<
+    GoogleAutocompleteSuggestionItem[]
+  >([]);
+  const [addressSuggestionsOpen, setAddressSuggestionsOpen] = useState(false);
+  const [addressSuggestionsLoading, setAddressSuggestionsLoading] = useState(false);
+  const [activeAddressSuggestionIndex, setActiveAddressSuggestionIndex] = useState(-1);
   const [quote, setQuote] = useState<{
     feeCents: number;
     miles: number;
@@ -328,6 +351,65 @@ export default function CartView({
     Boolean(addressCity.trim()) &&
     Boolean(addressState.trim()) &&
     Boolean(postalCode.trim());
+
+  const closeAddressSuggestions = (options?: { clearItems?: boolean }) => {
+    setAddressSuggestionsOpen(false);
+    setActiveAddressSuggestionIndex(-1);
+    if (options?.clearItems !== false) {
+      setAddressSuggestions([]);
+    }
+  };
+
+  const resetAutocompleteSessionToken = (placesNamespace?: GoogleMapsPlacesNamespace | null) => {
+    const namespace = placesNamespace || placesApiRef.current;
+    autocompleteSessionTokenRef.current = namespace?.AutocompleteSessionToken
+      ? new namespace.AutocompleteSessionToken()
+      : null;
+  };
+
+  const applyParsedAddress = (parsed: ParsedGoogleAddress) => {
+    if (!parsed.hasStreetNumber || !parsed.hasRoute || !parsed.line1.trim()) {
+      setQuote(null);
+      setQuoteError("Please choose a full street address with a house number.");
+      closeAddressSuggestions();
+      resetAutocompleteSessionToken();
+      return false;
+    }
+
+    skipNextSuggestionFetchRef.current = true;
+    setAddressLine1(parsed.line1);
+    setAddressLine2(parsed.line2);
+    setAddressCity(parsed.city);
+    setAddressState(parsed.state);
+    setPostalCode(parsed.postalCode);
+    setCountry(parsed.country || "United States");
+    setQuote(null);
+    setQuoteError(null);
+    closeAddressSuggestions();
+    resetAutocompleteSessionToken();
+    return true;
+  };
+
+  const applySuggestionPlace = async (suggestion: GoogleAutocompleteSuggestionItem) => {
+    const prediction = suggestion.placePrediction;
+    if (!prediction) return false;
+    const place = prediction.toPlace();
+    await place.fetchFields({
+      fields: ["displayName", "formattedAddress", "addressComponents"],
+    });
+    return applyParsedAddress(
+      parseGoogleAddressComponents({
+        components: place.addressComponents || [],
+        fallbackLine1:
+          prediction.text?.text?.trim() ||
+          place.displayName ||
+          place.formattedAddress ||
+          "",
+        getLongText: (component) => component?.longText || "",
+        getShortText: (component) => component?.shortText || "",
+      })
+    );
+  };
 
   useEffect(() => {
     const stored = loadCheckoutFormStorage();
@@ -395,24 +477,9 @@ export default function CartView({
 
   useEffect(() => {
     if (!mapsKey) return;
-    if (autocompleteRef.current || placesElementRef.current) return;
+    if (autocompleteRef.current || placesApiRef.current) return;
 
     let cancelled = false;
-    const containerNode = autocompleteContainerRef.current;
-    const googleUnavailableMessage =
-      "Google address search is unavailable right now. You can still type the address manually.";
-
-    const applyParsedAddress = (parsed: ParsedGoogleAddress) => {
-      setAddressLine1(parsed.line1);
-      setAddressLine2(parsed.line2);
-      setAddressCity(parsed.city);
-      setAddressState(parsed.state);
-      setPostalCode(parsed.postalCode);
-      setCountry(parsed.country || "United States");
-      setGoogleAutocompleteError(null);
-      setQuote(null);
-      setQuoteError(null);
-    };
 
     const loadGoogleMaps = () =>
       new Promise<void>((resolve, reject) => {
@@ -474,51 +541,54 @@ export default function CartView({
       });
 
     const applyLegacyPlace = (place: GooglePlaceResult | undefined) => {
-      if (!place) return;
-      applyParsedAddress(
-        parseGoogleAddressComponents({
-          components: place.address_components || [],
-          fallbackLine1: place.name || "",
-          getLongText: (component) => component?.long_name || "",
-          getShortText: (component) => component?.short_name || "",
-        })
-      );
-    };
-
-    const applyNewPlace = async (event: Event) => {
-      const selectionEvent = event as GooglePlaceAutocompleteSelectEvent;
-      const prediction = selectionEvent.placePrediction;
-      if (!prediction) return;
-      const place = prediction.toPlace();
-      await place.fetchFields({
-        fields: ["displayName", "formattedAddress", "addressComponents"],
+      if (!place) return false;
+      const parsed = parseGoogleAddressComponents({
+        components: place.address_components || [],
+        fallbackLine1: place.name || place.formatted_address || "",
+        getLongText: (component) => component?.long_name || "",
+        getShortText: (component) => component?.short_name || "",
       });
-      applyParsedAddress(
-        parseGoogleAddressComponents({
-          components: place.addressComponents || [],
-          fallbackLine1: place.displayName || place.formattedAddress || "",
-          getLongText: (component) => component?.longText || "",
-          getShortText: (component) => component?.shortText || "",
-        })
-      );
+      if (!parsed.hasStreetNumber || !parsed.hasRoute || !parsed.line1.trim()) {
+        setQuote(null);
+        setQuoteError("Please choose a full street address with a house number.");
+        closeAddressSuggestions();
+        resetAutocompleteSessionToken();
+        return false;
+      }
+
+      skipNextSuggestionFetchRef.current = true;
+      setAddressLine1(parsed.line1);
+      setAddressLine2(parsed.line2);
+      setAddressCity(parsed.city);
+      setAddressState(parsed.state);
+      setPostalCode(parsed.postalCode);
+      setCountry(parsed.country || "United States");
+      setQuote(null);
+      setQuoteError(null);
+      closeAddressSuggestions();
+      resetAutocompleteSessionToken();
+      return true;
     };
 
     const initializeLegacyAutocomplete = (placesNamespace: GoogleMapsPlacesNamespace) => {
-      if (!inputRef.current || !placesNamespace.Autocomplete) {
+      if (!inputRef.current || !placesNamespace.Autocomplete || autocompleteRef.current) {
         return false;
       }
-      autocompleteRef.current = new placesNamespace.Autocomplete(inputRef.current, {
-        types: ["address"],
-        componentRestrictions: { country: "us" },
-        fields: ["formatted_address", "address_components", "name"],
-      });
+      try {
+        autocompleteRef.current = new placesNamespace.Autocomplete(inputRef.current, {
+          types: ["address"],
+          componentRestrictions: { country: "us" },
+          fields: ["formatted_address", "address_components", "name"],
+        });
+      } catch {
+        autocompleteRef.current = null;
+        return false;
+      }
       autocompleteRef.current.addListener("place_changed", () => {
         applyLegacyPlace(autocompleteRef.current?.getPlace());
       });
-      setGoogleAutocompleteLoading(false);
-      setGoogleAutocompleteError(null);
       setGoogleAutocompleteMode("legacy");
-      inputRef.current?.focus();
+      closeAddressSuggestions();
       return true;
     };
 
@@ -526,7 +596,10 @@ export default function CartView({
       .then(async () => {
         if (cancelled) return;
         const mapsApi = (window as GoogleMapsWindow).google?.maps;
-        if (!mapsApi) return;
+        if (!mapsApi) {
+          setGoogleAutocompleteMode("none");
+          return;
+        }
         let placesNamespace = mapsApi.places || {};
         if (mapsApi.importLibrary) {
           try {
@@ -538,67 +611,93 @@ export default function CartView({
             // Fall back to whatever was loaded directly on google.maps.places.
           }
         }
-
-        if (
-          placesNamespace.PlaceAutocompleteElement &&
-          containerNode
-        ) {
-          const placeAutocomplete = new placesNamespace.PlaceAutocompleteElement({
-            includedRegionCodes: ["us"],
-            requestedLanguage: "en",
-            requestedRegion: "us",
-          });
-          placeAutocomplete.className = "block w-full";
-          placeAutocomplete.style.width = "100%";
-          placeAutocomplete.setAttribute("placeholder", "123 Main St, Chicago, IL");
-          placeAutocomplete.setAttribute("aria-label", "Find address with Google");
-          placesElementRef.current = placeAutocomplete;
-          containerNode.replaceChildren(placeAutocomplete);
-          placeAutocomplete.addEventListener("gmp-select", (event) => {
-            void applyNewPlace(event).catch(() => {
-              if (cancelled) return;
-              setGoogleAutocompleteError(googleUnavailableMessage);
-            });
-          });
-          placeAutocomplete.addEventListener("gmp-error", () => {
-            if (cancelled) return;
-            if (initializeLegacyAutocomplete(placesNamespace)) {
-              containerNode.replaceChildren();
-              placesElementRef.current = null;
-              return;
-            }
-            setGoogleAutocompleteError(googleUnavailableMessage);
-            setGoogleAutocompleteMode("none");
-          });
-          setGoogleAutocompleteLoading(false);
-          setGoogleAutocompleteError(null);
-          setGoogleAutocompleteMode("new");
-          return;
-        }
+        placesApiRef.current = placesNamespace;
 
         if (initializeLegacyAutocomplete(placesNamespace)) {
           return;
         }
 
-        setGoogleAutocompleteLoading(false);
-        setGoogleAutocompleteError(googleUnavailableMessage);
+        if (placesNamespace.AutocompleteSuggestion) {
+          resetAutocompleteSessionToken(placesNamespace);
+          setGoogleAutocompleteMode("data");
+          return;
+        }
+
         setGoogleAutocompleteMode("none");
       })
       .catch(() => {
-        // Ignore script load errors; user can still type manually.
-        setGoogleAutocompleteLoading(false);
-        setGoogleAutocompleteError(googleUnavailableMessage);
         setGoogleAutocompleteMode("none");
       });
 
     return () => {
       cancelled = true;
-      if (containerNode && placesElementRef.current) {
-        containerNode.replaceChildren();
+      if (closeSuggestionsTimeoutRef.current !== null) {
+        window.clearTimeout(closeSuggestionsTimeoutRef.current);
+        closeSuggestionsTimeoutRef.current = null;
       }
-      placesElementRef.current = null;
     };
   }, [mapsKey]);
+
+  useEffect(() => {
+    if (googleAutocompleteMode !== "data") {
+      setAddressSuggestionsLoading(false);
+      closeAddressSuggestions();
+      return;
+    }
+
+    if (skipNextSuggestionFetchRef.current) {
+      skipNextSuggestionFetchRef.current = false;
+      return;
+    }
+
+    const trimmed = addressLine1.trim();
+    const placesNamespace = placesApiRef.current;
+    if (!trimmed || trimmed.length < 3 || !placesNamespace?.AutocompleteSuggestion) {
+      setAddressSuggestionsLoading(false);
+      closeAddressSuggestions();
+      return;
+    }
+
+    const requestId = suggestionsRequestIdRef.current + 1;
+    suggestionsRequestIdRef.current = requestId;
+    const timeoutId = window.setTimeout(async () => {
+      setAddressSuggestionsLoading(true);
+      try {
+        if (!autocompleteSessionTokenRef.current) {
+          resetAutocompleteSessionToken(placesNamespace);
+        }
+        const result = await placesNamespace.AutocompleteSuggestion!.fetchAutocompleteSuggestions({
+          input: trimmed,
+          includedRegionCodes: ["us"],
+          includedPrimaryTypes: ["street_address", "premise", "subpremise", "route"],
+          sessionToken: autocompleteSessionTokenRef.current || undefined,
+        });
+        if (suggestionsRequestIdRef.current !== requestId) return;
+
+        const suggestions = (result.suggestions || [])
+          .filter((suggestion) => Boolean(getGoogleSuggestionLabel(suggestion)))
+          .slice(0, 5);
+
+        setAddressSuggestions(suggestions);
+        setActiveAddressSuggestionIndex(suggestions.length ? 0 : -1);
+        setAddressSuggestionsOpen(
+          document.activeElement === inputRef.current && suggestions.length > 0
+        );
+      } catch {
+        if (suggestionsRequestIdRef.current !== requestId) return;
+        setAddressSuggestions([]);
+        setAddressSuggestionsOpen(false);
+      } finally {
+        if (suggestionsRequestIdRef.current === requestId) {
+          setAddressSuggestionsLoading(false);
+        }
+      }
+    }, 180);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [addressLine1, googleAutocompleteMode]);
 
   const lineItems = useMemo(() => {
     return items.map((item) => {
@@ -937,48 +1036,126 @@ export default function CartView({
               Enter a valid email address.
             </p>
           ) : null}
-          {mapsKey ? (
-            <div className="flex flex-col gap-2 text-sm text-stone-700">
-              <span>
-                Find address with Google
-                {googleAutocompleteMode === "new"
-                  ? ""
-                  : googleAutocompleteMode === "legacy"
-                  ? " (legacy fallback)"
-                  : ""}
-              </span>
-              {googleAutocompleteMode === "new" || googleAutocompleteLoading ? (
-                <div
-                  ref={autocompleteContainerRef}
-                  className="min-h-[3.5rem] rounded-2xl border border-stone-200 bg-white/80 px-1 py-1"
-                />
-              ) : null}
-              <p className="text-xs text-stone-500">
-                {googleAutocompleteMode === "legacy"
-                  ? "Google suggestions are attached to the Street address field below."
-                  : googleAutocompleteLoading
-                  ? "Loading Google address search..."
-                  : "Pick a suggestion to fill the address fields automatically. You can still type the address manually below."}
-              </p>
-              {googleAutocompleteError ? (
-                <p className="text-xs text-amber-700">{googleAutocompleteError}</p>
-              ) : null}
-            </div>
-          ) : null}
           <label className="flex flex-col gap-2 text-sm text-stone-700">
             Street address
-            <input
-              ref={inputRef}
-              value={addressLine1}
-              onChange={(event) => {
-                setAddressLine1(event.target.value);
-                setQuote(null);
-                setQuoteError(null);
-              }}
-              placeholder="123 Main St"
-              autoComplete="address-line1"
-              className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400 disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-stone-400"
-            />
+            <div className="relative">
+              <input
+                ref={inputRef}
+                value={addressLine1}
+                onChange={(event) => {
+                  setAddressLine1(event.target.value);
+                  setQuote(null);
+                  setQuoteError(null);
+                  if (googleAutocompleteMode === "data") {
+                    setAddressSuggestionsOpen(true);
+                  }
+                }}
+                onFocus={() => {
+                  if (googleAutocompleteMode === "data" && addressSuggestions.length > 0) {
+                    setAddressSuggestionsOpen(true);
+                  }
+                }}
+                onBlur={() => {
+                  if (closeSuggestionsTimeoutRef.current !== null) {
+                    window.clearTimeout(closeSuggestionsTimeoutRef.current);
+                  }
+                  closeSuggestionsTimeoutRef.current = window.setTimeout(() => {
+                    closeAddressSuggestions({ clearItems: false });
+                    closeSuggestionsTimeoutRef.current = null;
+                  }, 120);
+                }}
+                onKeyDown={(event) => {
+                  if (
+                    googleAutocompleteMode !== "data" ||
+                    !addressSuggestionsOpen ||
+                    !addressSuggestions.length
+                  ) {
+                    return;
+                  }
+
+                  if (event.key === "ArrowDown") {
+                    event.preventDefault();
+                    setActiveAddressSuggestionIndex((current) =>
+                      current < addressSuggestions.length - 1 ? current + 1 : 0
+                    );
+                    return;
+                  }
+
+                  if (event.key === "ArrowUp") {
+                    event.preventDefault();
+                    setActiveAddressSuggestionIndex((current) =>
+                      current > 0 ? current - 1 : addressSuggestions.length - 1
+                    );
+                    return;
+                  }
+
+                  if (event.key === "Escape") {
+                    closeAddressSuggestions({ clearItems: false });
+                    return;
+                  }
+
+                  if (event.key === "Enter" && activeAddressSuggestionIndex >= 0) {
+                    event.preventDefault();
+                    void applySuggestionPlace(
+                      addressSuggestions[activeAddressSuggestionIndex]
+                    ).catch(() => {
+                      setQuote(null);
+                      setQuoteError("Unable to fill address automatically.");
+                      closeAddressSuggestions();
+                    });
+                  }
+                }}
+                placeholder="123 Main St"
+                autoComplete="address-line1"
+                className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400 disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-stone-400"
+              />
+              {googleAutocompleteMode === "data" &&
+              (addressSuggestionsOpen || addressSuggestionsLoading) ? (
+                <div className="absolute left-0 right-0 top-[calc(100%+0.35rem)] z-40 overflow-hidden rounded-2xl border border-[rgba(108,20,10,0.16)] bg-[rgba(255,255,255,0.98)] shadow-[0_18px_36px_rgba(108,20,10,0.16)] backdrop-blur">
+                  {addressSuggestionsLoading ? (
+                    <div className="px-4 py-3 text-xs uppercase tracking-[0.2em] text-stone-500">
+                      Searching...
+                    </div>
+                  ) : addressSuggestions.length ? (
+                    <>
+                      {addressSuggestions.map((suggestion, index) => {
+                        const label = getGoogleSuggestionLabel(suggestion);
+                        return (
+                          <button
+                            key={suggestion.placePrediction?.placeId || `${label}-${index}`}
+                            type="button"
+                            onMouseDown={(event) => {
+                              event.preventDefault();
+                            }}
+                            onClick={() => {
+                              void applySuggestionPlace(suggestion).catch(() => {
+                                setQuote(null);
+                                setQuoteError("Unable to fill address automatically.");
+                                closeAddressSuggestions();
+                              });
+                            }}
+                            className={`block w-full border-0 border-b border-[rgba(108,20,10,0.08)] px-4 py-3 text-left text-sm text-stone-700 last:border-b-0 ${
+                              index === activeAddressSuggestionIndex
+                                ? "bg-[rgba(108,20,10,0.08)]"
+                                : "bg-transparent"
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+                      <div className="border-t border-[rgba(108,20,10,0.08)] px-4 py-2 text-[10px] uppercase tracking-[0.22em] text-stone-400">
+                        Powered by Google
+                      </div>
+                    </>
+                  ) : (
+                    <div className="px-4 py-3 text-xs uppercase tracking-[0.2em] text-stone-500">
+                      No address suggestions
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </div>
           </label>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="flex flex-col gap-2 text-sm text-stone-700">
