@@ -1036,11 +1036,23 @@ export default function CartView({
               Enter a valid email address.
             </p>
           ) : null}
+          <div
+            aria-hidden="true"
+            className="absolute left-[-9999px] top-auto h-px w-px overflow-hidden opacity-0"
+          >
+            <input tabIndex={-1} type="text" name="address-line1" autoComplete="street-address" />
+            <input tabIndex={-1} type="text" name="address-line2" autoComplete="address-line2" />
+            <input tabIndex={-1} type="text" name="address-level2" autoComplete="address-level2" />
+            <input tabIndex={-1} type="text" name="address-level1" autoComplete="address-level1" />
+            <input tabIndex={-1} type="text" name="postal-code" autoComplete="postal-code" />
+            <input tabIndex={-1} type="text" name="country" autoComplete="country" />
+          </div>
           <label className="flex flex-col gap-2 text-sm text-stone-700">
             Street address
             <div className="relative">
               <input
                 ref={inputRef}
+                name="deliveryStreetSearch"
                 value={addressLine1}
                 onChange={(event) => {
                   setAddressLine1(event.target.value);
@@ -1106,7 +1118,12 @@ export default function CartView({
                   }
                 }}
                 placeholder="123 Main St"
-                autoComplete="address-line1"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="words"
+                spellCheck={false}
+                data-lpignore="true"
+                data-1p-ignore="true"
                 className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400 disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-stone-400"
               />
               {googleAutocompleteMode === "data" &&
@@ -1161,19 +1178,30 @@ export default function CartView({
             <label className="flex flex-col gap-2 text-sm text-stone-700">
               <span className="min-h-[2.5rem]">Apartment / Suite (optional)</span>
               <input
+                name="deliveryApartmentManual"
                 value={addressLine2}
                 onChange={(event) => setAddressLine2(event.target.value)}
                 placeholder="Apt 2B"
-                autoComplete="address-line2"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
+                data-lpignore="true"
+                data-1p-ignore="true"
                 className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
               />
             </label>
             <label className="flex flex-col gap-2 text-sm text-stone-700">
               <span className="min-h-[2.5rem]">Floor (optional)</span>
               <input
+                name="deliveryFloorManual"
                 value={addressFloor}
                 onChange={(event) => setAddressFloor(event.target.value)}
                 placeholder="5"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
+                data-lpignore="true"
+                data-1p-ignore="true"
                 className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
               />
             </label>
@@ -1182,6 +1210,7 @@ export default function CartView({
             <label className="flex flex-col gap-2 text-sm text-stone-700">
               City
               <input
+                name="deliveryCityManual"
                 value={addressCity}
                 onChange={(event) => {
                   setAddressCity(event.target.value);
@@ -1189,13 +1218,18 @@ export default function CartView({
                   setQuoteError(null);
                 }}
                 placeholder="Chicago"
-                autoComplete="address-level2"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
+                data-lpignore="true"
+                data-1p-ignore="true"
                 className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
               />
             </label>
             <label className="flex flex-col gap-2 text-sm text-stone-700">
               State
               <input
+                name="deliveryStateManual"
                 value={addressState}
                 onChange={(event) => {
                   const next = event.target.value
@@ -1207,7 +1241,11 @@ export default function CartView({
                   setQuoteError(null);
                 }}
                 placeholder="IL"
-                autoComplete="address-level1"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
+                data-lpignore="true"
+                data-1p-ignore="true"
                 maxLength={2}
                 className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 uppercase outline-none focus:border-stone-400"
               />
@@ -1215,6 +1253,7 @@ export default function CartView({
             <label className="flex flex-col gap-2 text-sm text-stone-700">
               ZIP code
               <input
+                name="deliveryPostalCodeManual"
                 value={postalCode}
                 onChange={(event) => {
                   const next = event.target.value
@@ -1226,8 +1265,10 @@ export default function CartView({
                   setQuoteError(null);
                 }}
                 placeholder="60601"
-                autoComplete="postal-code"
+                autoComplete="off"
                 inputMode="numeric"
+                data-lpignore="true"
+                data-1p-ignore="true"
                 className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
               />
             </label>
@@ -1235,6 +1276,7 @@ export default function CartView({
           <label className="flex flex-col gap-2 text-sm text-stone-700">
             Country
             <input
+              name="deliveryCountryManual"
               value={country}
               onChange={(event) => {
                 setCountry(event.target.value);
@@ -1242,7 +1284,11 @@ export default function CartView({
                 setQuoteError(null);
               }}
               placeholder="United States"
-              autoComplete="country"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              data-lpignore="true"
+              data-1p-ignore="true"
               className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
             />
           </label>
