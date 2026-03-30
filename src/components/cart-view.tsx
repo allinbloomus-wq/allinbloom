@@ -174,6 +174,25 @@ const buildPostalCode = (postalCode: string, postalCodeSuffix: string) => {
   return postalCodeSuffix ? `${postalCode}-${postalCodeSuffix}` : postalCode;
 };
 
+const DEFAULT_COUNTRY = "United States";
+
+const hasStructuredAddressDetails = ({
+  line2,
+  floor,
+  city,
+  state,
+  postalCode,
+  country,
+}: Omit<AddressParts, "line1">) =>
+  Boolean(
+    line2?.trim() ||
+      floor?.trim() ||
+      city?.trim() ||
+      state?.trim() ||
+      postalCode?.trim() ||
+      (country?.trim() && country.trim() !== DEFAULT_COUNTRY)
+  );
+
 const parseGoogleAddressComponents = <T extends { types?: string[] }>({
   components,
   fallbackLine1,
@@ -291,7 +310,7 @@ export default function CartView({
   const [addressCity, setAddressCity] = useState("");
   const [addressState, setAddressState] = useState("");
   const [postalCode, setPostalCode] = useState("");
-  const [country, setCountry] = useState("United States");
+  const [country, setCountry] = useState(DEFAULT_COUNTRY);
   const [orderComment, setOrderComment] = useState("");
   const [phoneLocal, setPhoneLocal] = useState(() => toLocalPhoneDigits(userPhone));
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -310,6 +329,8 @@ export default function CartView({
   const [addressSuggestionsOpen, setAddressSuggestionsOpen] = useState(false);
   const [addressSuggestionsLoading, setAddressSuggestionsLoading] = useState(false);
   const [activeAddressSuggestionIndex, setActiveAddressSuggestionIndex] = useState(-1);
+  // Prevent browser autofill from overwriting the controlled checkout address fields.
+  const [addressInputsUnlocked, setAddressInputsUnlocked] = useState(false);
   const [quote, setQuote] = useState<{
     feeCents: number;
     miles: number;
@@ -367,6 +388,47 @@ export default function CartView({
       : null;
   };
 
+  const unlockAddressInputs = () => {
+    setAddressInputsUnlocked(true);
+  };
+
+  const resetStructuredAddressDetails = () => {
+    setAddressLine2("");
+    setAddressFloor("");
+    setAddressCity("");
+    setAddressState("");
+    setPostalCode("");
+    setCountry(DEFAULT_COUNTRY);
+  };
+
+  const handleStreetAddressChange = (nextValue: string) => {
+    const shouldResetStructuredAddress =
+      nextValue !== addressLine1 &&
+      hasStructuredAddressDetails({
+        line2: addressLine2,
+        floor: addressFloor,
+        city: addressCity,
+        state: addressState,
+        postalCode,
+        country,
+      });
+
+    skipNextSuggestionFetchRef.current = false;
+    setAddressLine1(nextValue);
+
+    if (shouldResetStructuredAddress) {
+      resetStructuredAddressDetails();
+      resetAutocompleteSessionToken();
+    }
+
+    setQuote(null);
+    setQuoteError(null);
+
+    if (googleAutocompleteMode === "data") {
+      closeAddressSuggestions();
+    }
+  };
+
   const applyParsedAddress = (parsed: ParsedGoogleAddress) => {
     if (!parsed.hasStreetNumber || !parsed.hasRoute || !parsed.line1.trim()) {
       setQuote(null);
@@ -382,7 +444,7 @@ export default function CartView({
     setAddressCity(parsed.city);
     setAddressState(parsed.state);
     setPostalCode(parsed.postalCode);
-    setCountry(parsed.country || "United States");
+    setCountry(parsed.country || DEFAULT_COUNTRY);
     setQuote(null);
     setQuoteError(null);
     closeAddressSuggestions();
@@ -424,7 +486,7 @@ export default function CartView({
       setAddressCity(stored.addressCity?.trim() || "");
       setAddressState(stored.addressState?.trim() || "");
       setPostalCode(stored.postalCode?.trim() || "");
-      setCountry(stored.country?.trim() || "United States");
+      setCountry(stored.country?.trim() || DEFAULT_COUNTRY);
       setOrderComment(stored.orderComment?.trim() || "");
       if (stored.phoneLocal) {
         setPhoneLocal(stored.phoneLocal);
@@ -562,7 +624,7 @@ export default function CartView({
       setAddressCity(parsed.city);
       setAddressState(parsed.state);
       setPostalCode(parsed.postalCode);
-      setCountry(parsed.country || "United States");
+      setCountry(parsed.country || DEFAULT_COUNTRY);
       setQuote(null);
       setQuoteError(null);
       closeAddressSuggestions();
@@ -613,13 +675,13 @@ export default function CartView({
         }
         placesApiRef.current = placesNamespace;
 
-        if (initializeLegacyAutocomplete(placesNamespace)) {
-          return;
-        }
-
         if (placesNamespace.AutocompleteSuggestion) {
           resetAutocompleteSessionToken(placesNamespace);
           setGoogleAutocompleteMode("data");
+          return;
+        }
+
+        if (initializeLegacyAutocomplete(placesNamespace)) {
           return;
         }
 
@@ -1036,33 +1098,17 @@ export default function CartView({
               Enter a valid email address.
             </p>
           ) : null}
-          <div
-            aria-hidden="true"
-            className="absolute left-[-9999px] top-auto h-px w-px overflow-hidden opacity-0"
-          >
-            <input tabIndex={-1} type="text" name="address-line1" autoComplete="street-address" />
-            <input tabIndex={-1} type="text" name="address-line2" autoComplete="address-line2" />
-            <input tabIndex={-1} type="text" name="address-level2" autoComplete="address-level2" />
-            <input tabIndex={-1} type="text" name="address-level1" autoComplete="address-level1" />
-            <input tabIndex={-1} type="text" name="postal-code" autoComplete="postal-code" />
-            <input tabIndex={-1} type="text" name="country" autoComplete="country" />
-          </div>
           <label className="flex flex-col gap-2 text-sm text-stone-700">
             Street address
             <div className="relative">
               <input
                 ref={inputRef}
-                name="deliveryStreetSearch"
+                name="checkoutLinePrimary"
                 value={addressLine1}
-                onChange={(event) => {
-                  setAddressLine1(event.target.value);
-                  setQuote(null);
-                  setQuoteError(null);
-                  if (googleAutocompleteMode === "data") {
-                    setAddressSuggestionsOpen(true);
-                  }
-                }}
+                onChange={(event) => handleStreetAddressChange(event.target.value)}
+                onPointerDown={unlockAddressInputs}
                 onFocus={() => {
+                  unlockAddressInputs();
                   if (googleAutocompleteMode === "data" && addressSuggestions.length > 0) {
                     setAddressSuggestionsOpen(true);
                   }
@@ -1118,9 +1164,10 @@ export default function CartView({
                   }
                 }}
                 placeholder="123 Main St"
-                autoComplete="off"
+                autoComplete="new-password"
                 autoCorrect="off"
                 autoCapitalize="words"
+                readOnly={!addressInputsUnlocked}
                 spellCheck={false}
                 data-lpignore="true"
                 data-1p-ignore="true"
@@ -1178,12 +1225,15 @@ export default function CartView({
             <label className="flex flex-col gap-2 text-sm text-stone-700">
               <span className="min-h-[2.5rem]">Apartment / Suite (optional)</span>
               <input
-                name="deliveryApartmentManual"
+                name="checkoutLineSecondary"
                 value={addressLine2}
                 onChange={(event) => setAddressLine2(event.target.value)}
+                onPointerDown={unlockAddressInputs}
+                onFocus={unlockAddressInputs}
                 placeholder="Apt 2B"
-                autoComplete="off"
+                autoComplete="new-password"
                 autoCorrect="off"
+                readOnly={!addressInputsUnlocked}
                 spellCheck={false}
                 data-lpignore="true"
                 data-1p-ignore="true"
@@ -1193,12 +1243,15 @@ export default function CartView({
             <label className="flex flex-col gap-2 text-sm text-stone-700">
               <span className="min-h-[2.5rem]">Floor (optional)</span>
               <input
-                name="deliveryFloorManual"
+                name="checkoutLevelEntry"
                 value={addressFloor}
                 onChange={(event) => setAddressFloor(event.target.value)}
+                onPointerDown={unlockAddressInputs}
+                onFocus={unlockAddressInputs}
                 placeholder="5"
-                autoComplete="off"
+                autoComplete="new-password"
                 autoCorrect="off"
+                readOnly={!addressInputsUnlocked}
                 spellCheck={false}
                 data-lpignore="true"
                 data-1p-ignore="true"
@@ -1210,16 +1263,19 @@ export default function CartView({
             <label className="flex flex-col gap-2 text-sm text-stone-700">
               City
               <input
-                name="deliveryCityManual"
+                name="checkoutMunicipality"
                 value={addressCity}
                 onChange={(event) => {
                   setAddressCity(event.target.value);
                   setQuote(null);
                   setQuoteError(null);
                 }}
+                onPointerDown={unlockAddressInputs}
+                onFocus={unlockAddressInputs}
                 placeholder="Chicago"
-                autoComplete="off"
+                autoComplete="new-password"
                 autoCorrect="off"
+                readOnly={!addressInputsUnlocked}
                 spellCheck={false}
                 data-lpignore="true"
                 data-1p-ignore="true"
@@ -1229,7 +1285,7 @@ export default function CartView({
             <label className="flex flex-col gap-2 text-sm text-stone-700">
               State
               <input
-                name="deliveryStateManual"
+                name="checkoutRegionCode"
                 value={addressState}
                 onChange={(event) => {
                   const next = event.target.value
@@ -1240,9 +1296,12 @@ export default function CartView({
                   setQuote(null);
                   setQuoteError(null);
                 }}
+                onPointerDown={unlockAddressInputs}
+                onFocus={unlockAddressInputs}
                 placeholder="IL"
-                autoComplete="off"
+                autoComplete="new-password"
                 autoCorrect="off"
+                readOnly={!addressInputsUnlocked}
                 spellCheck={false}
                 data-lpignore="true"
                 data-1p-ignore="true"
@@ -1253,7 +1312,7 @@ export default function CartView({
             <label className="flex flex-col gap-2 text-sm text-stone-700">
               ZIP code
               <input
-                name="deliveryPostalCodeManual"
+                name="checkoutPostalEntry"
                 value={postalCode}
                 onChange={(event) => {
                   const next = event.target.value
@@ -1264,9 +1323,12 @@ export default function CartView({
                   setQuote(null);
                   setQuoteError(null);
                 }}
+                onPointerDown={unlockAddressInputs}
+                onFocus={unlockAddressInputs}
                 placeholder="60601"
-                autoComplete="off"
+                autoComplete="new-password"
                 inputMode="numeric"
+                readOnly={!addressInputsUnlocked}
                 data-lpignore="true"
                 data-1p-ignore="true"
                 className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
@@ -1276,16 +1338,19 @@ export default function CartView({
           <label className="flex flex-col gap-2 text-sm text-stone-700">
             Country
             <input
-              name="deliveryCountryManual"
+              name="checkoutNationEntry"
               value={country}
               onChange={(event) => {
                 setCountry(event.target.value);
                 setQuote(null);
                 setQuoteError(null);
               }}
-              placeholder="United States"
-              autoComplete="off"
+              onPointerDown={unlockAddressInputs}
+              onFocus={unlockAddressInputs}
+              placeholder={DEFAULT_COUNTRY}
+              autoComplete="new-password"
               autoCorrect="off"
+              readOnly={!addressInputsUnlocked}
               spellCheck={false}
               data-lpignore="true"
               data-1p-ignore="true"
