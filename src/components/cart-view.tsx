@@ -669,13 +669,13 @@ export default function CartView({
         }
         placesApiRef.current = placesNamespace;
 
-        if (placesNamespace.AutocompleteSuggestion) {
-          resetAutocompleteSessionToken(placesNamespace);
-          setGoogleAutocompleteMode("data");
+        if (initializeLegacyAutocomplete(placesNamespace)) {
           return;
         }
 
-        if (initializeLegacyAutocomplete(placesNamespace)) {
+        if (placesNamespace.AutocompleteSuggestion) {
+          resetAutocompleteSessionToken(placesNamespace);
+          setGoogleAutocompleteMode("data");
           return;
         }
 
@@ -1108,7 +1108,7 @@ export default function CartView({
             <div className="relative">
               <input
                 ref={inputRef}
-                name="checkoutLinePrimary"
+                name="deliveryStreetSearch"
                 value={addressLine1}
                 onChange={(event) => handleStreetAddressChange(event.target.value)}
                 onFocus={() => {
@@ -1167,7 +1167,7 @@ export default function CartView({
                   }
                 }}
                 placeholder="123 Main St"
-                autoComplete="off"
+                autoComplete="new-password"
                 autoCorrect="off"
                 autoCapitalize="words"
                 spellCheck={false}
@@ -1227,11 +1227,11 @@ export default function CartView({
             <label className="flex flex-col gap-2 text-sm text-stone-700">
               <span className="min-h-[2.5rem]">Apartment / Suite (optional)</span>
               <input
-                name="checkoutLineSecondary"
+                name="deliveryApartmentManual"
                 value={addressLine2}
                 onChange={(event) => setAddressLine2(event.target.value)}
                 placeholder="Apt 2B"
-                autoComplete="off"
+                autoComplete="new-password"
                 autoCorrect="off"
                 spellCheck={false}
                 data-lpignore="true"
@@ -1242,11 +1242,11 @@ export default function CartView({
             <label className="flex flex-col gap-2 text-sm text-stone-700">
               <span className="min-h-[2.5rem]">Floor (optional)</span>
               <input
-                name="checkoutLevelEntry"
+                name="deliveryFloorManual"
                 value={addressFloor}
                 onChange={(event) => setAddressFloor(event.target.value)}
                 placeholder="5"
-                autoComplete="off"
+                autoComplete="new-password"
                 autoCorrect="off"
                 spellCheck={false}
                 data-lpignore="true"
@@ -1259,7 +1259,7 @@ export default function CartView({
             <label className="flex flex-col gap-2 text-sm text-stone-700">
               City
               <input
-                name="checkoutMunicipality"
+                name="deliveryCityManual"
                 value={addressCity}
                 onChange={(event) => {
                   setAddressCity(event.target.value);
@@ -1267,7 +1267,7 @@ export default function CartView({
                   setQuoteError(null);
                 }}
                 placeholder="Chicago"
-                autoComplete="off"
+                autoComplete="new-password"
                 autoCorrect="off"
                 spellCheck={false}
                 data-lpignore="true"
@@ -1278,7 +1278,7 @@ export default function CartView({
             <label className="flex flex-col gap-2 text-sm text-stone-700">
               State
               <input
-                name="checkoutRegionCode"
+                name="deliveryStateManual"
                 value={addressState}
                 onChange={(event) => {
                   const next = event.target.value
@@ -1290,7 +1290,7 @@ export default function CartView({
                   setQuoteError(null);
                 }}
                 placeholder="IL"
-                autoComplete="off"
+                autoComplete="new-password"
                 autoCorrect="off"
                 spellCheck={false}
                 data-lpignore="true"
@@ -1302,7 +1302,7 @@ export default function CartView({
             <label className="flex flex-col gap-2 text-sm text-stone-700">
               ZIP code
               <input
-                name="checkoutPostalEntry"
+                name="deliveryPostalCodeManual"
                 value={postalCode}
                 onChange={(event) => {
                   const next = event.target.value
@@ -1314,7 +1314,7 @@ export default function CartView({
                   setQuoteError(null);
                 }}
                 placeholder="60601"
-                autoComplete="off"
+                autoComplete="new-password"
                 inputMode="numeric"
                 data-lpignore="true"
                 data-1p-ignore="true"
@@ -1325,7 +1325,7 @@ export default function CartView({
           <label className="flex flex-col gap-2 text-sm text-stone-700">
             Country
             <input
-              name="checkoutNationEntry"
+              name="deliveryCountryManual"
               value={country}
               onChange={(event) => {
                 setCountry(event.target.value);
@@ -1333,7 +1333,7 @@ export default function CartView({
                 setQuoteError(null);
               }}
               placeholder={DEFAULT_COUNTRY}
-              autoComplete="off"
+              autoComplete="new-password"
               autoCorrect="off"
               spellCheck={false}
               data-lpignore="true"
