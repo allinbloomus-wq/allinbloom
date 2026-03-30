@@ -27,10 +27,23 @@ type GooglePlaceAddressComponent = {
   types?: string[];
 };
 
+type GooglePlaceAddressComponentNew = {
+  longText?: string;
+  shortText?: string;
+  types?: string[];
+};
+
 type GooglePlaceResult = {
   formatted_address?: string;
   name?: string;
   address_components?: GooglePlaceAddressComponent[];
+};
+
+type GooglePlaceDetailsResult = {
+  formattedAddress?: string;
+  displayName?: string;
+  addressComponents?: GooglePlaceAddressComponentNew[];
+  fetchFields: (options: { fields: string[] }) => Promise<unknown>;
 };
 
 type GoogleAutocompleteInstance = {
@@ -38,8 +51,23 @@ type GoogleAutocompleteInstance = {
   getPlace: () => GooglePlaceResult | undefined;
 };
 
+type GooglePlacePrediction = {
+  toPlace: () => GooglePlaceDetailsResult;
+};
+
+type GooglePlaceAutocompleteSelectEvent = Event & {
+  placePrediction?: GooglePlacePrediction;
+};
+
+type GooglePlaceAutocompleteElementInstance = HTMLElement & {
+  addEventListener: (
+    eventName: "gmp-select" | "gmp-error",
+    handler: (event: Event) => void
+  ) => void;
+};
+
 type GoogleMapsPlacesNamespace = {
-  Autocomplete: new (
+  Autocomplete?: new (
     input: HTMLInputElement,
     options: {
       types: string[];
@@ -47,14 +75,29 @@ type GoogleMapsPlacesNamespace = {
       fields: string[];
     }
   ) => GoogleAutocompleteInstance;
+  PlaceAutocompleteElement?: new (options?: {
+    includedRegionCodes?: string[];
+    requestedLanguage?: string;
+    requestedRegion?: string;
+  }) => GooglePlaceAutocompleteElementInstance;
 };
 
 type GoogleMapsWindow = Window & {
   google?: {
     maps?: {
+      importLibrary?: (library: "places") => Promise<GoogleMapsPlacesNamespace>;
       places?: GoogleMapsPlacesNamespace;
     };
   };
+};
+
+type ParsedGoogleAddress = {
+  line1: string;
+  line2: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
 };
 
 type PaymentIconSpec = {
@@ -112,6 +155,48 @@ const formatAddress = ({
 
 const formatAddressForQuote = (parts: AddressParts) =>
   formatAddress({ ...parts, line2: "", floor: "" });
+
+const buildPostalCode = (postalCode: string, postalCodeSuffix: string) => {
+  if (!postalCode) return "";
+  return postalCodeSuffix ? `${postalCode}-${postalCodeSuffix}` : postalCode;
+};
+
+const parseGoogleAddressComponents = <T extends { types?: string[] }>({
+  components,
+  fallbackLine1,
+  getLongText,
+  getShortText,
+}: {
+  components: T[];
+  fallbackLine1: string;
+  getLongText: (component: T | undefined) => string;
+  getShortText: (component: T | undefined) => string;
+}): ParsedGoogleAddress => {
+  const getComponent = (type: string) =>
+    components.find((component) => component.types?.includes(type));
+  const streetNumber = getLongText(getComponent("street_number"));
+  const route = getLongText(getComponent("route"));
+  const subpremise = getLongText(getComponent("subpremise"));
+  const city =
+    getLongText(getComponent("locality")) ||
+    getLongText(getComponent("postal_town")) ||
+    getLongText(getComponent("sublocality")) ||
+    getLongText(getComponent("administrative_area_level_2"));
+  const state = getShortText(getComponent("administrative_area_level_1"));
+  const postalCode = getLongText(getComponent("postal_code"));
+  const postalCodeSuffix = getLongText(getComponent("postal_code_suffix"));
+  const country = getLongText(getComponent("country"));
+  const line1 = [streetNumber, route].filter(Boolean).join(" ").trim();
+
+  return {
+    line1: line1 || fallbackLine1,
+    line2: subpremise ? `Apt ${subpremise}` : "",
+    city,
+    state,
+    postalCode: buildPostalCode(postalCode, postalCodeSuffix),
+    country,
+  };
+};
 
 const PaymentIcon = ({ icon }: { icon: PaymentIconSpec }) => {
   const [src, setSrc] = useState(icon.src);
@@ -192,6 +277,12 @@ export default function CartView({
   const [phoneLocal, setPhoneLocal] = useState(() => toLocalPhoneDigits(userPhone));
   const inputRef = useRef<HTMLInputElement | null>(null);
   const autocompleteRef = useRef<GoogleAutocompleteInstance | null>(null);
+  const placesElementRef = useRef<GooglePlaceAutocompleteElementInstance | null>(null);
+  const autocompleteContainerRef = useRef<HTMLDivElement | null>(null);
+  const [googleAutocompleteMode, setGoogleAutocompleteMode] = useState<
+    "none" | "new" | "legacy"
+  >("none");
+  const [googleAutocompleteError, setGoogleAutocompleteError] = useState<string | null>(null);
   const [quote, setQuote] = useState<{
     feeCents: number;
     miles: number;
@@ -300,85 +391,203 @@ export default function CartView({
   }, [addressForQuote, quote]);
 
   useEffect(() => {
-    if (!mapsKey || !inputRef.current) return;
-    if (autocompleteRef.current) return;
+    if (!mapsKey) return;
+    if (autocompleteRef.current || placesElementRef.current) return;
+
+    let cancelled = false;
+    const containerNode = autocompleteContainerRef.current;
+    const googleUnavailableMessage =
+      "Google address search is unavailable right now. You can still type the address manually.";
+
+    const applyParsedAddress = (parsed: ParsedGoogleAddress) => {
+      setAddressLine1(parsed.line1);
+      setAddressLine2(parsed.line2);
+      setAddressCity(parsed.city);
+      setAddressState(parsed.state);
+      setPostalCode(parsed.postalCode);
+      setCountry(parsed.country || "United States");
+      setGoogleAutocompleteError(null);
+      setQuote(null);
+      setQuoteError(null);
+    };
 
     const loadGoogleMaps = () =>
       new Promise<void>((resolve, reject) => {
-        if ((window as GoogleMapsWindow).google?.maps?.places) {
+        const mapsApi = (window as GoogleMapsWindow).google?.maps;
+        if (mapsApi?.places || mapsApi?.importLibrary) {
           resolve();
           return;
         }
-        const existing = document.getElementById("google-maps-js");
+        const handleReady = () => {
+          const nextMapsApi = (window as GoogleMapsWindow).google?.maps;
+          if (nextMapsApi?.places || nextMapsApi?.importLibrary) {
+            resolve();
+            return;
+          }
+          reject(new Error("Google Maps API did not initialize."));
+        };
+        const existing = document.getElementById("google-maps-js") as
+          | HTMLScriptElement
+          | null;
         if (existing) {
-          existing.addEventListener("load", () => resolve());
-          existing.addEventListener("error", () => reject());
+          if (existing.dataset.loaded === "true") {
+            handleReady();
+            return;
+          }
+          if (existing.dataset.error === "true") {
+            reject(new Error("Google Maps API failed to load."));
+            return;
+          }
+          existing.addEventListener("load", handleReady, { once: true });
+          existing.addEventListener(
+            "error",
+            () => reject(new Error("Google Maps API failed to load.")),
+            { once: true }
+          );
           return;
         }
         const script = document.createElement("script");
         script.id = "google-maps-js";
         script.async = true;
         script.defer = true;
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${mapsKey}&libraries=places`;
-        script.onload = () => resolve();
-        script.onerror = () => reject();
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${mapsKey}&libraries=places&loading=async&v=weekly`;
+        script.addEventListener(
+          "load",
+          () => {
+            script.dataset.loaded = "true";
+            handleReady();
+          },
+          { once: true }
+        );
+        script.addEventListener(
+          "error",
+          () => {
+            script.dataset.error = "true";
+            reject(new Error("Google Maps API failed to load."));
+          },
+          { once: true }
+        );
         document.head.appendChild(script);
       });
 
-    loadGoogleMaps()
-      .then(() => {
-        if (!inputRef.current) return;
-        const googleMaps = (window as GoogleMapsWindow).google;
-        if (!googleMaps?.maps?.places) return;
-        autocompleteRef.current = new googleMaps.maps.places.Autocomplete(
-          inputRef.current,
-          {
-            types: ["address"],
-            componentRestrictions: { country: "us" },
-            fields: ["formatted_address", "address_components", "name"],
-          }
-        );
-        autocompleteRef.current.addListener("place_changed", () => {
-          const place = autocompleteRef.current?.getPlace();
-          if (!place) return;
-          const components = place.address_components || [];
-          const getComponent = (type: string) =>
-            components.find((component) => component.types?.includes(type));
-          const streetNumber = getComponent("street_number")?.long_name || "";
-          const route = getComponent("route")?.long_name || "";
-          const subpremise = getComponent("subpremise")?.long_name || "";
-          const city =
-            getComponent("locality")?.long_name ||
-            getComponent("postal_town")?.long_name ||
-            getComponent("sublocality")?.long_name ||
-            getComponent("administrative_area_level_2")?.long_name ||
-            "";
-          const state = getComponent("administrative_area_level_1")?.short_name || "";
-          const postal = getComponent("postal_code")?.long_name || "";
-          const postalSuffix = getComponent("postal_code_suffix")?.long_name || "";
-          const countryName = getComponent("country")?.long_name || "";
-          const line1 = [streetNumber, route].filter(Boolean).join(" ").trim();
-          const resolvedLine1 = line1 || place.name || "";
-          const resolvedPostal = postal
-            ? postalSuffix
-              ? `${postal}-${postalSuffix}`
-              : postal
-            : "";
+    const applyLegacyPlace = (place: GooglePlaceResult | undefined) => {
+      if (!place) return;
+      applyParsedAddress(
+        parseGoogleAddressComponents({
+          components: place.address_components || [],
+          fallbackLine1: place.name || "",
+          getLongText: (component) => component?.long_name || "",
+          getShortText: (component) => component?.short_name || "",
+        })
+      );
+    };
 
-          if (resolvedLine1) setAddressLine1(resolvedLine1);
-          if (subpremise) setAddressLine2(`Apt ${subpremise}`);
-          if (city) setAddressCity(city);
-          if (state) setAddressState(state);
-          if (resolvedPostal) setPostalCode(resolvedPostal);
-          if (countryName) setCountry(countryName);
-          setQuote(null);
-          setQuoteError(null);
-        });
+    const applyNewPlace = async (event: Event) => {
+      const selectionEvent = event as GooglePlaceAutocompleteSelectEvent;
+      const prediction = selectionEvent.placePrediction;
+      if (!prediction) return;
+      const place = prediction.toPlace();
+      await place.fetchFields({
+        fields: ["displayName", "formattedAddress", "addressComponents"],
+      });
+      applyParsedAddress(
+        parseGoogleAddressComponents({
+          components: place.addressComponents || [],
+          fallbackLine1: place.displayName || place.formattedAddress || "",
+          getLongText: (component) => component?.longText || "",
+          getShortText: (component) => component?.shortText || "",
+        })
+      );
+    };
+
+    const initializeLegacyAutocomplete = (placesNamespace: GoogleMapsPlacesNamespace) => {
+      if (!inputRef.current || !placesNamespace.Autocomplete) {
+        return false;
+      }
+      autocompleteRef.current = new placesNamespace.Autocomplete(inputRef.current, {
+        types: ["address"],
+        componentRestrictions: { country: "us" },
+        fields: ["formatted_address", "address_components", "name"],
+      });
+      autocompleteRef.current.addListener("place_changed", () => {
+        applyLegacyPlace(autocompleteRef.current?.getPlace());
+      });
+      setGoogleAutocompleteError(null);
+      setGoogleAutocompleteMode("legacy");
+      return true;
+    };
+
+    loadGoogleMaps()
+      .then(async () => {
+        if (cancelled) return;
+        const mapsApi = (window as GoogleMapsWindow).google?.maps;
+        if (!mapsApi) return;
+        let placesNamespace = mapsApi.places || {};
+        if (mapsApi.importLibrary) {
+          try {
+            placesNamespace = {
+              ...placesNamespace,
+              ...(await mapsApi.importLibrary("places")),
+            };
+          } catch {
+            // Fall back to whatever was loaded directly on google.maps.places.
+          }
+        }
+
+        if (
+          placesNamespace.PlaceAutocompleteElement &&
+          containerNode
+        ) {
+          const placeAutocomplete = new placesNamespace.PlaceAutocompleteElement({
+            includedRegionCodes: ["us"],
+            requestedLanguage: "en",
+            requestedRegion: "us",
+          });
+          placeAutocomplete.className = "block w-full";
+          placesElementRef.current = placeAutocomplete;
+          containerNode.replaceChildren(placeAutocomplete);
+          placeAutocomplete.addEventListener("gmp-select", (event) => {
+            void applyNewPlace(event).catch(() => {
+              if (cancelled) return;
+              setGoogleAutocompleteError(googleUnavailableMessage);
+            });
+          });
+          placeAutocomplete.addEventListener("gmp-error", () => {
+            if (cancelled) return;
+            if (initializeLegacyAutocomplete(placesNamespace)) {
+              containerNode.replaceChildren();
+              placesElementRef.current = null;
+              return;
+            }
+            setGoogleAutocompleteError(googleUnavailableMessage);
+            setGoogleAutocompleteMode("none");
+          });
+          setGoogleAutocompleteError(null);
+          setGoogleAutocompleteMode("new");
+          return;
+        }
+
+        if (initializeLegacyAutocomplete(placesNamespace)) {
+          return;
+        }
+
+        setGoogleAutocompleteError(googleUnavailableMessage);
+        setGoogleAutocompleteMode("none");
       })
       .catch(() => {
         // Ignore script load errors; user can still type manually.
+        setGoogleAutocompleteError(googleUnavailableMessage);
+        setGoogleAutocompleteMode("none");
       });
-  }, [mapsKey, items.length]);
+
+    return () => {
+      cancelled = true;
+      if (containerNode && placesElementRef.current) {
+        containerNode.replaceChildren();
+      }
+      placesElementRef.current = null;
+    };
+  }, [mapsKey]);
 
   const lineItems = useMemo(() => {
     return items.map((item) => {
@@ -705,6 +914,29 @@ export default function CartView({
             <p className="text-xs uppercase tracking-[0.24em] text-rose-700">
               Enter a valid email address.
             </p>
+          ) : null}
+          {mapsKey ? (
+            <div className="flex flex-col gap-2 text-sm text-stone-700">
+              <span>
+                Find address with Google
+                {googleAutocompleteMode === "new"
+                  ? ""
+                  : googleAutocompleteMode === "legacy"
+                  ? " (legacy fallback)"
+                  : ""}
+              </span>
+              <div
+                ref={autocompleteContainerRef}
+                className="min-h-[3.5rem] rounded-2xl border border-stone-200 bg-white/80 px-1 py-1"
+              />
+              <p className="text-xs text-stone-500">
+                Pick a suggestion to fill the address fields automatically. You can
+                still type the address manually below.
+              </p>
+              {googleAutocompleteError ? (
+                <p className="text-xs text-amber-700">{googleAutocompleteError}</p>
+              ) : null}
+            </div>
           ) : null}
           <label className="flex flex-col gap-2 text-sm text-stone-700">
             Street address
