@@ -329,8 +329,6 @@ export default function CartView({
   const [addressSuggestionsOpen, setAddressSuggestionsOpen] = useState(false);
   const [addressSuggestionsLoading, setAddressSuggestionsLoading] = useState(false);
   const [activeAddressSuggestionIndex, setActiveAddressSuggestionIndex] = useState(-1);
-  // Prevent browser autofill from overwriting the controlled checkout address fields.
-  const [addressInputsUnlocked, setAddressInputsUnlocked] = useState(false);
   const [quote, setQuote] = useState<{
     feeCents: number;
     miles: number;
@@ -386,10 +384,6 @@ export default function CartView({
     autocompleteSessionTokenRef.current = namespace?.AutocompleteSessionToken
       ? new namespace.AutocompleteSessionToken()
       : null;
-  };
-
-  const unlockAddressInputs = () => {
-    setAddressInputsUnlocked(true);
   };
 
   const resetStructuredAddressDetails = () => {
@@ -1098,6 +1092,17 @@ export default function CartView({
               Enter a valid email address.
             </p>
           ) : null}
+          <div
+            aria-hidden="true"
+            className="absolute left-[-9999px] top-auto h-px w-px overflow-hidden opacity-0"
+          >
+            <input tabIndex={-1} type="text" name="address-line1" autoComplete="street-address" />
+            <input tabIndex={-1} type="text" name="address-line2" autoComplete="address-line2" />
+            <input tabIndex={-1} type="text" name="address-level2" autoComplete="address-level2" />
+            <input tabIndex={-1} type="text" name="address-level1" autoComplete="address-level1" />
+            <input tabIndex={-1} type="text" name="postal-code" autoComplete="postal-code" />
+            <input tabIndex={-1} type="text" name="country" autoComplete="country" />
+          </div>
           <label className="flex flex-col gap-2 text-sm text-stone-700">
             Street address
             <div className="relative">
@@ -1106,9 +1111,7 @@ export default function CartView({
                 name="checkoutLinePrimary"
                 value={addressLine1}
                 onChange={(event) => handleStreetAddressChange(event.target.value)}
-                onPointerDown={unlockAddressInputs}
                 onFocus={() => {
-                  unlockAddressInputs();
                   if (googleAutocompleteMode === "data" && addressSuggestions.length > 0) {
                     setAddressSuggestionsOpen(true);
                   }
@@ -1164,10 +1167,9 @@ export default function CartView({
                   }
                 }}
                 placeholder="123 Main St"
-                autoComplete="new-password"
+                autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="words"
-                readOnly={!addressInputsUnlocked}
                 spellCheck={false}
                 data-lpignore="true"
                 data-1p-ignore="true"
@@ -1228,12 +1230,9 @@ export default function CartView({
                 name="checkoutLineSecondary"
                 value={addressLine2}
                 onChange={(event) => setAddressLine2(event.target.value)}
-                onPointerDown={unlockAddressInputs}
-                onFocus={unlockAddressInputs}
                 placeholder="Apt 2B"
-                autoComplete="new-password"
+                autoComplete="off"
                 autoCorrect="off"
-                readOnly={!addressInputsUnlocked}
                 spellCheck={false}
                 data-lpignore="true"
                 data-1p-ignore="true"
@@ -1246,12 +1245,9 @@ export default function CartView({
                 name="checkoutLevelEntry"
                 value={addressFloor}
                 onChange={(event) => setAddressFloor(event.target.value)}
-                onPointerDown={unlockAddressInputs}
-                onFocus={unlockAddressInputs}
                 placeholder="5"
-                autoComplete="new-password"
+                autoComplete="off"
                 autoCorrect="off"
-                readOnly={!addressInputsUnlocked}
                 spellCheck={false}
                 data-lpignore="true"
                 data-1p-ignore="true"
@@ -1270,12 +1266,9 @@ export default function CartView({
                   setQuote(null);
                   setQuoteError(null);
                 }}
-                onPointerDown={unlockAddressInputs}
-                onFocus={unlockAddressInputs}
                 placeholder="Chicago"
-                autoComplete="new-password"
+                autoComplete="off"
                 autoCorrect="off"
-                readOnly={!addressInputsUnlocked}
                 spellCheck={false}
                 data-lpignore="true"
                 data-1p-ignore="true"
@@ -1296,12 +1289,9 @@ export default function CartView({
                   setQuote(null);
                   setQuoteError(null);
                 }}
-                onPointerDown={unlockAddressInputs}
-                onFocus={unlockAddressInputs}
                 placeholder="IL"
-                autoComplete="new-password"
+                autoComplete="off"
                 autoCorrect="off"
-                readOnly={!addressInputsUnlocked}
                 spellCheck={false}
                 data-lpignore="true"
                 data-1p-ignore="true"
@@ -1323,12 +1313,9 @@ export default function CartView({
                   setQuote(null);
                   setQuoteError(null);
                 }}
-                onPointerDown={unlockAddressInputs}
-                onFocus={unlockAddressInputs}
                 placeholder="60601"
-                autoComplete="new-password"
+                autoComplete="off"
                 inputMode="numeric"
-                readOnly={!addressInputsUnlocked}
                 data-lpignore="true"
                 data-1p-ignore="true"
                 className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
@@ -1345,12 +1332,9 @@ export default function CartView({
                 setQuote(null);
                 setQuoteError(null);
               }}
-              onPointerDown={unlockAddressInputs}
-              onFocus={unlockAddressInputs}
               placeholder={DEFAULT_COUNTRY}
-              autoComplete="new-password"
+              autoComplete="off"
               autoCorrect="off"
-              readOnly={!addressInputsUnlocked}
               spellCheck={false}
               data-lpignore="true"
               data-1p-ignore="true"
