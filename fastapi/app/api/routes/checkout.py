@@ -6,7 +6,7 @@ from urllib.parse import quote_plus
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 import stripe
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, get_optional_user
@@ -144,16 +144,13 @@ def _is_order_access_allowed(order: Order, *, user, cancel_token: str | None) ->
 def _resolve_first_order_discount_percent(
     *,
     configured_percent: int | None,
-    paid_orders_count: int,
-    has_existing_first_order_discount: bool,
+    has_blocking_order_history: bool,
     has_any_discount: bool,
 ) -> int:
     percent = int(configured_percent or 0)
     if percent <= 0:
         return 0
-    if paid_orders_count > 0:
-        return 0
-    if has_existing_first_order_discount:
+    if has_blocking_order_history:
         return 0
     if has_any_discount:
         return 0
@@ -401,26 +398,20 @@ async def start_checkout(
             }
         )
 
-    # Normalize stale pending orders before first-order eligibility checks.
+    # Only explicit final failures may reopen first-order discount eligibility.
+    # Pending orders remain blocking so delayed provider updates cannot reopen
+    # the discount and create a second discounted checkout.
     expire_pending_orders(db)
 
     if user:
         # Serialize first-order-discount calculation for authenticated users.
         db.execute(select(User.id).where(User.id == user.id).with_for_update()).first()
 
-    orders_count = (
-        db.execute(
-            select(func.count())
-            .select_from(Order)
-            .where(Order.email == checkout_email, Order.status == OrderStatus.PAID)
-        ).scalar_one()
-    )
-    has_existing_first_order_discount = (
+    has_blocking_order_history = (
         db.execute(
             select(Order.id)
             .where(
                 Order.email == checkout_email,
-                Order.first_order_discount_percent > 0,
                 Order.status.in_([OrderStatus.PENDING, OrderStatus.PAID]),
             )
             .limit(1)
@@ -431,8 +422,7 @@ async def start_checkout(
     )
     first_order_discount_percent = _resolve_first_order_discount_percent(
         configured_percent=settings_row.first_order_discount_percent,
-        paid_orders_count=orders_count,
-        has_existing_first_order_discount=has_existing_first_order_discount,
+        has_blocking_order_history=has_blocking_order_history,
         has_any_discount=has_any_discount,
     )
 

@@ -9,11 +9,10 @@ from app.api.routes.checkout import _resolve_first_order_discount_percent
 
 
 class CheckoutFirstOrderDiscountTests(unittest.TestCase):
-    def test_applies_when_user_has_no_paid_orders_and_no_prior_first_discount(self):
+    def test_applies_when_order_history_has_only_failed_or_canceled_orders(self):
         percent = _resolve_first_order_discount_percent(
             configured_percent=10,
-            paid_orders_count=0,
-            has_existing_first_order_discount=False,
+            has_blocking_order_history=False,
             has_any_discount=False,
         )
         self.assertEqual(percent, 10)
@@ -22,8 +21,7 @@ class CheckoutFirstOrderDiscountTests(unittest.TestCase):
         self.assertEqual(
             _resolve_first_order_discount_percent(
                 configured_percent=0,
-                paid_orders_count=0,
-                has_existing_first_order_discount=False,
+                has_blocking_order_history=False,
                 has_any_discount=False,
             ),
             0,
@@ -31,27 +29,16 @@ class CheckoutFirstOrderDiscountTests(unittest.TestCase):
         self.assertEqual(
             _resolve_first_order_discount_percent(
                 configured_percent=None,
-                paid_orders_count=0,
-                has_existing_first_order_discount=False,
+                has_blocking_order_history=False,
                 has_any_discount=False,
             ),
             0,
         )
 
-    def test_skips_when_paid_orders_exist(self):
+    def test_skips_when_pending_or_paid_orders_exist(self):
         percent = _resolve_first_order_discount_percent(
             configured_percent=10,
-            paid_orders_count=1,
-            has_existing_first_order_discount=False,
-            has_any_discount=False,
-        )
-        self.assertEqual(percent, 0)
-
-    def test_skips_when_existing_first_order_discount_exists(self):
-        percent = _resolve_first_order_discount_percent(
-            configured_percent=10,
-            paid_orders_count=0,
-            has_existing_first_order_discount=True,
+            has_blocking_order_history=True,
             has_any_discount=False,
         )
         self.assertEqual(percent, 0)
@@ -59,8 +46,7 @@ class CheckoutFirstOrderDiscountTests(unittest.TestCase):
     def test_skips_when_other_discount_is_present(self):
         percent = _resolve_first_order_discount_percent(
             configured_percent=10,
-            paid_orders_count=0,
-            has_existing_first_order_discount=False,
+            has_blocking_order_history=False,
             has_any_discount=True,
         )
         self.assertEqual(percent, 0)
