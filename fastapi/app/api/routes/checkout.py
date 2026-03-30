@@ -26,7 +26,11 @@ from app.schemas.checkout import (
     CheckoutStatusRequest,
     CheckoutStatusResponse,
 )
-from app.services.delivery import get_delivery_quote
+from app.services.delivery import (
+    build_delivery_quote_log_context,
+    delivery_quote_failure_level,
+    get_delivery_quote,
+)
 from app.services.orders import (
     STRIPE_CHECKOUT_SESSION_EXPIRATION_SECONDS,
     expire_pending_orders,
@@ -300,6 +304,17 @@ async def start_checkout(
         )
 
     if order_comment and len(order_comment) > 500:
+        log_critical_event(
+            domain="cart",
+            event="checkout_order_comment_too_long",
+            message="Checkout request contains an order comment that is too long.",
+            request=request,
+            context={
+                "user_id": user_id,
+                "order_comment_length": len(order_comment),
+            },
+            level=logging.WARNING,
+        )
         raise HTTPException(status_code=400, detail="Order comment is too long.")
     if payment_method == "stripe" and not normalized_phone:
         log_critical_event(
@@ -315,12 +330,15 @@ async def start_checkout(
     settings_row = get_store_settings(db)
     delivery = await get_delivery_quote(address_for_quote)
     if not delivery.ok:
+        delivery_context = build_delivery_quote_log_context(address_for_quote, delivery)
+        delivery_context.update({"user_id": user_id, "item_count": len(items)})
         log_critical_event(
             domain="payment",
             event="delivery_quote_failed",
             message="Delivery quote failed during checkout.",
             request=request,
-            context={"user_id": user_id, "item_count": len(items)},
+            context=delivery_context,
+            level=delivery_quote_failure_level(delivery),
         )
         raise HTTPException(status_code=400, detail=delivery.error or "Unable to calculate delivery.")
 
@@ -347,6 +365,18 @@ async def start_checkout(
             quantity = max(1, item.quantity)
             details = _clean_text(item.details)
             if details and len(details) > 500:
+                log_critical_event(
+                    domain="cart",
+                    event="checkout_custom_item_details_too_long",
+                    message="Custom cart item details are too long.",
+                    request=request,
+                    context={
+                        "user_id": user_id,
+                        "item_id": item.id,
+                        "details_length": len(details),
+                    },
+                    level=logging.WARNING,
+                )
                 raise HTTPException(status_code=400, detail="Custom item details are too long.")
             if not item.name or not item.image:
                 log_critical_event(
@@ -405,6 +435,20 @@ async def start_checkout(
         details = None
         if has_flower_quantity:
             if raw_quantity < FLOWER_QUANTITY_MIN or raw_quantity > FLOWER_QUANTITY_MAX:
+                log_critical_event(
+                    domain="cart",
+                    event="checkout_flower_quantity_out_of_range",
+                    message="Checkout flower quantity is outside the allowed range.",
+                    request=request,
+                    context={
+                        "user_id": user_id,
+                        "item_id": item.id,
+                        "flower_quantity": raw_quantity,
+                        "min_quantity": FLOWER_QUANTITY_MIN,
+                        "max_quantity": FLOWER_QUANTITY_MAX,
+                    },
+                    level=logging.WARNING,
+                )
                 raise HTTPException(
                     status_code=400,
                     detail=(
@@ -705,6 +749,18 @@ async def cancel_checkout(
             .first()
         )
     if not order:
+        log_critical_event(
+            domain="payment",
+            event="checkout_cancel_order_not_found",
+            message="Checkout cancel requested for a missing order.",
+            request=request,
+            context={
+                "order_id": order_id or None,
+                "paypal_order_id": paypal_order_id or None,
+                "user_id": user_id,
+            },
+            level=logging.WARNING,
+        )
         raise HTTPException(status_code=404, detail="Not found")
     access_allowed = _is_order_access_allowed(order, user=user, cancel_token=payload.cancel_token)
     if not access_allowed and paypal_order_id and order.paypal_order_id == paypal_order_id:
@@ -839,6 +895,14 @@ async def checkout_status(
     user_id = user.id if user else None
     order = db.get(Order, payload.order_id)
     if not order:
+        log_critical_event(
+            domain="payment",
+            event="checkout_status_order_not_found",
+            message="Checkout status requested for a missing order.",
+            request=request,
+            context={"order_id": payload.order_id, "user_id": user_id},
+            level=logging.WARNING,
+        )
         raise HTTPException(status_code=404, detail="Not found")
     if not _is_order_access_allowed(order, user=user, cancel_token=payload.cancel_token):
         log_critical_event(

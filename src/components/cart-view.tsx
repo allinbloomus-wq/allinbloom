@@ -265,6 +265,7 @@ export default function CartView({
   categoryDiscount,
 }: CartViewProps) {
   const { items, updateQuantity, removeItem } = useCart();
+  const mapsKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   const [guestEmail, setGuestEmail] = useState(() => userEmail || "");
   const [addressLine1, setAddressLine1] = useState("");
   const [addressLine2, setAddressLine2] = useState("");
@@ -282,6 +283,9 @@ export default function CartView({
   const [googleAutocompleteMode, setGoogleAutocompleteMode] = useState<
     "none" | "new" | "legacy"
   >("none");
+  const [googleAutocompleteLoading, setGoogleAutocompleteLoading] = useState(
+    Boolean(mapsKey)
+  );
   const [googleAutocompleteError, setGoogleAutocompleteError] = useState<string | null>(null);
   const [quote, setQuote] = useState<{
     feeCents: number;
@@ -293,7 +297,6 @@ export default function CartView({
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [storageReady, setStorageReady] = useState(false);
-  const mapsKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   const checkoutEmail = (isAuthenticated ? userEmail || "" : guestEmail).trim().toLowerCase();
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(checkoutEmail);
   const showEmailError = !isAuthenticated && guestEmail.trim().length > 0 && !emailValid;
@@ -512,8 +515,10 @@ export default function CartView({
       autocompleteRef.current.addListener("place_changed", () => {
         applyLegacyPlace(autocompleteRef.current?.getPlace());
       });
+      setGoogleAutocompleteLoading(false);
       setGoogleAutocompleteError(null);
       setGoogleAutocompleteMode("legacy");
+      inputRef.current?.focus();
       return true;
     };
 
@@ -544,6 +549,9 @@ export default function CartView({
             requestedRegion: "us",
           });
           placeAutocomplete.className = "block w-full";
+          placeAutocomplete.style.width = "100%";
+          placeAutocomplete.setAttribute("placeholder", "123 Main St, Chicago, IL");
+          placeAutocomplete.setAttribute("aria-label", "Find address with Google");
           placesElementRef.current = placeAutocomplete;
           containerNode.replaceChildren(placeAutocomplete);
           placeAutocomplete.addEventListener("gmp-select", (event) => {
@@ -562,6 +570,7 @@ export default function CartView({
             setGoogleAutocompleteError(googleUnavailableMessage);
             setGoogleAutocompleteMode("none");
           });
+          setGoogleAutocompleteLoading(false);
           setGoogleAutocompleteError(null);
           setGoogleAutocompleteMode("new");
           return;
@@ -571,11 +580,13 @@ export default function CartView({
           return;
         }
 
+        setGoogleAutocompleteLoading(false);
         setGoogleAutocompleteError(googleUnavailableMessage);
         setGoogleAutocompleteMode("none");
       })
       .catch(() => {
         // Ignore script load errors; user can still type manually.
+        setGoogleAutocompleteLoading(false);
         setGoogleAutocompleteError(googleUnavailableMessage);
         setGoogleAutocompleteMode("none");
       });
@@ -704,29 +715,40 @@ export default function CartView({
     setQuoteLoading(true);
     setQuoteError(null);
 
-    const trimmed = addressForQuote.trim();
-    const response = await fetch("/api/delivery/quote", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ address: trimmed }),
-    });
+    try {
+      const trimmed = addressForQuote.trim();
+      const response = await fetch("/api/delivery/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: trimmed }),
+      });
 
-    const payload = await response.json().catch(() => ({}));
+      const payload = await response.json().catch(() => ({}));
 
-    if (!response.ok) {
-      setQuote(null);
-      setQuoteError(payload?.error || "Unable to calculate delivery.");
+      if (!response.ok) {
+        setQuote(null);
+        setQuoteError(
+          payload?.detail ||
+            payload?.error ||
+            payload?.message ||
+            "Unable to calculate delivery."
+        );
+        setQuoteLoading(false);
+        return;
+      }
+
+      setQuote({
+        feeCents: payload.feeCents,
+        miles: payload.miles,
+        distanceText: payload.distanceText,
+        address: trimmed,
+      });
       setQuoteLoading(false);
-      return;
+    } catch {
+      setQuote(null);
+      setQuoteError("Unable to calculate delivery.");
+      setQuoteLoading(false);
     }
-
-    setQuote({
-      feeCents: payload.feeCents,
-      miles: payload.miles,
-      distanceText: payload.distanceText,
-      address: trimmed,
-    });
-    setQuoteLoading(false);
   };
 
   if (!items.length) {
@@ -925,13 +947,18 @@ export default function CartView({
                   ? " (legacy fallback)"
                   : ""}
               </span>
-              <div
-                ref={autocompleteContainerRef}
-                className="min-h-[3.5rem] rounded-2xl border border-stone-200 bg-white/80 px-1 py-1"
-              />
+              {googleAutocompleteMode === "new" || googleAutocompleteLoading ? (
+                <div
+                  ref={autocompleteContainerRef}
+                  className="min-h-[3.5rem] rounded-2xl border border-stone-200 bg-white/80 px-1 py-1"
+                />
+              ) : null}
               <p className="text-xs text-stone-500">
-                Pick a suggestion to fill the address fields automatically. You can
-                still type the address manually below.
+                {googleAutocompleteMode === "legacy"
+                  ? "Google suggestions are attached to the Street address field below."
+                  : googleAutocompleteLoading
+                  ? "Loading Google address search..."
+                  : "Pick a suggestion to fill the address fields automatically. You can still type the address manually below."}
               </p>
               {googleAutocompleteError ? (
                 <p className="text-xs text-amber-700">{googleAutocompleteError}</p>

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import logging
 import unittest
 from unittest.mock import AsyncMock, patch
 
@@ -93,25 +94,69 @@ class DeliveryValidationTests(unittest.TestCase):
         self.assertEqual(delivery.get_delivery_fee_cents(30), 3000)
         self.assertIsNone(delivery.get_delivery_fee_cents(30.1))
 
+    def test_build_delivery_quote_log_context_uses_safe_diagnostics(self):
+        quote = delivery.DeliveryQuote(
+            ok=False,
+            error="Address not found. Please check and try again.",
+            stage="geocode_validation",
+            code="address_not_found",
+            provider="google_maps",
+            provider_status="ZERO_RESULTS",
+        )
+        context = delivery.build_delivery_quote_log_context("999 Missing St, Chicago, IL", quote)
+
+        self.assertEqual(context["delivery_stage"], "geocode_validation")
+        self.assertEqual(context["delivery_code"], "address_not_found")
+        self.assertEqual(context["delivery_provider_status"], "ZERO_RESULTS")
+        self.assertEqual(context["address_length"], len("999 Missing St, Chicago, IL"))
+        self.assertNotIn("address", context)
+
+    def test_delivery_quote_failure_level_distinguishes_technical_failures(self):
+        technical = delivery.DeliveryQuote(
+            ok=False,
+            error="Delivery is not configured.",
+            stage="configuration",
+            code="delivery_not_configured",
+        )
+        user_input = delivery.DeliveryQuote(
+            ok=False,
+            error="Please include a street number.",
+            stage="input_validation",
+            code="address_missing_street_number",
+        )
+
+        self.assertEqual(delivery.delivery_quote_failure_level(technical), logging.ERROR)
+        self.assertEqual(delivery.delivery_quote_failure_level(user_input), logging.WARNING)
+
 
 class DeliveryQuoteTests(unittest.IsolatedAsyncioTestCase):
     async def test_delivery_quote_requires_address(self):
         quote = await delivery.get_delivery_quote("   ")
         self.assertFalse(quote.ok)
         self.assertEqual(quote.error, "Delivery address is required.")
+        self.assertEqual(quote.stage, "input_validation")
+        self.assertEqual(quote.code, "delivery_address_missing")
 
     async def test_delivery_quote_requires_google_maps_configuration(self):
         with patch.object(delivery.settings, "google_maps_api_key", None):
             quote = await delivery.get_delivery_quote("123 Main St, Chicago, IL")
         self.assertFalse(quote.ok)
         self.assertEqual(quote.error, "Delivery is not configured.")
+        self.assertEqual(quote.stage, "configuration")
+        self.assertEqual(quote.code, "delivery_not_configured")
 
     async def test_delivery_quote_success_path(self):
         with patch.object(delivery.settings, "google_maps_api_key", "test-key"), patch.object(
             delivery.settings, "delivery_base_address", "1995 Hicks Rd, Rolling Meadows, IL"
         ), patch(
             "app.services.delivery._validate_and_geocode",
-            AsyncMock(return_value=(True, "123 Main St, Chicago, IL", None)),
+            AsyncMock(
+                return_value=delivery.DeliveryValidationResult(
+                    ok=True,
+                    formatted_address="123 Main St, Chicago, IL",
+                    provider_status="OK",
+                )
+            ),
         ), patch("app.services.delivery.httpx.AsyncClient", _FakeAsyncClient):
             quote = await delivery.get_delivery_quote("123 Main St, Chicago, IL")
 
@@ -119,19 +164,47 @@ class DeliveryQuoteTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(quote.fee_cents, 3000)
         self.assertEqual(quote.distance_text, "25 mi")
         self.assertEqual(quote.formatted_address, "123 Main St, Chicago, IL")
+        self.assertEqual(quote.code, "delivery_quote_ok")
 
     async def test_delivery_quote_rejects_addresses_outside_radius(self):
         with patch.object(delivery.settings, "google_maps_api_key", "test-key"), patch.object(
             delivery.settings, "delivery_base_address", "1995 Hicks Rd, Rolling Meadows, IL"
         ), patch(
             "app.services.delivery._validate_and_geocode",
-            AsyncMock(return_value=(True, "500 Faraway Ave, Rockford, IL", None)),
+            AsyncMock(
+                return_value=delivery.DeliveryValidationResult(
+                    ok=True,
+                    formatted_address="500 Faraway Ave, Rockford, IL",
+                    provider_status="OK",
+                )
+            ),
         ), patch("app.services.delivery.httpx.AsyncClient", _FarDistanceAsyncClient):
             quote = await delivery.get_delivery_quote("500 Faraway Ave, Rockford, IL")
 
         self.assertFalse(quote.ok)
         self.assertIsNotNone(quote.error)
         self.assertIn("within 30 miles", quote.error)
+        self.assertEqual(quote.stage, "delivery_radius")
+        self.assertEqual(quote.code, "delivery_out_of_range")
+
+    async def test_delivery_quote_surfaces_geocode_diagnostics(self):
+        with patch.object(delivery.settings, "google_maps_api_key", "test-key"), patch(
+            "app.services.delivery._validate_and_geocode",
+            AsyncMock(
+                return_value=delivery.DeliveryValidationResult(
+                    ok=False,
+                    error="Address not found. Please check and try again.",
+                    code="address_not_found",
+                    provider_status="ZERO_RESULTS",
+                )
+            ),
+        ):
+            quote = await delivery.get_delivery_quote("999 Missing St, Chicago, IL")
+
+        self.assertFalse(quote.ok)
+        self.assertEqual(quote.stage, "geocode_validation")
+        self.assertEqual(quote.code, "address_not_found")
+        self.assertEqual(quote.provider_status, "ZERO_RESULTS")
 
 
 if __name__ == "__main__":
