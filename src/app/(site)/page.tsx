@@ -364,7 +364,7 @@ export default async function HomePage() {
         <div className="overflow-hidden rounded-[28px] border border-white/80 bg-white">
           <iframe
             title="All in Bloom Floral Studio map"
-            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d379077.60318086424!2d-88.79021143865815!3d42.07439745469514!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x880fa5438e640395%3A0xc9a43fb3bbb9b85c!2z0KDQvtC70LvQuNC90LMg0JzQtdC00L7Rg9GBLCDQmNC70LvQuNC90L7QudGBIDYwMDA4LCDQodCo0JA!5e0!3m2!1sen!2sus!4v1770372032469!5m2!1sen!2sus"
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d184.91590065921062!2d-87.9050852153543!3d42.136281087564285!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x880fb9328ddb551b%3A0xe419f6ce282a69!2zMjI0IFMgTWlsd2F1a2VlIEF2ZSwgV2hlZWxpbmcsIElMIDYwMDkwLCDQodCo0JA!5e0!3m2!1sru!2sru!4v1777579957452!5m2!1sru!2sru"
             className="h-[280px] w-full sm:h-[360px]"
             style={{ border: 0 }}
             allowFullScreen

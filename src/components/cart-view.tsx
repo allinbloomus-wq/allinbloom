@@ -239,11 +239,6 @@ const PaymentIcon = ({ icon }: { icon: PaymentIconSpec }) => {
   const [src, setSrc] = useState(icon.src);
   const [failed, setFailed] = useState(false);
 
-  useEffect(() => {
-    setSrc(icon.src);
-    setFailed(false);
-  }, [icon.src]);
-
   if (failed) {
     return (
       <span
@@ -329,6 +324,8 @@ export default function CartView({
   const [addressSuggestionsOpen, setAddressSuggestionsOpen] = useState(false);
   const [addressSuggestionsLoading, setAddressSuggestionsLoading] = useState(false);
   const [activeAddressSuggestionIndex, setActiveAddressSuggestionIndex] = useState(-1);
+  // Keep address fields locked until interaction so browser autofill does not hijack them.
+  const [addressInputsUnlocked, setAddressInputsUnlocked] = useState(false);
   const [quote, setQuote] = useState<{
     feeCents: number;
     miles: number;
@@ -384,6 +381,10 @@ export default function CartView({
     autocompleteSessionTokenRef.current = namespace?.AutocompleteSessionToken
       ? new namespace.AutocompleteSessionToken()
       : null;
+  };
+
+  const unlockAddressInputs = () => {
+    setAddressInputsUnlocked(true);
   };
 
   const resetStructuredAddressDetails = () => {
@@ -669,13 +670,13 @@ export default function CartView({
         }
         placesApiRef.current = placesNamespace;
 
-        if (initializeLegacyAutocomplete(placesNamespace)) {
-          return;
-        }
-
         if (placesNamespace.AutocompleteSuggestion) {
           resetAutocompleteSessionToken(placesNamespace);
           setGoogleAutocompleteMode("data");
+          return;
+        }
+
+        if (initializeLegacyAutocomplete(placesNamespace)) {
           return;
         }
 
@@ -1111,7 +1112,9 @@ export default function CartView({
                 name="deliveryStreetSearch"
                 value={addressLine1}
                 onChange={(event) => handleStreetAddressChange(event.target.value)}
+                onPointerDown={unlockAddressInputs}
                 onFocus={() => {
+                  unlockAddressInputs();
                   if (googleAutocompleteMode === "data" && addressSuggestions.length > 0) {
                     setAddressSuggestionsOpen(true);
                   }
@@ -1167,9 +1170,10 @@ export default function CartView({
                   }
                 }}
                 placeholder="123 Main St"
-                autoComplete="new-password"
+                autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="words"
+                readOnly={!addressInputsUnlocked}
                 spellCheck={false}
                 data-lpignore="true"
                 data-1p-ignore="true"
@@ -1230,9 +1234,12 @@ export default function CartView({
                 name="deliveryApartmentManual"
                 value={addressLine2}
                 onChange={(event) => setAddressLine2(event.target.value)}
+                onPointerDown={unlockAddressInputs}
+                onFocus={unlockAddressInputs}
                 placeholder="Apt 2B"
-                autoComplete="new-password"
+                autoComplete="off"
                 autoCorrect="off"
+                readOnly={!addressInputsUnlocked}
                 spellCheck={false}
                 data-lpignore="true"
                 data-1p-ignore="true"
@@ -1245,9 +1252,12 @@ export default function CartView({
                 name="deliveryFloorManual"
                 value={addressFloor}
                 onChange={(event) => setAddressFloor(event.target.value)}
+                onPointerDown={unlockAddressInputs}
+                onFocus={unlockAddressInputs}
                 placeholder="5"
-                autoComplete="new-password"
+                autoComplete="off"
                 autoCorrect="off"
+                readOnly={!addressInputsUnlocked}
                 spellCheck={false}
                 data-lpignore="true"
                 data-1p-ignore="true"
@@ -1266,9 +1276,12 @@ export default function CartView({
                   setQuote(null);
                   setQuoteError(null);
                 }}
+                onPointerDown={unlockAddressInputs}
+                onFocus={unlockAddressInputs}
                 placeholder="Chicago"
-                autoComplete="new-password"
+                autoComplete="off"
                 autoCorrect="off"
+                readOnly={!addressInputsUnlocked}
                 spellCheck={false}
                 data-lpignore="true"
                 data-1p-ignore="true"
@@ -1289,9 +1302,12 @@ export default function CartView({
                   setQuote(null);
                   setQuoteError(null);
                 }}
+                onPointerDown={unlockAddressInputs}
+                onFocus={unlockAddressInputs}
                 placeholder="IL"
-                autoComplete="new-password"
+                autoComplete="off"
                 autoCorrect="off"
+                readOnly={!addressInputsUnlocked}
                 spellCheck={false}
                 data-lpignore="true"
                 data-1p-ignore="true"
@@ -1313,9 +1329,12 @@ export default function CartView({
                   setQuote(null);
                   setQuoteError(null);
                 }}
+                onPointerDown={unlockAddressInputs}
+                onFocus={unlockAddressInputs}
                 placeholder="60601"
-                autoComplete="new-password"
+                autoComplete="off"
                 inputMode="numeric"
+                readOnly={!addressInputsUnlocked}
                 data-lpignore="true"
                 data-1p-ignore="true"
                 className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
@@ -1332,9 +1351,12 @@ export default function CartView({
                 setQuote(null);
                 setQuoteError(null);
               }}
+              onPointerDown={unlockAddressInputs}
+              onFocus={unlockAddressInputs}
               placeholder={DEFAULT_COUNTRY}
-              autoComplete="new-password"
+              autoComplete="off"
               autoCorrect="off"
+              readOnly={!addressInputsUnlocked}
               spellCheck={false}
               data-lpignore="true"
               data-1p-ignore="true"
@@ -1522,7 +1544,7 @@ export default function CartView({
                 "https://api.iconify.design/fa6-brands/cc-diners-club.svg?height=18&color=%230079be",
             },
           ].map((icon) => (
-            <PaymentIcon key={icon.label} icon={icon} />
+            <PaymentIcon key={`${icon.label}:${icon.src}`} icon={icon} />
           ))}
         </div>
         <div className="flex items-center gap-3">
