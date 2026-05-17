@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   loadCheckoutFormStorage,
   saveCheckoutFormStorage,
@@ -77,7 +77,6 @@ type GoogleAutocompleteSuggestionItem = {
 type GoogleAutocompleteSuggestionRequest = {
   input: string;
   includedRegionCodes?: string[];
-  includedPrimaryTypes?: string[];
   sessionToken?: GoogleAutocompleteSessionTokenInstance;
 };
 
@@ -182,12 +181,15 @@ const buildPostalCode = (postalCode: string, postalCodeSuffix: string) => {
 };
 
 const DEFAULT_COUNTRY = "United States";
-const ADDRESS_BROWSER_AUTOCOMPLETE = "new-password";
+const ADDRESS_BROWSER_AUTOCOMPLETE = "section-all-in-bloom-checkout new-password";
 
 const suppressBrowserAddressAutocomplete = (input: HTMLInputElement | null) => {
   if (!input) return;
   input.setAttribute("autocomplete", ADDRESS_BROWSER_AUTOCOMPLETE);
 };
+
+const normalizeHtmlToken = (value: string) =>
+  value.replace(/[^a-zA-Z0-9_-]/g, "");
 
 const hasStructuredAddressDetails = ({
   line2,
@@ -311,6 +313,19 @@ export default function CartView({
 }: CartViewProps) {
   const { items, updateQuantity, removeItem } = useCart();
   const mapsKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const addressAutofillId = normalizeHtmlToken(useId());
+  const addressFieldNames = useMemo(
+    () => ({
+      street: `aib-${addressAutofillId}-a`,
+      apartment: `aib-${addressAutofillId}-b`,
+      floor: `aib-${addressAutofillId}-c`,
+      city: `aib-${addressAutofillId}-d`,
+      state: `aib-${addressAutofillId}-e`,
+      postalCode: `aib-${addressAutofillId}-f`,
+      country: `aib-${addressAutofillId}-g`,
+    }),
+    [addressAutofillId]
+  );
   const [guestEmail, setGuestEmail] = useState(() => userEmail || "");
   const [addressLine1, setAddressLine1] = useState("");
   const [addressLine2, setAddressLine2] = useState("");
@@ -768,7 +783,6 @@ export default function CartView({
         const result = await placesNamespace.AutocompleteSuggestion!.fetchAutocompleteSuggestions({
           input: trimmed,
           includedRegionCodes: ["us"],
-          includedPrimaryTypes: ["street_address", "premise", "subpremise", "route"],
           sessionToken: autocompleteSessionTokenRef.current || undefined,
         });
         if (suggestionsRequestIdRef.current !== requestId) return;
@@ -1157,37 +1171,37 @@ export default function CartView({
               tabIndex={-1}
               type="text"
               name="address-line1"
-              autoComplete={ADDRESS_BROWSER_AUTOCOMPLETE}
+              autoComplete="street-address"
             />
             <input
               tabIndex={-1}
               type="text"
               name="address-line2"
-              autoComplete={ADDRESS_BROWSER_AUTOCOMPLETE}
+              autoComplete="address-line2"
             />
             <input
               tabIndex={-1}
               type="text"
               name="address-level2"
-              autoComplete={ADDRESS_BROWSER_AUTOCOMPLETE}
+              autoComplete="address-level2"
             />
             <input
               tabIndex={-1}
               type="text"
               name="address-level1"
-              autoComplete={ADDRESS_BROWSER_AUTOCOMPLETE}
+              autoComplete="address-level1"
             />
             <input
               tabIndex={-1}
               type="text"
               name="postal-code"
-              autoComplete={ADDRESS_BROWSER_AUTOCOMPLETE}
+              autoComplete="postal-code"
             />
             <input
               tabIndex={-1}
               type="text"
               name="country"
-              autoComplete={ADDRESS_BROWSER_AUTOCOMPLETE}
+              autoComplete="country"
             />
           </div>
           <label className="flex flex-col gap-2 text-sm text-stone-700">
@@ -1195,7 +1209,7 @@ export default function CartView({
             <div className="relative">
               <input
                 ref={inputRef}
-                name="deliveryStreetSearch"
+                name={addressFieldNames.street}
                 value={addressLine1}
                 onChange={(event) => handleStreetAddressChange(event.target.value)}
                 onFocus={() => {
@@ -1315,7 +1329,7 @@ export default function CartView({
             <label className="flex flex-col gap-2 text-sm text-stone-700">
               <span className="min-h-[2.5rem]">Apartment / Suite (optional)</span>
               <input
-                name="deliveryApartmentManual"
+                name={addressFieldNames.apartment}
                 value={addressLine2}
                 onChange={(event) => setAddressLine2(event.target.value)}
                 placeholder="Apt 2B"
@@ -1330,7 +1344,7 @@ export default function CartView({
             <label className="flex flex-col gap-2 text-sm text-stone-700">
               <span className="min-h-[2.5rem]">Floor (optional)</span>
               <input
-                name="deliveryFloorManual"
+                name={addressFieldNames.floor}
                 value={addressFloor}
                 onChange={(event) => setAddressFloor(event.target.value)}
                 placeholder="5"
@@ -1347,7 +1361,7 @@ export default function CartView({
             <label className="flex flex-col gap-2 text-sm text-stone-700">
               City
               <input
-                name="deliveryCityManual"
+                name={addressFieldNames.city}
                 value={addressCity}
                 onChange={(event) => {
                   setAddressCity(event.target.value);
@@ -1366,7 +1380,7 @@ export default function CartView({
             <label className="flex flex-col gap-2 text-sm text-stone-700">
               State
               <input
-                name="deliveryStateManual"
+                name={addressFieldNames.state}
                 value={addressState}
                 onChange={(event) => {
                   const next = event.target.value
@@ -1390,7 +1404,7 @@ export default function CartView({
             <label className="flex flex-col gap-2 text-sm text-stone-700">
               ZIP code
               <input
-                name="deliveryPostalCodeManual"
+                name={addressFieldNames.postalCode}
                 value={postalCode}
                 onChange={(event) => {
                   const next = event.target.value
@@ -1413,7 +1427,7 @@ export default function CartView({
           <label className="flex flex-col gap-2 text-sm text-stone-700">
             Country
             <input
-              name="deliveryCountryManual"
+              name={addressFieldNames.country}
               value={country}
               onChange={(event) => {
                 setCountry(event.target.value);
