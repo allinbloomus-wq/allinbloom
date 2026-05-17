@@ -191,6 +191,15 @@ const suppressBrowserAddressAutocomplete = (input: HTMLInputElement | null) => {
 const normalizeHtmlToken = (value: string) =>
   value.replace(/[^a-zA-Z0-9_-]/g, "");
 
+const warnGooglePlacesFallback = (message: string, error?: unknown) => {
+  if (typeof console === "undefined") return;
+  if (error) {
+    console.warn(`[All in Bloom] ${message}`, error);
+    return;
+  }
+  console.warn(`[All in Bloom] ${message}`);
+};
+
 const hasStructuredAddressDetails = ({
   line2,
   floor,
@@ -690,12 +699,6 @@ export default function CartView({
         }
         placesApiRef.current = placesNamespace;
 
-        if (placesNamespace.AutocompleteSuggestion) {
-          resetAutocompleteSessionToken(placesNamespace);
-          setGoogleAutocompleteMode("data");
-          return;
-        }
-
         if (placesNamespace.Autocomplete) {
           if (inputRef.current) {
             if (initializeLegacyAutocomplete(placesNamespace)) {
@@ -709,9 +712,19 @@ export default function CartView({
           return;
         }
 
+        if (placesNamespace.AutocompleteSuggestion) {
+          resetAutocompleteSessionToken(placesNamespace);
+          setGoogleAutocompleteMode("data");
+          return;
+        }
+
         setGoogleAutocompleteMode("none");
       })
-      .catch(() => {
+      .catch((error) => {
+        warnGooglePlacesFallback(
+          "Google Maps JavaScript API failed to load. Check Maps JavaScript API, Places API, billing, and HTTP referrer restrictions. Manual address entry remains available.",
+          error
+        );
         setGoogleAutocompleteMode("none");
       });
 
@@ -796,13 +809,20 @@ export default function CartView({
         setAddressSuggestionsOpen(
           document.activeElement === inputRef.current && suggestions.length > 0
         );
-      } catch {
+      } catch (error) {
         if (suggestionsRequestIdRef.current !== requestId) return;
         setAddressSuggestions([]);
         setAddressSuggestionsOpen(false);
+        warnGooglePlacesFallback(
+          "Google Places Data API autocomplete failed. If this is a 403, enable Places API (New) for this key or use the legacy Places library fallback. Manual address entry remains available.",
+          error
+        );
         if (placesNamespace.Autocomplete && inputRef.current && !autocompleteRef.current) {
           initializeLegacyAutocomplete(placesNamespace);
+          setGoogleAutocompleteMode("legacy");
+          return;
         }
+        setGoogleAutocompleteMode("none");
       } finally {
         if (suggestionsRequestIdRef.current === requestId) {
           setAddressSuggestionsLoading(false);
