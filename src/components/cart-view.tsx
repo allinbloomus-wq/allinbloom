@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   loadCheckoutFormStorage,
   saveCheckoutFormStorage,
@@ -46,8 +46,15 @@ type GooglePlaceDetailsResult = {
   fetchFields: (options: { fields: string[] }) => Promise<unknown>;
 };
 
+type GoogleMapsEventListener = {
+  remove: () => void;
+};
+
 type GoogleAutocompleteInstance = {
-  addListener: (eventName: "place_changed", handler: () => void) => void;
+  addListener: (
+    eventName: "place_changed",
+    handler: () => void
+  ) => GoogleMapsEventListener;
   getPlace: () => GooglePlaceResult | undefined;
 };
 
@@ -175,6 +182,12 @@ const buildPostalCode = (postalCode: string, postalCodeSuffix: string) => {
 };
 
 const DEFAULT_COUNTRY = "United States";
+const ADDRESS_BROWSER_AUTOCOMPLETE = "new-password";
+
+const suppressBrowserAddressAutocomplete = (input: HTMLInputElement | null) => {
+  if (!input) return;
+  input.setAttribute("autocomplete", ADDRESS_BROWSER_AUTOCOMPLETE);
+};
 
 const hasStructuredAddressDetails = ({
   line2,
@@ -310,9 +323,11 @@ export default function CartView({
   const [phoneLocal, setPhoneLocal] = useState(() => toLocalPhoneDigits(userPhone));
   const inputRef = useRef<HTMLInputElement | null>(null);
   const autocompleteRef = useRef<GoogleAutocompleteInstance | null>(null);
+  const autocompleteListenerRef = useRef<GoogleMapsEventListener | null>(null);
   const placesApiRef = useRef<GoogleMapsPlacesNamespace | null>(null);
   const autocompleteSessionTokenRef = useRef<GoogleAutocompleteSessionTokenInstance | null>(null);
   const suggestionsRequestIdRef = useRef(0);
+  const quoteRequestIdRef = useRef(0);
   const skipNextSuggestionFetchRef = useRef(false);
   const closeSuggestionsTimeoutRef = useRef<number | null>(null);
   const [googleAutocompleteMode, setGoogleAutocompleteMode] = useState<
@@ -324,8 +339,6 @@ export default function CartView({
   const [addressSuggestionsOpen, setAddressSuggestionsOpen] = useState(false);
   const [addressSuggestionsLoading, setAddressSuggestionsLoading] = useState(false);
   const [activeAddressSuggestionIndex, setActiveAddressSuggestionIndex] = useState(-1);
-  // Keep address fields locked until interaction so browser autofill does not hijack them.
-  const [addressInputsUnlocked, setAddressInputsUnlocked] = useState(false);
   const [quote, setQuote] = useState<{
     feeCents: number;
     miles: number;
@@ -368,24 +381,22 @@ export default function CartView({
     Boolean(addressState.trim()) &&
     Boolean(postalCode.trim());
 
-  const closeAddressSuggestions = (options?: { clearItems?: boolean }) => {
+  const closeAddressSuggestions = useCallback((options?: { clearItems?: boolean }) => {
     setAddressSuggestionsOpen(false);
     setActiveAddressSuggestionIndex(-1);
     if (options?.clearItems !== false) {
       setAddressSuggestions([]);
     }
-  };
+  }, []);
 
-  const resetAutocompleteSessionToken = (placesNamespace?: GoogleMapsPlacesNamespace | null) => {
+  const resetAutocompleteSessionToken = useCallback((
+    placesNamespace?: GoogleMapsPlacesNamespace | null
+  ) => {
     const namespace = placesNamespace || placesApiRef.current;
     autocompleteSessionTokenRef.current = namespace?.AutocompleteSessionToken
       ? new namespace.AutocompleteSessionToken()
       : null;
-  };
-
-  const unlockAddressInputs = () => {
-    setAddressInputsUnlocked(true);
-  };
+  }, []);
 
   const resetStructuredAddressDetails = () => {
     setAddressLine2("");
@@ -424,7 +435,7 @@ export default function CartView({
     }
   };
 
-  const applyParsedAddress = (parsed: ParsedGoogleAddress) => {
+  const applyParsedAddress = useCallback((parsed: ParsedGoogleAddress) => {
     if (!parsed.hasStreetNumber || !parsed.hasRoute || !parsed.line1.trim()) {
       setQuote(null);
       setQuoteError("Please choose a full street address with a house number.");
@@ -445,9 +456,11 @@ export default function CartView({
     closeAddressSuggestions();
     resetAutocompleteSessionToken();
     return true;
-  };
+  }, [closeAddressSuggestions, resetAutocompleteSessionToken]);
 
-  const applySuggestionPlace = async (suggestion: GoogleAutocompleteSuggestionItem) => {
+  const applySuggestionPlace = useCallback(async (
+    suggestion: GoogleAutocompleteSuggestionItem
+  ) => {
     const prediction = suggestion.placePrediction;
     if (!prediction) return false;
     const place = prediction.toPlace();
@@ -466,7 +479,51 @@ export default function CartView({
         getShortText: (component) => component?.shortText || "",
       })
     );
-  };
+  }, [applyParsedAddress]);
+
+  const applyLegacyPlace = useCallback((place: GooglePlaceResult | undefined) => {
+    if (!place) return false;
+    return applyParsedAddress(
+      parseGoogleAddressComponents({
+        components: place.address_components || [],
+        fallbackLine1: place.name || place.formatted_address || "",
+        getLongText: (component) => component?.long_name || "",
+        getShortText: (component) => component?.short_name || "",
+      })
+    );
+  }, [applyParsedAddress]);
+
+  const initializeLegacyAutocomplete = useCallback((
+    placesNamespace: GoogleMapsPlacesNamespace | null
+  ) => {
+    const input = inputRef.current;
+    if (!input || !placesNamespace?.Autocomplete || autocompleteRef.current) {
+      return false;
+    }
+
+    try {
+      autocompleteRef.current = new placesNamespace.Autocomplete(input, {
+        types: ["address"],
+        componentRestrictions: { country: "us" },
+        fields: ["formatted_address", "address_components", "name"],
+      });
+      suppressBrowserAddressAutocomplete(input);
+      autocompleteListenerRef.current = autocompleteRef.current.addListener(
+        "place_changed",
+        () => {
+          applyLegacyPlace(autocompleteRef.current?.getPlace());
+        }
+      );
+    } catch {
+      autocompleteRef.current = null;
+      autocompleteListenerRef.current = null;
+      return false;
+    }
+
+    setGoogleAutocompleteMode("legacy");
+    closeAddressSuggestions();
+    return true;
+  }, [applyLegacyPlace, closeAddressSuggestions]);
 
   useEffect(() => {
     const stored = loadCheckoutFormStorage();
@@ -597,58 +654,6 @@ export default function CartView({
         document.head.appendChild(script);
       });
 
-    const applyLegacyPlace = (place: GooglePlaceResult | undefined) => {
-      if (!place) return false;
-      const parsed = parseGoogleAddressComponents({
-        components: place.address_components || [],
-        fallbackLine1: place.name || place.formatted_address || "",
-        getLongText: (component) => component?.long_name || "",
-        getShortText: (component) => component?.short_name || "",
-      });
-      if (!parsed.hasStreetNumber || !parsed.hasRoute || !parsed.line1.trim()) {
-        setQuote(null);
-        setQuoteError("Please choose a full street address with a house number.");
-        closeAddressSuggestions();
-        resetAutocompleteSessionToken();
-        return false;
-      }
-
-      skipNextSuggestionFetchRef.current = true;
-      setAddressLine1(parsed.line1);
-      setAddressLine2(parsed.line2);
-      setAddressCity(parsed.city);
-      setAddressState(parsed.state);
-      setPostalCode(parsed.postalCode);
-      setCountry(parsed.country || DEFAULT_COUNTRY);
-      setQuote(null);
-      setQuoteError(null);
-      closeAddressSuggestions();
-      resetAutocompleteSessionToken();
-      return true;
-    };
-
-    const initializeLegacyAutocomplete = (placesNamespace: GoogleMapsPlacesNamespace) => {
-      if (!inputRef.current || !placesNamespace.Autocomplete || autocompleteRef.current) {
-        return false;
-      }
-      try {
-        autocompleteRef.current = new placesNamespace.Autocomplete(inputRef.current, {
-          types: ["address"],
-          componentRestrictions: { country: "us" },
-          fields: ["formatted_address", "address_components", "name"],
-        });
-      } catch {
-        autocompleteRef.current = null;
-        return false;
-      }
-      autocompleteRef.current.addListener("place_changed", () => {
-        applyLegacyPlace(autocompleteRef.current?.getPlace());
-      });
-      setGoogleAutocompleteMode("legacy");
-      closeAddressSuggestions();
-      return true;
-    };
-
     loadGoogleMaps()
       .then(async () => {
         if (cancelled) return;
@@ -676,7 +681,16 @@ export default function CartView({
           return;
         }
 
-        if (initializeLegacyAutocomplete(placesNamespace)) {
+        if (placesNamespace.Autocomplete) {
+          if (inputRef.current) {
+            if (initializeLegacyAutocomplete(placesNamespace)) {
+              return;
+            }
+            setGoogleAutocompleteMode("none");
+            return;
+          }
+          setGoogleAutocompleteMode("legacy");
+          closeAddressSuggestions();
           return;
         }
 
@@ -692,8 +706,36 @@ export default function CartView({
         window.clearTimeout(closeSuggestionsTimeoutRef.current);
         closeSuggestionsTimeoutRef.current = null;
       }
+      autocompleteListenerRef.current?.remove();
+      autocompleteListenerRef.current = null;
+      autocompleteRef.current = null;
     };
-  }, [mapsKey]);
+  }, [
+    closeAddressSuggestions,
+    initializeLegacyAutocomplete,
+    mapsKey,
+    resetAutocompleteSessionToken,
+  ]);
+
+  useEffect(() => {
+    if (
+      googleAutocompleteMode !== "legacy" ||
+      autocompleteRef.current ||
+      !inputRef.current
+    ) {
+      return;
+    }
+
+    const placesNamespace = placesApiRef.current;
+    if (!placesNamespace?.Autocomplete) {
+      setGoogleAutocompleteMode("none");
+      return;
+    }
+
+    if (!initializeLegacyAutocomplete(placesNamespace)) {
+      setGoogleAutocompleteMode("none");
+    }
+  }, [googleAutocompleteMode, initializeLegacyAutocomplete, items.length]);
 
   useEffect(() => {
     if (googleAutocompleteMode !== "data") {
@@ -744,6 +786,9 @@ export default function CartView({
         if (suggestionsRequestIdRef.current !== requestId) return;
         setAddressSuggestions([]);
         setAddressSuggestionsOpen(false);
+        if (placesNamespace.Autocomplete && inputRef.current && !autocompleteRef.current) {
+          initializeLegacyAutocomplete(placesNamespace);
+        }
       } finally {
         if (suggestionsRequestIdRef.current === requestId) {
           setAddressSuggestionsLoading(false);
@@ -754,7 +799,13 @@ export default function CartView({
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [addressLine1, googleAutocompleteMode]);
+  }, [
+    addressLine1,
+    closeAddressSuggestions,
+    googleAutocompleteMode,
+    initializeLegacyAutocomplete,
+    resetAutocompleteSessionToken,
+  ]);
 
   const lineItems = useMemo(() => {
     return items.map((item) => {
@@ -868,6 +919,8 @@ export default function CartView({
       return;
     }
 
+    const requestId = quoteRequestIdRef.current + 1;
+    quoteRequestIdRef.current = requestId;
     setQuoteLoading(true);
     setQuoteError(null);
 
@@ -880,6 +933,7 @@ export default function CartView({
       });
 
       const payload = await response.json().catch(() => ({}));
+      if (quoteRequestIdRef.current !== requestId) return;
 
       if (!response.ok) {
         setQuote(null);
@@ -889,7 +943,6 @@ export default function CartView({
             payload?.message ||
             "Unable to calculate delivery."
         );
-        setQuoteLoading(false);
         return;
       }
 
@@ -899,11 +952,14 @@ export default function CartView({
         distanceText: payload.distanceText,
         address: trimmed,
       });
-      setQuoteLoading(false);
     } catch {
+      if (quoteRequestIdRef.current !== requestId) return;
       setQuote(null);
       setQuoteError("Unable to calculate delivery.");
-      setQuoteLoading(false);
+    } finally {
+      if (quoteRequestIdRef.current === requestId) {
+        setQuoteLoading(false);
+      }
     }
   };
 
@@ -1097,12 +1153,42 @@ export default function CartView({
             aria-hidden="true"
             className="absolute left-[-9999px] top-auto h-px w-px overflow-hidden opacity-0"
           >
-            <input tabIndex={-1} type="text" name="address-line1" autoComplete="street-address" />
-            <input tabIndex={-1} type="text" name="address-line2" autoComplete="address-line2" />
-            <input tabIndex={-1} type="text" name="address-level2" autoComplete="address-level2" />
-            <input tabIndex={-1} type="text" name="address-level1" autoComplete="address-level1" />
-            <input tabIndex={-1} type="text" name="postal-code" autoComplete="postal-code" />
-            <input tabIndex={-1} type="text" name="country" autoComplete="country" />
+            <input
+              tabIndex={-1}
+              type="text"
+              name="address-line1"
+              autoComplete={ADDRESS_BROWSER_AUTOCOMPLETE}
+            />
+            <input
+              tabIndex={-1}
+              type="text"
+              name="address-line2"
+              autoComplete={ADDRESS_BROWSER_AUTOCOMPLETE}
+            />
+            <input
+              tabIndex={-1}
+              type="text"
+              name="address-level2"
+              autoComplete={ADDRESS_BROWSER_AUTOCOMPLETE}
+            />
+            <input
+              tabIndex={-1}
+              type="text"
+              name="address-level1"
+              autoComplete={ADDRESS_BROWSER_AUTOCOMPLETE}
+            />
+            <input
+              tabIndex={-1}
+              type="text"
+              name="postal-code"
+              autoComplete={ADDRESS_BROWSER_AUTOCOMPLETE}
+            />
+            <input
+              tabIndex={-1}
+              type="text"
+              name="country"
+              autoComplete={ADDRESS_BROWSER_AUTOCOMPLETE}
+            />
           </div>
           <label className="flex flex-col gap-2 text-sm text-stone-700">
             Street address
@@ -1112,9 +1198,8 @@ export default function CartView({
                 name="deliveryStreetSearch"
                 value={addressLine1}
                 onChange={(event) => handleStreetAddressChange(event.target.value)}
-                onPointerDown={unlockAddressInputs}
                 onFocus={() => {
-                  unlockAddressInputs();
+                  suppressBrowserAddressAutocomplete(inputRef.current);
                   if (googleAutocompleteMode === "data" && addressSuggestions.length > 0) {
                     setAddressSuggestionsOpen(true);
                   }
@@ -1170,10 +1255,9 @@ export default function CartView({
                   }
                 }}
                 placeholder="123 Main St"
-                autoComplete="off"
+                autoComplete={ADDRESS_BROWSER_AUTOCOMPLETE}
                 autoCorrect="off"
                 autoCapitalize="words"
-                readOnly={!addressInputsUnlocked}
                 spellCheck={false}
                 data-lpignore="true"
                 data-1p-ignore="true"
@@ -1234,12 +1318,9 @@ export default function CartView({
                 name="deliveryApartmentManual"
                 value={addressLine2}
                 onChange={(event) => setAddressLine2(event.target.value)}
-                onPointerDown={unlockAddressInputs}
-                onFocus={unlockAddressInputs}
                 placeholder="Apt 2B"
-                autoComplete="off"
+                autoComplete={ADDRESS_BROWSER_AUTOCOMPLETE}
                 autoCorrect="off"
-                readOnly={!addressInputsUnlocked}
                 spellCheck={false}
                 data-lpignore="true"
                 data-1p-ignore="true"
@@ -1252,12 +1333,9 @@ export default function CartView({
                 name="deliveryFloorManual"
                 value={addressFloor}
                 onChange={(event) => setAddressFloor(event.target.value)}
-                onPointerDown={unlockAddressInputs}
-                onFocus={unlockAddressInputs}
                 placeholder="5"
-                autoComplete="off"
+                autoComplete={ADDRESS_BROWSER_AUTOCOMPLETE}
                 autoCorrect="off"
-                readOnly={!addressInputsUnlocked}
                 spellCheck={false}
                 data-lpignore="true"
                 data-1p-ignore="true"
@@ -1276,12 +1354,9 @@ export default function CartView({
                   setQuote(null);
                   setQuoteError(null);
                 }}
-                onPointerDown={unlockAddressInputs}
-                onFocus={unlockAddressInputs}
                 placeholder="Chicago"
-                autoComplete="off"
+                autoComplete={ADDRESS_BROWSER_AUTOCOMPLETE}
                 autoCorrect="off"
-                readOnly={!addressInputsUnlocked}
                 spellCheck={false}
                 data-lpignore="true"
                 data-1p-ignore="true"
@@ -1302,12 +1377,9 @@ export default function CartView({
                   setQuote(null);
                   setQuoteError(null);
                 }}
-                onPointerDown={unlockAddressInputs}
-                onFocus={unlockAddressInputs}
                 placeholder="IL"
-                autoComplete="off"
+                autoComplete={ADDRESS_BROWSER_AUTOCOMPLETE}
                 autoCorrect="off"
-                readOnly={!addressInputsUnlocked}
                 spellCheck={false}
                 data-lpignore="true"
                 data-1p-ignore="true"
@@ -1329,12 +1401,9 @@ export default function CartView({
                   setQuote(null);
                   setQuoteError(null);
                 }}
-                onPointerDown={unlockAddressInputs}
-                onFocus={unlockAddressInputs}
                 placeholder="60601"
-                autoComplete="off"
+                autoComplete={ADDRESS_BROWSER_AUTOCOMPLETE}
                 inputMode="numeric"
-                readOnly={!addressInputsUnlocked}
                 data-lpignore="true"
                 data-1p-ignore="true"
                 className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
@@ -1351,12 +1420,9 @@ export default function CartView({
                 setQuote(null);
                 setQuoteError(null);
               }}
-              onPointerDown={unlockAddressInputs}
-              onFocus={unlockAddressInputs}
               placeholder={DEFAULT_COUNTRY}
-              autoComplete="off"
+              autoComplete={ADDRESS_BROWSER_AUTOCOMPLETE}
               autoCorrect="off"
-              readOnly={!addressInputsUnlocked}
               spellCheck={false}
               data-lpignore="true"
               data-1p-ignore="true"
