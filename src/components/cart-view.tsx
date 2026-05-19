@@ -346,7 +346,10 @@ export default function CartView({
   const [orderComment, setOrderComment] = useState("");
   const [phoneLocal, setPhoneLocal] = useState(() => toLocalPhoneDigits(userPhone));
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const [addressInputElement, setAddressInputElement] =
+    useState<HTMLInputElement | null>(null);
   const autocompleteRef = useRef<GoogleAutocompleteInstance | null>(null);
+  const autocompleteInputRef = useRef<HTMLInputElement | null>(null);
   const autocompleteListenerRef = useRef<GoogleMapsEventListener | null>(null);
   const placesApiRef = useRef<GoogleMapsPlacesNamespace | null>(null);
   const autocompleteSessionTokenRef = useRef<GoogleAutocompleteSessionTokenInstance | null>(null);
@@ -404,6 +407,18 @@ export default function CartView({
     Boolean(addressCity.trim()) &&
     Boolean(addressState.trim()) &&
     Boolean(postalCode.trim());
+
+  const clearLegacyAutocomplete = useCallback(() => {
+    autocompleteListenerRef.current?.remove();
+    autocompleteListenerRef.current = null;
+    autocompleteRef.current = null;
+    autocompleteInputRef.current = null;
+  }, []);
+
+  const setStreetAddressInputRef = useCallback((input: HTMLInputElement | null) => {
+    inputRef.current = input;
+    setAddressInputElement(input);
+  }, []);
 
   const closeAddressSuggestions = useCallback((options?: { clearItems?: boolean }) => {
     setAddressSuggestionsOpen(false);
@@ -521,8 +536,18 @@ export default function CartView({
     placesNamespace: GoogleMapsPlacesNamespace | null
   ) => {
     const input = inputRef.current;
-    if (!input || !placesNamespace?.Autocomplete || autocompleteRef.current) {
+    if (!input || !placesNamespace?.Autocomplete) {
       return false;
+    }
+
+    if (autocompleteRef.current) {
+      if (autocompleteInputRef.current === input) {
+        suppressBrowserAddressAutocomplete(input);
+        setGoogleAutocompleteMode("legacy");
+        closeAddressSuggestions();
+        return true;
+      }
+      clearLegacyAutocomplete();
     }
 
     try {
@@ -531,6 +556,7 @@ export default function CartView({
         componentRestrictions: { country: "us" },
         fields: ["formatted_address", "address_components", "name"],
       });
+      autocompleteInputRef.current = input;
       suppressBrowserAddressAutocomplete(input);
       autocompleteListenerRef.current = autocompleteRef.current.addListener(
         "place_changed",
@@ -539,15 +565,14 @@ export default function CartView({
         }
       );
     } catch {
-      autocompleteRef.current = null;
-      autocompleteListenerRef.current = null;
+      clearLegacyAutocomplete();
       return false;
     }
 
     setGoogleAutocompleteMode("legacy");
     closeAddressSuggestions();
     return true;
-  }, [applyLegacyPlace, closeAddressSuggestions]);
+  }, [applyLegacyPlace, clearLegacyAutocomplete, closeAddressSuggestions]);
 
   useEffect(() => {
     const stored = loadCheckoutFormStorage();
@@ -612,6 +637,11 @@ export default function CartView({
       setQuoteError(null);
     }
   }, [addressForQuote, quote]);
+
+  useEffect(() => {
+    if (addressInputElement || !autocompleteRef.current) return;
+    clearLegacyAutocomplete();
+  }, [addressInputElement, clearLegacyAutocomplete]);
 
   useEffect(() => {
     if (!mapsKey) return;
@@ -734,11 +764,10 @@ export default function CartView({
         window.clearTimeout(closeSuggestionsTimeoutRef.current);
         closeSuggestionsTimeoutRef.current = null;
       }
-      autocompleteListenerRef.current?.remove();
-      autocompleteListenerRef.current = null;
-      autocompleteRef.current = null;
+      clearLegacyAutocomplete();
     };
   }, [
+    clearLegacyAutocomplete,
     closeAddressSuggestions,
     initializeLegacyAutocomplete,
     mapsKey,
@@ -748,8 +777,7 @@ export default function CartView({
   useEffect(() => {
     if (
       googleAutocompleteMode !== "legacy" ||
-      autocompleteRef.current ||
-      !inputRef.current
+      !addressInputElement
     ) {
       return;
     }
@@ -763,7 +791,12 @@ export default function CartView({
     if (!initializeLegacyAutocomplete(placesNamespace)) {
       setGoogleAutocompleteMode("none");
     }
-  }, [googleAutocompleteMode, initializeLegacyAutocomplete, items.length]);
+  }, [
+    addressInputElement,
+    googleAutocompleteMode,
+    initializeLegacyAutocomplete,
+    items.length,
+  ]);
 
   useEffect(() => {
     if (googleAutocompleteMode !== "data") {
@@ -1228,12 +1261,20 @@ export default function CartView({
             Street address
             <div className="relative">
               <input
-                ref={inputRef}
+                ref={setStreetAddressInputRef}
                 name={addressFieldNames.street}
                 value={addressLine1}
                 onChange={(event) => handleStreetAddressChange(event.target.value)}
                 onFocus={() => {
+                  if (closeSuggestionsTimeoutRef.current !== null) {
+                    window.clearTimeout(closeSuggestionsTimeoutRef.current);
+                    closeSuggestionsTimeoutRef.current = null;
+                  }
                   suppressBrowserAddressAutocomplete(inputRef.current);
+                  const placesNamespace = placesApiRef.current;
+                  if (placesNamespace?.Autocomplete) {
+                    initializeLegacyAutocomplete(placesNamespace);
+                  }
                   if (googleAutocompleteMode === "data" && addressSuggestions.length > 0) {
                     setAddressSuggestionsOpen(true);
                   }
