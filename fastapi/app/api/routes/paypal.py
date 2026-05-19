@@ -36,7 +36,6 @@ from app.services.webhook_events import (
     mark_webhook_event_processed,
 )
 
-
 router = APIRouter(prefix="/api/paypal", tags=["paypal"])
 
 
@@ -88,9 +87,7 @@ def _order_email(order: Order) -> str:
     return (order.email or "").strip().lower()
 
 
-def _is_order_access_allowed(
-    order: Order, *, user, cancel_token: str | None
-) -> bool:
+def _is_order_access_allowed(order: Order, *, user, cancel_token: str | None) -> bool:
     order_email = _order_email(order)
     if not order_email:
         return False
@@ -123,7 +120,7 @@ def _set_order_failed(
 ) -> None:
     db.execute(
         update(Order)
-        .where(Order.id == order.id, Order.status != OrderStatus.PAID)
+        .where(Order.id == order.id, Order.status == OrderStatus.PENDING)
         .values(
             **payment_failure_values(
                 diagnostics,
@@ -135,7 +132,9 @@ def _set_order_failed(
     db.commit()
 
 
-def _find_order_for_paypal(db: Session, *, order_id: str | None, paypal_order_id: str | None) -> Order | None:
+def _find_order_for_paypal(
+    db: Session, *, order_id: str | None, paypal_order_id: str | None
+) -> Order | None:
     order = _load_order_by_id(db, order_id)
     if order:
         return order
@@ -153,7 +152,9 @@ def _find_order_for_paypal(db: Session, *, order_id: str | None, paypal_order_id
     )
 
 
-def _resolve_paypal_order_id_from_event(event: dict[str, Any], event_type: str) -> str | None:
+def _resolve_paypal_order_id_from_event(
+    event: dict[str, Any], event_type: str
+) -> str | None:
     resource = event.get("resource")
     if not isinstance(resource, dict):
         return None
@@ -249,7 +250,9 @@ async def capture_paypal_order(
         raise HTTPException(status_code=400, detail="PayPal order id mismatch.")
     if payload.checkout_order_id and payload.checkout_order_id != order.id:
         raise HTTPException(status_code=404, detail="Order not found.")
-    if not _is_order_access_allowed(order, user=user, cancel_token=payload.cancel_token):
+    if not _is_order_access_allowed(
+        order, user=user, cancel_token=payload.cancel_token
+    ):
         log_critical_event(
             domain="payment",
             event="paypal_capture_unauthorized",
@@ -315,9 +318,11 @@ async def capture_paypal_order(
                         db,
                         order=order,
                         paypal_order_id=paypal_order_id,
-                        capture_id=metadata.get("capture_id")
-                        if isinstance(metadata.get("capture_id"), str)
-                        else None,
+                        capture_id=(
+                            metadata.get("capture_id")
+                            if isinstance(metadata.get("capture_id"), str)
+                            else None
+                        ),
                         diagnostics=build_exception_failure_diagnostics(
                             stage="paypal_capture",
                             code="paypal_capture_failed",
@@ -335,7 +340,9 @@ async def capture_paypal_order(
                 amount_cents = metadata.get("amount_cents")
                 currency = metadata.get("currency")
             else:
-                raise HTTPException(status_code=502, detail="Unable to capture PayPal order.")
+                raise HTTPException(
+                    status_code=502, detail="Unable to capture PayPal order."
+                )
 
         metadata = paypal_extract_order_metadata(order_payload)
         status = metadata.get("status") or ""
@@ -370,7 +377,9 @@ async def capture_paypal_order(
             )
             raise HTTPException(status_code=400, detail="Order currency mismatch.")
 
-    resolved_status, capture_id = resolve_order_status_from_paypal_order(order, order_payload)
+    resolved_status, capture_id = resolve_order_status_from_paypal_order(
+        order, order_payload
+    )
     if order.status == OrderStatus.PAID:
         if not order.paypal_order_id:
             order.paypal_order_id = paypal_order_id
@@ -381,7 +390,7 @@ async def capture_paypal_order(
     if resolved_status == OrderStatus.PAID:
         updated = db.execute(
             update(Order)
-            .where(Order.id == order.id, Order.status != OrderStatus.PAID)
+            .where(Order.id == order.id, Order.status == OrderStatus.PENDING)
             .values(
                 **payment_success_values(
                     paypal_order_id=paypal_order_id,
@@ -525,7 +534,11 @@ async def paypal_webhook(request: Request, db: Session = Depends(get_db)):
         else:
             order_payload = paypal_get_order(paypal_order_id)
     except PayPalApiError as exc:
-        if event_type == "CHECKOUT.ORDER.APPROVED" and exc.status_code is not None and 400 <= exc.status_code < 500:
+        if (
+            event_type == "CHECKOUT.ORDER.APPROVED"
+            and exc.status_code is not None
+            and 400 <= exc.status_code < 500
+        ):
             try:
                 order_payload = paypal_get_order(paypal_order_id)
             except PayPalApiError as fetch_exc:
@@ -541,7 +554,9 @@ async def paypal_webhook(request: Request, db: Session = Depends(get_db)):
                     },
                     exc=fetch_exc,
                 )
-                raise HTTPException(status_code=502, detail="Unable to process PayPal webhook.")
+                raise HTTPException(
+                    status_code=502, detail="Unable to process PayPal webhook."
+                )
         else:
             log_critical_event(
                 domain="payment",
@@ -555,7 +570,9 @@ async def paypal_webhook(request: Request, db: Session = Depends(get_db)):
                 },
                 exc=exc,
             )
-            raise HTTPException(status_code=502, detail="Unable to process PayPal webhook.")
+            raise HTTPException(
+                status_code=502, detail="Unable to process PayPal webhook."
+            )
 
     metadata = paypal_extract_order_metadata(order_payload)
     custom_id = metadata.get("custom_id")
@@ -619,7 +636,9 @@ async def paypal_webhook(request: Request, db: Session = Depends(get_db)):
         mark_webhook_event_processed(db, provider="paypal", event_id=event_id)
         return {"received": True}
 
-    resolved_status, capture_id = resolve_order_status_from_paypal_order(order, order_payload)
+    resolved_status, capture_id = resolve_order_status_from_paypal_order(
+        order, order_payload
+    )
     if resolved_status == OrderStatus.PAID:
         updated = db.execute(
             update(Order)
@@ -649,7 +668,7 @@ async def paypal_webhook(request: Request, db: Session = Depends(get_db)):
     elif resolved_status == OrderStatus.FAILED:
         db.execute(
             update(Order)
-            .where(Order.id == order.id, Order.status != OrderStatus.PAID)
+            .where(Order.id == order.id, Order.status == OrderStatus.PENDING)
             .values(
                 **payment_failure_values(
                     build_paypal_failure_diagnostics(

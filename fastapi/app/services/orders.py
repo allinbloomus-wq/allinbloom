@@ -27,7 +27,6 @@ from app.services.paypal import (
 )
 from app.utils.admin_orders import get_day_range, get_week_range
 
-
 PENDING_EXPIRATION_HOURS = 24
 PENDING_WITHOUT_SESSION_EXPIRATION_MINUTES = 10
 STRIPE_CHECKOUT_SESSION_EXPIRATION_SECONDS = 30 * 60
@@ -122,28 +121,10 @@ def resolve_order_status_from_session(
 
 def expire_pending_orders(db: Session) -> None:
     now = datetime.now(timezone.utc)
-    cutoff_with_session = now - timedelta(hours=PENDING_EXPIRATION_HOURS)
     cutoff_without_session = now - timedelta(
         minutes=PENDING_WITHOUT_SESSION_EXPIRATION_MINUTES
     )
 
-    db.execute(
-        update(Order)
-        .where(
-            Order.status == OrderStatus.PENDING,
-            or_(
-                Order.stripe_session_id.is_not(None),
-                Order.paypal_order_id.is_not(None),
-            ),
-            Order.is_deleted.is_(False),
-            Order.created_at < cutoff_with_session,
-        )
-        .values(
-            **payment_failure_values(
-                build_timeout_failure_diagnostics(has_provider_session=True)
-            )
-        )
-    )
     db.execute(
         update(Order)
         .where(
@@ -224,9 +205,12 @@ def resolve_order_status_from_paypal_order(
         "FAILED",
     }:
         return OrderStatus.FAILED, capture_id
-    if status in {"CREATED", "SAVED", "PAYER_ACTION_REQUIRED", "APPROVED"} and _is_order_older_than(
-        order, seconds=PAYPAL_CHECKOUT_EXPIRATION_SECONDS
-    ):
+    if status in {
+        "CREATED",
+        "SAVED",
+        "PAYER_ACTION_REQUIRED",
+        "APPROVED",
+    } and _is_order_older_than(order, seconds=PAYPAL_CHECKOUT_EXPIRATION_SECONDS):
         return OrderStatus.FAILED, capture_id
     if capture_status == "PENDING" and _is_order_older_than(
         order, seconds=PAYPAL_CHECKOUT_EXPIRATION_SECONDS

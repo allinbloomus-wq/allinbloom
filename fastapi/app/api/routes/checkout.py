@@ -256,7 +256,9 @@ async def start_checkout(
     fallback_phone = (user.phone or "").strip() if user else ""
     phone_candidate = raw_phone or fallback_phone
     digits = "".join(char for char in phone_candidate if char.isdigit())
-    normalized_phone = f"+{digits}" if len(digits) == 11 and digits.startswith("1") else ""
+    normalized_phone = (
+        f"+{digits}" if len(digits) == 11 and digits.startswith("1") else ""
+    )
 
     if not items:
         log_critical_event(
@@ -340,7 +342,9 @@ async def start_checkout(
             context=delivery_context,
             level=delivery_quote_failure_level(delivery),
         )
-        raise HTTPException(status_code=400, detail=delivery.error or "Unable to calculate delivery.")
+        raise HTTPException(
+            status_code=400, detail=delivery.error or "Unable to calculate delivery."
+        )
 
     bouquet_ids = [item.id for item in items if not item.is_custom]
     bouquets = (
@@ -377,7 +381,9 @@ async def start_checkout(
                     },
                     level=logging.WARNING,
                 )
-                raise HTTPException(status_code=400, detail="Custom item details are too long.")
+                raise HTTPException(
+                    status_code=400, detail="Custom item details are too long."
+                )
             if not item.name or not item.image:
                 log_critical_event(
                     domain="cart",
@@ -387,17 +393,25 @@ async def start_checkout(
                     context={"user_id": user_id, "item_id": item.id},
                     level=logging.WARNING,
                 )
-                raise HTTPException(status_code=400, detail="Some items are unavailable.")
+                raise HTTPException(
+                    status_code=400, detail="Some items are unavailable."
+                )
             if price_cents < 6500 or price_cents > 18000:
                 log_critical_event(
                     domain="cart",
                     event="invalid_custom_item_price",
                     message="Custom cart item price is out of expected range.",
                     request=request,
-                    context={"user_id": user_id, "item_id": item.id, "price_cents": price_cents},
+                    context={
+                        "user_id": user_id,
+                        "item_id": item.id,
+                        "price_cents": price_cents,
+                    },
                     level=logging.WARNING,
                 )
-                raise HTTPException(status_code=400, detail="Some items are unavailable.")
+                raise HTTPException(
+                    status_code=400, detail="Some items are unavailable."
+                )
             normalized_items.append(
                 {
                     "id": item.id,
@@ -506,7 +520,9 @@ async def start_checkout(
         )
         discounted_items.append({**item, "unit_price": unit_price})
 
-    discounted_subtotal = sum(item["unit_price"] * item["quantity"] for item in discounted_items)
+    discounted_subtotal = sum(
+        item["unit_price"] * item["quantity"] for item in discounted_items
+    )
     computed_total = discounted_subtotal + (delivery.fee_cents or 0)
 
     order_items = [
@@ -598,7 +614,11 @@ async def start_checkout(
                 event="paypal_order_create_failed",
                 message="PayPal order creation failed.",
                 request=request,
-                context={"order_id": order.id, "user_id": user_id, "item_count": len(discounted_items)},
+                context={
+                    "order_id": order.id,
+                    "user_id": user_id,
+                    "item_count": len(discounted_items),
+                },
                 exc=exc,
             )
             _set_order_failed_safely(
@@ -619,7 +639,14 @@ async def start_checkout(
         return CheckoutResponse(url=paypal_order.approve_url)
 
     stripe.api_key = settings.stripe_secret_key
-    expires_at = int(datetime.now(timezone.utc).timestamp()) + STRIPE_CHECKOUT_SESSION_EXPIRATION_SECONDS
+    expires_at = (
+        int(datetime.now(timezone.utc).timestamp())
+        + STRIPE_CHECKOUT_SESSION_EXPIRATION_SECONDS
+    )
+
+    image_url = item["image"]
+    if image_url and not image_url.startswith(("http://", "https://")):
+        image_url = f"{origin}{image_url}"
 
     line_items = [
         {
@@ -627,7 +654,7 @@ async def start_checkout(
                 "currency": "usd",
                 "product_data": {
                     "name": item["name"],
-                    "images": [f"{origin}{item['image']}"] if item["image"] else [],
+                    "images": [image_url] if image_url else [],
                 },
                 "unit_amount": item["unit_price"],
             },
@@ -673,7 +700,9 @@ async def start_checkout(
                 "deliveryPostalCode": postal_code or "",
                 "deliveryCountry": country or "",
                 "deliveryFloor": floor or "",
-                "deliveryMiles": f"{delivery.miles:.1f}" if delivery.miles is not None else "",
+                "deliveryMiles": (
+                    f"{delivery.miles:.1f}" if delivery.miles is not None else ""
+                ),
                 "deliveryFeeCents": str(delivery.fee_cents or 0),
                 "firstOrderDiscountPercent": str(first_order_discount_percent),
                 "phone": normalized_phone,
@@ -688,7 +717,11 @@ async def start_checkout(
             event="stripe_checkout_session_failed",
             message="Stripe checkout session creation failed.",
             request=request,
-            context={"order_id": order.id, "user_id": user_id, "item_count": len(discounted_items)},
+            context={
+                "order_id": order.id,
+                "user_id": user_id,
+                "item_count": len(discounted_items),
+            },
             exc=exc,
         )
         _set_order_failed_safely(
@@ -762,8 +795,14 @@ async def cancel_checkout(
             level=logging.WARNING,
         )
         raise HTTPException(status_code=404, detail="Not found")
-    access_allowed = _is_order_access_allowed(order, user=user, cancel_token=payload.cancel_token)
-    if not access_allowed and paypal_order_id and order.paypal_order_id == paypal_order_id:
+    access_allowed = _is_order_access_allowed(
+        order, user=user, cancel_token=payload.cancel_token
+    )
+    if (
+        not access_allowed
+        and paypal_order_id
+        and order.paypal_order_id == paypal_order_id
+    ):
         access_allowed = True
     if not access_allowed:
         log_critical_event(
@@ -806,14 +845,18 @@ async def cancel_checkout(
             resolved_status = resolve_order_status_from_session(order, session)
             if resolved_status == OrderStatus.PAID:
                 _set_order_status_safely(db, order, OrderStatus.PAID)
-                return CheckoutCancelResponse(canceled=False, status=OrderStatus.PAID.value)
+                return CheckoutCancelResponse(
+                    canceled=False, status=OrderStatus.PAID.value
+                )
             if resolved_status == OrderStatus.FAILED:
                 _set_order_failed_safely(
                     db,
                     order,
                     diagnostics=build_stripe_session_failure_diagnostics(session),
                 )
-                return CheckoutCancelResponse(canceled=True, status=OrderStatus.FAILED.value)
+                return CheckoutCancelResponse(
+                    canceled=True, status=OrderStatus.FAILED.value
+                )
 
             session_status = (getattr(session, "status", None) or "").lower()
             if session_status == "open":
@@ -850,17 +893,23 @@ async def cancel_checkout(
             )
             if resolved_status == OrderStatus.PAID:
                 _set_order_status_safely(db, order, OrderStatus.PAID)
-                return CheckoutCancelResponse(canceled=False, status=OrderStatus.PAID.value)
+                return CheckoutCancelResponse(
+                    canceled=False, status=OrderStatus.PAID.value
+                )
             if resolved_status == OrderStatus.FAILED:
                 _set_order_failed_safely(
                     db,
                     order,
                     diagnostics=build_paypal_failure_diagnostics(paypal_order_payload),
                 )
-                return CheckoutCancelResponse(canceled=True, status=OrderStatus.FAILED.value)
+                return CheckoutCancelResponse(
+                    canceled=True, status=OrderStatus.FAILED.value
+                )
 
             paypal_order_status = (
-                paypal_order_payload.get("status") if isinstance(paypal_order_payload, dict) else None
+                paypal_order_payload.get("status")
+                if isinstance(paypal_order_payload, dict)
+                else None
             )
             if isinstance(paypal_order_status, str) and paypal_order_status.upper() in {
                 "CREATED",
@@ -904,7 +953,9 @@ async def checkout_status(
             level=logging.WARNING,
         )
         raise HTTPException(status_code=404, detail="Not found")
-    if not _is_order_access_allowed(order, user=user, cancel_token=payload.cancel_token):
+    if not _is_order_access_allowed(
+        order, user=user, cancel_token=payload.cancel_token
+    ):
         log_critical_event(
             domain="payment",
             event="checkout_status_unauthorized",
