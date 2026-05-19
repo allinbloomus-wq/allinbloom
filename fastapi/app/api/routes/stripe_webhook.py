@@ -58,6 +58,10 @@ def _load_order_for_session(
     return None
 
 
+def _can_record_payment_failure(order: Order) -> bool:
+    return order.status == OrderStatus.PENDING
+
+
 @router.post("/webhook")
 async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     if not settings.stripe_secret_key or not settings.stripe_webhook_secret:
@@ -203,7 +207,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
             elif resolved_status == OrderStatus.FAILED:
                 db.execute(
                     update(Order)
-                    .where(Order.id == order.id, Order.status != OrderStatus.PAID)
+                    .where(Order.id == order.id, Order.status == OrderStatus.PENDING)
                     .values(
                         **payment_failure_values(
                             build_stripe_session_failure_diagnostics(
@@ -240,10 +244,10 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         order_id = metadata.get("orderId")
         session_id = session.get("id")
         order = _load_order_for_session(db, order_id=order_id, session_id=session_id)
-        if order:
+        if order and _can_record_payment_failure(order):
             db.execute(
                 update(Order)
-                .where(Order.id == order.id, Order.status != OrderStatus.PAID)
+                .where(Order.id == order.id, Order.status == OrderStatus.PENDING)
                 .values(
                     **payment_failure_values(
                         build_stripe_session_failure_diagnostics(
@@ -255,7 +259,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                 )
             )
             db.commit()
-        else:
+        elif not order:
             log_critical_event(
                 domain="payment",
                 event="webhook_order_not_found",
