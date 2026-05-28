@@ -322,6 +322,7 @@ export default function CartView({
 }: CartViewProps) {
   const { items, updateQuantity, removeItem } = useCart();
   const mapsKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const hasCartItems = items.length > 0;
   const addressAutofillId = normalizeHtmlToken(useId());
   const addressFieldNames = useMemo(
     () => ({
@@ -644,10 +645,36 @@ export default function CartView({
   }, [addressInputElement, clearLegacyAutocomplete]);
 
   useEffect(() => {
-    if (!mapsKey) return;
-    if (autocompleteRef.current || placesApiRef.current) return;
+    if (!mapsKey || !hasCartItems) return;
 
     let cancelled = false;
+    const cleanupGooglePlaces = () => {
+      cancelled = true;
+      if (closeSuggestionsTimeoutRef.current !== null) {
+        window.clearTimeout(closeSuggestionsTimeoutRef.current);
+        closeSuggestionsTimeoutRef.current = null;
+      }
+      clearLegacyAutocomplete();
+    };
+
+    const existingPlacesNamespace = placesApiRef.current;
+    if (existingPlacesNamespace) {
+      if (existingPlacesNamespace.Autocomplete) {
+        if (inputRef.current) {
+          initializeLegacyAutocomplete(existingPlacesNamespace);
+          return cleanupGooglePlaces;
+        }
+        setGoogleAutocompleteMode("legacy");
+        closeAddressSuggestions();
+        return cleanupGooglePlaces;
+      }
+
+      if (existingPlacesNamespace.AutocompleteSuggestion) {
+        resetAutocompleteSessionToken(existingPlacesNamespace);
+        setGoogleAutocompleteMode("data");
+        return cleanupGooglePlaces;
+      }
+    }
 
     const loadGoogleMaps = () =>
       new Promise<void>((resolve, reject) => {
@@ -758,17 +785,11 @@ export default function CartView({
         setGoogleAutocompleteMode("none");
       });
 
-    return () => {
-      cancelled = true;
-      if (closeSuggestionsTimeoutRef.current !== null) {
-        window.clearTimeout(closeSuggestionsTimeoutRef.current);
-        closeSuggestionsTimeoutRef.current = null;
-      }
-      clearLegacyAutocomplete();
-    };
+    return cleanupGooglePlaces;
   }, [
     clearLegacyAutocomplete,
     closeAddressSuggestions,
+    hasCartItems,
     initializeLegacyAutocomplete,
     mapsKey,
     resetAutocompleteSessionToken,
@@ -777,6 +798,7 @@ export default function CartView({
   useEffect(() => {
     if (
       googleAutocompleteMode !== "legacy" ||
+      !hasCartItems ||
       !addressInputElement
     ) {
       return;
@@ -794,12 +816,12 @@ export default function CartView({
   }, [
     addressInputElement,
     googleAutocompleteMode,
+    hasCartItems,
     initializeLegacyAutocomplete,
-    items.length,
   ]);
 
   useEffect(() => {
-    if (googleAutocompleteMode !== "data") {
+    if (googleAutocompleteMode !== "data" || !hasCartItems) {
       setAddressSuggestionsLoading(false);
       closeAddressSuggestions();
       return;
@@ -870,6 +892,7 @@ export default function CartView({
     addressLine1,
     closeAddressSuggestions,
     googleAutocompleteMode,
+    hasCartItems,
     initializeLegacyAutocomplete,
     resetAutocompleteSessionToken,
   ]);
@@ -1030,7 +1053,7 @@ export default function CartView({
     }
   };
 
-  if (!items.length) {
+  if (!hasCartItems) {
     return (
       <div className="glass rounded-[28px] border border-white/80 p-8 text-center text-sm text-stone-600">
         Your cart is empty. Explore the catalog to add bouquets.
