@@ -581,20 +581,9 @@ export default function CartView({
       if (!isAuthenticated && stored.guestEmail) {
         setGuestEmail(stored.guestEmail);
       }
-      const legacyAddress = stored.address?.trim() || "";
-      setAddressLine1(stored.addressLine1?.trim() || legacyAddress);
-      setAddressLine2(stored.addressLine2?.trim() || "");
-      setAddressFloor(stored.addressFloor?.trim() || "");
-      setAddressCity(stored.addressCity?.trim() || "");
-      setAddressState(stored.addressState?.trim() || "");
-      setPostalCode(stored.postalCode?.trim() || "");
-      setCountry(stored.country?.trim() || DEFAULT_COUNTRY);
       setOrderComment(stored.orderComment?.trim() || "");
       if (stored.phoneLocal) {
         setPhoneLocal(stored.phoneLocal);
-      }
-      if (stored.quote) {
-        setQuote(stored.quote);
       }
     }
     setStorageReady(true);
@@ -604,31 +593,40 @@ export default function CartView({
     if (!storageReady) return;
     saveCheckoutFormStorage({
       guestEmail: isAuthenticated ? "" : guestEmail,
-      addressLine1: addressLine1.trim(),
-      addressLine2: addressLine2.trim(),
-      addressFloor: addressFloor.trim(),
-      addressCity: addressCity.trim(),
-      addressState: addressState.trim(),
-      postalCode: postalCode.trim(),
-      country: country.trim(),
       orderComment: orderComment.trim(),
       phoneLocal,
-      quote,
     });
   }, [
-    addressCity,
-    addressFloor,
-    addressLine1,
-    addressLine2,
-    addressState,
-    country,
     guestEmail,
     isAuthenticated,
     orderComment,
     phoneLocal,
-    postalCode,
-    quote,
     storageReady,
+  ]);
+
+  useEffect(() => {
+    if (hasCartItems) return;
+
+    skipNextSuggestionFetchRef.current = false;
+    suggestionsRequestIdRef.current += 1;
+    setAddressLine1("");
+    setAddressLine2("");
+    setAddressFloor("");
+    setAddressCity("");
+    setAddressState("");
+    setPostalCode("");
+    setCountry(DEFAULT_COUNTRY);
+    setQuote(null);
+    setQuoteError(null);
+    setAddressSuggestionsLoading(false);
+    closeAddressSuggestions();
+    resetAutocompleteSessionToken();
+    clearLegacyAutocomplete();
+  }, [
+    clearLegacyAutocomplete,
+    closeAddressSuggestions,
+    hasCartItems,
+    resetAutocompleteSessionToken,
   ]);
 
   useEffect(() => {
@@ -645,7 +643,7 @@ export default function CartView({
   }, [addressInputElement, clearLegacyAutocomplete]);
 
   useEffect(() => {
-    if (!mapsKey || !hasCartItems) return;
+    if (!mapsKey || !hasCartItems || !addressInputElement) return;
 
     let cancelled = false;
     const cleanupGooglePlaces = () => {
@@ -778,6 +776,7 @@ export default function CartView({
         setGoogleAutocompleteMode("none");
       })
       .catch((error) => {
+        if (cancelled) return;
         warnGooglePlacesFallback(
           "Google Maps JavaScript API failed to load. Check Maps JavaScript API, Places API, billing, and HTTP referrer restrictions. Manual address entry remains available.",
           error
@@ -788,6 +787,7 @@ export default function CartView({
     return cleanupGooglePlaces;
   }, [
     clearLegacyAutocomplete,
+    addressInputElement,
     closeAddressSuggestions,
     hasCartItems,
     initializeLegacyAutocomplete,
@@ -796,17 +796,12 @@ export default function CartView({
   ]);
 
   useEffect(() => {
-    if (
-      googleAutocompleteMode !== "legacy" ||
-      !hasCartItems ||
-      !addressInputElement
-    ) {
+    if (!hasCartItems || !addressInputElement) {
       return;
     }
 
     const placesNamespace = placesApiRef.current;
     if (!placesNamespace?.Autocomplete) {
-      setGoogleAutocompleteMode("none");
       return;
     }
 
