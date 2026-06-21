@@ -9,6 +9,41 @@ import { clientFetch } from "@/lib/api-client";
 const PAYPAL_RETRY_DELAY_MS = 3000;
 const PAYPAL_MAX_ATTEMPTS = 6;
 
+const recordCheckoutEvent = async ({
+  orderId,
+  cancelToken,
+  event,
+  provider,
+  context,
+}: {
+  orderId: string;
+  cancelToken: string;
+  event: string;
+  provider: "stripe" | "paypal";
+  context?: Record<string, unknown>;
+}) => {
+  try {
+    await clientFetch(
+      "/api/checkout/event",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId,
+          cancelToken,
+          event,
+          provider,
+          context,
+        }),
+        keepalive: true,
+      },
+      false
+    );
+  } catch {
+    // Checkout telemetry should never change the customer-facing result.
+  }
+};
+
 export default function CheckoutSuccessPage() {
   return (
     <Suspense fallback={<CheckoutSuccessFallback />}>
@@ -25,6 +60,7 @@ function CheckoutSuccessContent() {
   const cancelToken = searchParams.get("cancelToken");
   const isPaypalReturn =
     searchParams.get("provider") === "paypal" || Boolean(paypalToken);
+  const provider = isPaypalReturn ? "paypal" : "stripe";
   const hasCheckoutToken = Boolean(checkoutOrderId && cancelToken);
   const [status, setStatus] = useState<"loading" | "success" | "error" | "pending">(
     isPaypalReturn ? (paypalToken ? "loading" : "error") : hasCheckoutToken ? "loading" : "pending"
@@ -40,12 +76,32 @@ function CheckoutSuccessContent() {
   );
 
   useEffect(() => {
+    if (!checkoutOrderId || !cancelToken) return;
+
+    void recordCheckoutEvent({
+      orderId: checkoutOrderId,
+      cancelToken,
+      event: "browser_success_returned",
+      provider,
+      context: {
+        hasPaypalToken: Boolean(paypalToken),
+      },
+    });
+  }, [cancelToken, checkoutOrderId, paypalToken, provider]);
+
+  useEffect(() => {
     if (isPaypalReturn || !checkoutOrderId || !cancelToken) return;
 
     let isMounted = true;
     const verifyOrderStatus = async () => {
       setStatus("loading");
       setError(null);
+      void recordCheckoutEvent({
+        orderId: checkoutOrderId,
+        cancelToken,
+        event: "browser_status_check_started",
+        provider: "stripe",
+      });
       const response = await clientFetch(
         "/api/checkout/status",
         {

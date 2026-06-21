@@ -19,6 +19,7 @@ from app.services.payment_diagnostics import (
     payment_failure_values,
     payment_success_values,
 )
+from app.services.payment_events import record_payment_event_best_effort
 from app.services.orders import resolve_order_status_from_session
 from app.services.webhook_events import (
     is_webhook_event_processed,
@@ -60,6 +61,49 @@ def _load_order_for_session(
 
 def _can_record_payment_failure(order: Order) -> bool:
     return order.status == OrderStatus.PENDING
+
+
+def _read_provider_attr(obj: object, key: str) -> object:
+    if isinstance(obj, dict):
+        return obj.get(key)
+    return getattr(obj, key, None)
+
+
+def _provider_id(value: object) -> str | None:
+    if not value:
+        return None
+    if isinstance(value, str):
+        return value
+    nested_id = _read_provider_attr(value, "id")
+    return str(nested_id) if nested_id else None
+
+
+def _stripe_session_context(session: object, *, event_type: str) -> dict[str, object]:
+    return {
+        "stripe_event_type": event_type,
+        "session_status": _read_provider_attr(session, "status"),
+        "payment_status": _read_provider_attr(session, "payment_status"),
+        "amount_total": _read_provider_attr(session, "amount_total"),
+        "currency": _read_provider_attr(session, "currency"),
+        "created": _read_provider_attr(session, "created"),
+        "expires_at": _read_provider_attr(session, "expires_at"),
+    }
+
+
+def _stripe_payment_intent_context(
+    payment_intent: object, *, event_type: str
+) -> dict[str, object]:
+    last_error = _read_provider_attr(payment_intent, "last_payment_error")
+    return {
+        "stripe_event_type": event_type,
+        "intent_status": _read_provider_attr(payment_intent, "status"),
+        "amount": _read_provider_attr(payment_intent, "amount"),
+        "currency": _read_provider_attr(payment_intent, "currency"),
+        "error_code": _read_provider_attr(last_error, "code"),
+        "decline_code": _read_provider_attr(last_error, "decline_code"),
+        "error_type": _read_provider_attr(last_error, "type"),
+        "provider_message": _read_provider_attr(last_error, "message"),
+    }
 
 
 @router.post("/webhook")
@@ -115,11 +159,14 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     if is_webhook_event_processed(db, provider="stripe", event_id=event_id):
         return {"received": True}
 
-    if event["type"] in ["checkout.session.completed", "checkout.session.async_payment_succeeded"]:
+    event_type = str(event.get("type") or "")
+
+    if event_type in ["checkout.session.completed", "checkout.session.async_payment_succeeded"]:
         session = event["data"]["object"]
         metadata = session.get("metadata") or {}
         order_id = metadata.get("orderId")
         session_id = session.get("id")
+        payment_intent_id = _provider_id(session.get("payment_intent"))
         order = _load_order_for_session(db, order_id=order_id, session_id=session_id)
 
         if not order:
@@ -143,6 +190,19 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                 },
             )
         else:
+            record_payment_event_best_effort(
+                db,
+                order_id=order.id,
+                event="stripe_webhook_received",
+                provider="stripe",
+                source="stripe_webhook",
+                message=f"Stripe webhook received: {event_type}.",
+                stripe_session_id=session_id,
+                stripe_event_id=event_id,
+                payment_intent_id=payment_intent_id,
+                context=_stripe_session_context(session, event_type=event_type),
+                request=request,
+            )
             resolved_status = resolve_order_status_from_session(order, session)
             if resolved_status == OrderStatus.PAID:
                 updated = db.execute(
@@ -155,6 +215,25 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                     )
                 )
                 db.commit()
+                record_payment_event_best_effort(
+                    db,
+                    order_id=order.id,
+                    event="stripe_payment_marked_paid"
+                    if updated.rowcount
+                    else "stripe_payment_paid_webhook_no_status_change",
+                    provider="stripe",
+                    source="stripe_webhook",
+                    message="Stripe paid webhook resolved the order as paid.",
+                    stripe_session_id=session_id or order.stripe_session_id,
+                    stripe_event_id=event_id,
+                    payment_intent_id=payment_intent_id,
+                    context={
+                        **_stripe_session_context(session, event_type=event_type),
+                        "order_status_after": OrderStatus.PAID.value,
+                        "updated_order": bool(updated.rowcount),
+                    },
+                    request=request,
+                )
                 if updated.rowcount:
                     email_payload = {
                         "order_id": order.id,
@@ -212,13 +291,29 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                         **payment_failure_values(
                             build_stripe_session_failure_diagnostics(
                                 session,
-                                event_type=event["type"],
+                                event_type=event_type,
                             ),
                             stripe_session_id=session_id or order.stripe_session_id,
                         )
                     )
                 )
                 db.commit()
+                record_payment_event_best_effort(
+                    db,
+                    order_id=order.id,
+                    event="stripe_checkout_marked_failed",
+                    provider="stripe",
+                    source="stripe_webhook",
+                    message="Stripe checkout webhook resolved the order as failed.",
+                    stripe_session_id=session_id or order.stripe_session_id,
+                    stripe_event_id=event_id,
+                    payment_intent_id=payment_intent_id,
+                    context={
+                        **_stripe_session_context(session, event_type=event_type),
+                        "order_status_after": OrderStatus.FAILED.value,
+                    },
+                    request=request,
+                )
             else:
                 payment_status = (session.get("payment_status") or "").lower()
                 session_status = (session.get("status") or "").lower()
@@ -237,13 +332,62 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                             "expected_currency": order.currency.lower(),
                         },
                     )
+                    record_payment_event_best_effort(
+                        db,
+                        order_id=order.id,
+                        event="stripe_payment_data_mismatch",
+                        provider="stripe",
+                        source="stripe_webhook",
+                        message="Stripe paid session did not match order amount or currency.",
+                        stripe_session_id=session_id or order.stripe_session_id,
+                        stripe_event_id=event_id,
+                        payment_intent_id=payment_intent_id,
+                        context={
+                            **_stripe_session_context(session, event_type=event_type),
+                            "expected_total": order.total_cents,
+                            "expected_currency": order.currency.lower(),
+                        },
+                        request=request,
+                    )
+                else:
+                    record_payment_event_best_effort(
+                        db,
+                        order_id=order.id,
+                        event="stripe_checkout_webhook_unresolved",
+                        provider="stripe",
+                        source="stripe_webhook",
+                        message="Stripe checkout webhook did not resolve a final order status.",
+                        stripe_session_id=session_id or order.stripe_session_id,
+                        stripe_event_id=event_id,
+                        payment_intent_id=payment_intent_id,
+                        context=_stripe_session_context(session, event_type=event_type),
+                        request=request,
+                    )
 
-    if event["type"] in ["checkout.session.expired", "checkout.session.async_payment_failed"]:
+    if event_type in ["checkout.session.expired", "checkout.session.async_payment_failed"]:
         session = event["data"]["object"]
         metadata = session.get("metadata") or {}
         order_id = metadata.get("orderId")
         session_id = session.get("id")
+        payment_intent_id = _provider_id(session.get("payment_intent"))
         order = _load_order_for_session(db, order_id=order_id, session_id=session_id)
+        if order:
+            record_payment_event_best_effort(
+                db,
+                order_id=order.id,
+                event="stripe_webhook_received",
+                provider="stripe",
+                source="stripe_webhook",
+                message=f"Stripe webhook received: {event_type}.",
+                stripe_session_id=session_id or order.stripe_session_id,
+                stripe_event_id=event_id,
+                payment_intent_id=payment_intent_id,
+                context={
+                    **_stripe_session_context(session, event_type=event_type),
+                    "order_status_before": order.status.value,
+                },
+                request=request,
+            )
         if order and _can_record_payment_failure(order):
             db.execute(
                 update(Order)
@@ -252,13 +396,46 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                     **payment_failure_values(
                         build_stripe_session_failure_diagnostics(
                             session,
-                            event_type=event["type"],
+                            event_type=event_type,
                         ),
                         stripe_session_id=session_id or order.stripe_session_id,
                     )
                 )
             )
             db.commit()
+            record_payment_event_best_effort(
+                db,
+                order_id=order.id,
+                event="stripe_checkout_marked_failed",
+                provider="stripe",
+                source="stripe_webhook",
+                message="Stripe failure webhook marked the checkout as failed.",
+                stripe_session_id=session_id or order.stripe_session_id,
+                stripe_event_id=event_id,
+                payment_intent_id=payment_intent_id,
+                context={
+                    **_stripe_session_context(session, event_type=event_type),
+                    "order_status_after": OrderStatus.FAILED.value,
+                },
+                request=request,
+            )
+        elif order:
+            record_payment_event_best_effort(
+                db,
+                order_id=order.id,
+                event="stripe_failure_webhook_ignored",
+                provider="stripe",
+                source="stripe_webhook",
+                message="Stripe failure webhook was ignored because the order was no longer pending.",
+                stripe_session_id=session_id or order.stripe_session_id,
+                stripe_event_id=event_id,
+                payment_intent_id=payment_intent_id,
+                context={
+                    **_stripe_session_context(session, event_type=event_type),
+                    "order_status": order.status.value,
+                },
+                request=request,
+            )
         elif not order:
             log_critical_event(
                 domain="payment",
@@ -268,20 +445,40 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                 context={"order_id": order_id, "stripe_session_id": session_id},
             )
 
-    if event["type"] in ["payment_intent.payment_failed", "payment_intent.canceled"]:
+    if event_type in ["payment_intent.payment_failed", "payment_intent.canceled"]:
         payment_intent = event["data"]["object"]
         metadata = payment_intent.get("metadata") or {}
         order_id = metadata.get("orderId")
         order = _load_order_for_session(db, order_id=order_id, session_id=None)
+        payment_intent_id = payment_intent.get("id")
         if not order:
             log_critical_event(
                 domain="payment",
                 event="stripe_payment_intent_order_not_found",
                 message="Stripe payment intent webhook references unknown order.",
                 request=request,
-                context={"order_id": order_id, "payment_intent_id": payment_intent.get("id")},
+                context={"order_id": order_id, "payment_intent_id": payment_intent_id},
             )
-        elif order.status == OrderStatus.PENDING:
+        else:
+            record_payment_event_best_effort(
+                db,
+                order_id=order.id,
+                event="stripe_webhook_received",
+                provider="stripe",
+                source="stripe_webhook",
+                message=f"Stripe webhook received: {event_type}.",
+                stripe_session_id=order.stripe_session_id,
+                stripe_event_id=event_id,
+                payment_intent_id=payment_intent_id,
+                context={
+                    **_stripe_payment_intent_context(
+                        payment_intent, event_type=event_type
+                    ),
+                    "order_status_before": order.status.value,
+                },
+                request=request,
+            )
+        if order and order.status == OrderStatus.PENDING:
             db.execute(
                 update(Order)
                 .where(Order.id == order.id, Order.status == OrderStatus.PENDING)
@@ -289,12 +486,49 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                     **payment_failure_values(
                         build_stripe_payment_intent_failure_diagnostics(
                             payment_intent,
-                            event_type=event["type"],
+                            event_type=event_type,
                         )
                     )
                 )
             )
             db.commit()
+            record_payment_event_best_effort(
+                db,
+                order_id=order.id,
+                event="stripe_payment_intent_marked_failed",
+                provider="stripe",
+                source="stripe_webhook",
+                message="Stripe PaymentIntent webhook marked the order as failed.",
+                stripe_session_id=order.stripe_session_id,
+                stripe_event_id=event_id,
+                payment_intent_id=payment_intent_id,
+                context={
+                    **_stripe_payment_intent_context(
+                        payment_intent, event_type=event_type
+                    ),
+                    "order_status_after": OrderStatus.FAILED.value,
+                },
+                request=request,
+            )
+        elif order:
+            record_payment_event_best_effort(
+                db,
+                order_id=order.id,
+                event="stripe_payment_intent_failure_ignored",
+                provider="stripe",
+                source="stripe_webhook",
+                message="Stripe PaymentIntent failure webhook was ignored because the order was no longer pending.",
+                stripe_session_id=order.stripe_session_id,
+                stripe_event_id=event_id,
+                payment_intent_id=payment_intent_id,
+                context={
+                    **_stripe_payment_intent_context(
+                        payment_intent, event_type=event_type
+                    ),
+                    "order_status": order.status.value,
+                },
+                request=request,
+            )
 
     mark_webhook_event_processed(db, provider="stripe", event_id=event_id)
     return {"received": True}

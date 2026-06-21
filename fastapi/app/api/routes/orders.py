@@ -12,9 +12,11 @@ from app.core.config import settings
 from app.core.critical_logging import log_critical_event
 from app.models.enums import OrderStatus
 from app.models.order import Order
+from app.models.payment_event import PaymentEvent
 from app.schemas.order import (
     OrderCountOut,
     OrderOut,
+    PaymentEventOut,
     OrderPermanentDeleteOut,
     OrderSoftDeleteOut,
     OrderToggleOut,
@@ -52,6 +54,15 @@ def _read_provider_attr(obj: object, key: str) -> object:
     if isinstance(obj, dict):
         return obj.get(key)
     return getattr(obj, key, None)
+
+
+def _read_nested_provider_attr(obj: object, *keys: str) -> object:
+    value = obj
+    for key in keys:
+        value = _read_provider_attr(value, key)
+        if value is None:
+            return None
+    return value
 
 
 @router.get("/orders/me", response_model=list[OrderOut])
@@ -217,7 +228,10 @@ def get_order_stripe_session(
 
     stripe.api_key = settings.stripe_secret_key
     try:
-        session = stripe.checkout.Session.retrieve(order.stripe_session_id)
+        session = stripe.checkout.Session.retrieve(
+            order.stripe_session_id,
+            expand=["payment_intent", "payment_intent.latest_charge"],
+        )
     except Exception as exc:
         log_critical_event(
             domain="payment",
@@ -235,9 +249,19 @@ def get_order_stripe_session(
     last_payment_error = (
         _read_provider_attr(payment_intent, "last_payment_error") if payment_intent else None
     )
+    latest_charge = (
+        _read_provider_attr(payment_intent, "latest_charge") if payment_intent else None
+    )
+    charge_outcome = _read_provider_attr(latest_charge, "outcome")
+    card_details = _read_nested_provider_attr(
+        latest_charge, "payment_method_details", "card"
+    )
+    card_checks = _read_provider_attr(card_details, "checks")
     return StripeSessionOut(
         payment_status=getattr(session, "payment_status", None),
         status=getattr(session, "status", None),
+        created=getattr(session, "created", None),
+        expires_at=getattr(session, "expires_at", None),
         payment_intent_id=_read_provider_attr(payment_intent, "id"),
         payment_intent_status=_read_provider_attr(payment_intent, "status"),
         last_payment_error_code=_read_provider_attr(last_payment_error, "code"),
@@ -245,6 +269,23 @@ def get_order_stripe_session(
             last_payment_error, "decline_code"
         ),
         last_payment_error_message=_read_provider_attr(last_payment_error, "message"),
+        latest_charge_id=_read_provider_attr(latest_charge, "id"),
+        latest_charge_status=_read_provider_attr(latest_charge, "status"),
+        charge_failure_code=_read_provider_attr(latest_charge, "failure_code"),
+        charge_failure_message=_read_provider_attr(latest_charge, "failure_message"),
+        charge_outcome_type=_read_provider_attr(charge_outcome, "type"),
+        charge_outcome_reason=_read_provider_attr(charge_outcome, "reason"),
+        charge_outcome_network_status=_read_provider_attr(charge_outcome, "network_status"),
+        charge_outcome_seller_message=_read_provider_attr(
+            charge_outcome, "seller_message"
+        ),
+        card_brand=_read_provider_attr(card_details, "brand"),
+        card_funding=_read_provider_attr(card_details, "funding"),
+        card_country=_read_provider_attr(card_details, "country"),
+        card_check_address_postal_code=_read_provider_attr(
+            card_checks, "address_postal_code_check"
+        ),
+        card_check_cvc=_read_provider_attr(card_checks, "cvc_check"),
         shipping=StripeShippingOut(
             name=getattr(shipping, "name", None),
             phone=getattr(shipping, "phone", None),
@@ -267,4 +308,24 @@ def get_order_stripe_session(
         first_order_discount_percent=_parse_optional_int(
             metadata.get("firstOrderDiscountPercent")
         ),
+    )
+
+
+@router.get("/admin/orders/{order_id}/payment-events", response_model=list[PaymentEventOut])
+def get_order_payment_events(
+    order_id: str,
+    db: Session = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    order_exists = db.execute(select(Order.id).where(Order.id == order_id)).first()
+    if not order_exists:
+        raise HTTPException(status_code=404, detail="Not found")
+    return (
+        db.execute(
+            select(PaymentEvent)
+            .where(PaymentEvent.order_id == order_id)
+            .order_by(PaymentEvent.created_at.asc(), PaymentEvent.id.asc())
+        )
+        .scalars()
+        .all()
     )

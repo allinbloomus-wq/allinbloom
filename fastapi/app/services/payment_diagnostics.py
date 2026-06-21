@@ -135,7 +135,9 @@ def resolve_stripe_payment_intent(payment_intent: object) -> object | None:
         return None
     if isinstance(payment_intent, str):
         try:
-            return stripe.PaymentIntent.retrieve(payment_intent)
+            return stripe.PaymentIntent.retrieve(
+                payment_intent, expand=["latest_charge"]
+            )
         except Exception:
             return None
     return payment_intent
@@ -152,6 +154,8 @@ def build_stripe_payment_intent_failure_diagnostics(
     decline_code = _read_attr(last_error, "decline_code")
     message = _read_attr(last_error, "message")
     intent_status = _read_attr(intent, "status")
+    latest_charge = _read_attr(intent, "latest_charge")
+    charge_outcome = _read_attr(latest_charge, "outcome")
 
     if not message:
         if event_type == "payment_intent.canceled" or str(intent_status or "").lower() == "canceled":
@@ -171,6 +175,14 @@ def build_stripe_payment_intent_failure_diagnostics(
             ("Error code", error_code),
             ("Decline code", decline_code),
             ("Provider message", message),
+            ("Latest charge ID", _read_attr(latest_charge, "id")),
+            ("Charge status", _read_attr(latest_charge, "status")),
+            ("Charge failure code", _read_attr(latest_charge, "failure_code")),
+            ("Charge failure message", _read_attr(latest_charge, "failure_message")),
+            ("Outcome type", _read_attr(charge_outcome, "type")),
+            ("Outcome reason", _read_attr(charge_outcome, "reason")),
+            ("Network status", _read_attr(charge_outcome, "network_status")),
+            ("Seller message", _read_attr(charge_outcome, "seller_message")),
         ),
     )
 

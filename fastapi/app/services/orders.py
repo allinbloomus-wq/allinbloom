@@ -18,6 +18,7 @@ from app.services.payment_diagnostics import (
     payment_failure_values,
     payment_success_values,
 )
+from app.services.payment_events import record_payment_event_best_effort
 from app.services.paypal import (
     PayPalApiError,
     paypal_capture_order,
@@ -37,6 +38,15 @@ def _read_stripe_attr(obj: object, key: str) -> object:
     if isinstance(obj, dict):
         return obj.get(key)
     return getattr(obj, key, None)
+
+
+def _provider_id(value: object) -> str | None:
+    if not value:
+        return None
+    if isinstance(value, str):
+        return value
+    nested_id = _read_stripe_attr(value, "id")
+    return str(nested_id) if nested_id else None
 
 
 def _extract_payment_intent_status(payment_intent: object) -> str | None:
@@ -124,6 +134,19 @@ def expire_pending_orders(db: Session) -> None:
     cutoff_without_session = now - timedelta(
         minutes=PENDING_WITHOUT_SESSION_EXPIRATION_MINUTES
     )
+    expired_order_ids = (
+        db.execute(
+            select(Order.id).where(
+                Order.status == OrderStatus.PENDING,
+                Order.stripe_session_id.is_(None),
+                Order.paypal_order_id.is_(None),
+                Order.is_deleted.is_(False),
+                Order.created_at < cutoff_without_session,
+            )
+        )
+        .scalars()
+        .all()
+    )
 
     db.execute(
         update(Order)
@@ -141,6 +164,19 @@ def expire_pending_orders(db: Session) -> None:
         )
     )
     db.commit()
+    for order_id in expired_order_ids:
+        record_payment_event_best_effort(
+            db,
+            order_id=order_id,
+            event="checkout_setup_timed_out",
+            provider="checkout",
+            source="server_sync",
+            message="Pending order timed out before a provider payment session was linked.",
+            context={
+                "order_status_after": OrderStatus.FAILED.value,
+                "timeout_minutes": PENDING_WITHOUT_SESSION_EXPIRATION_MINUTES,
+            },
+        )
 
 
 def _sync_with_stripe(db: Session, orders: Iterable[Order]) -> dict[str, OrderStatus]:
@@ -148,6 +184,7 @@ def _sync_with_stripe(db: Session, orders: Iterable[Order]) -> dict[str, OrderSt
         return {}
     stripe.api_key = settings.stripe_secret_key
     updates: dict[str, OrderStatus] = {}
+    sync_events: list[dict[str, object]] = []
     now_seconds = int(datetime.now(timezone.utc).timestamp())
 
     for order in orders:
@@ -176,9 +213,45 @@ def _sync_with_stripe(db: Session, orders: Iterable[Order]) -> dict[str, OrderSt
             )
             apply_order_values(order, values)
             updates[order.id] = next_status
+            sync_events.append(
+                {
+                    "order_id": order.id,
+                    "next_status": next_status,
+                    "stripe_session_id": order.stripe_session_id,
+                    "payment_intent_id": _provider_id(
+                        _read_stripe_attr(session, "payment_intent")
+                    ),
+                    "session_status": _read_stripe_attr(session, "status"),
+                    "payment_status": _read_stripe_attr(session, "payment_status"),
+                    "expires_at": _read_stripe_attr(session, "expires_at"),
+                }
+            )
 
     if updates:
         db.commit()
+        for item in sync_events:
+            next_status = item["next_status"]
+            assert isinstance(next_status, OrderStatus)
+            record_payment_event_best_effort(
+                db,
+                order_id=str(item["order_id"]),
+                event=(
+                    "stripe_sync_marked_paid"
+                    if next_status == OrderStatus.PAID
+                    else "stripe_sync_marked_failed"
+                ),
+                provider="stripe",
+                source="server_sync",
+                message="Server-side Stripe sync resolved the order status.",
+                stripe_session_id=item.get("stripe_session_id"),
+                payment_intent_id=item.get("payment_intent_id"),
+                context={
+                    "order_status_after": next_status.value,
+                    "session_status": item.get("session_status"),
+                    "payment_status": item.get("payment_status"),
+                    "expires_at": item.get("expires_at"),
+                },
+            )
     return updates
 
 
@@ -224,6 +297,7 @@ def _sync_with_paypal(db: Session, orders: Iterable[Order]) -> dict[str, OrderSt
         return {}
 
     updates: dict[str, OrderStatus] = {}
+    sync_events: list[dict[str, object]] = []
 
     for order in orders:
         if order.status != OrderStatus.PENDING or not order.paypal_order_id:
@@ -264,9 +338,39 @@ def _sync_with_paypal(db: Session, orders: Iterable[Order]) -> dict[str, OrderSt
             )
             apply_order_values(order, values)
             updates[order.id] = next_status
+            sync_events.append(
+                {
+                    "order_id": order.id,
+                    "next_status": next_status,
+                    "paypal_order_id": order.paypal_order_id,
+                    "paypal_capture_id": capture_id,
+                    "paypal_status": payload.get("status"),
+                }
+            )
 
     if updates:
         db.commit()
+        for item in sync_events:
+            next_status = item["next_status"]
+            assert isinstance(next_status, OrderStatus)
+            record_payment_event_best_effort(
+                db,
+                order_id=str(item["order_id"]),
+                event=(
+                    "paypal_sync_marked_paid"
+                    if next_status == OrderStatus.PAID
+                    else "paypal_sync_marked_failed"
+                ),
+                provider="paypal",
+                source="server_sync",
+                message="Server-side PayPal sync resolved the order status.",
+                context={
+                    "order_status_after": next_status.value,
+                    "paypal_order_id": item.get("paypal_order_id"),
+                    "paypal_capture_id": item.get("paypal_capture_id"),
+                    "paypal_status": item.get("paypal_status"),
+                },
+            )
     return updates
 
 
@@ -300,6 +404,26 @@ def sync_order_with_stripe(db: Session, order: Order) -> OrderStatus | None:
     )
     db.commit()
     apply_order_values(order, values)
+    record_payment_event_best_effort(
+        db,
+        order_id=order.id,
+        event=(
+            "stripe_sync_marked_paid"
+            if next_status == OrderStatus.PAID
+            else "stripe_sync_marked_failed"
+        ),
+        provider="stripe",
+        source="server_sync",
+        message="Server-side Stripe sync resolved the order status.",
+        stripe_session_id=order.stripe_session_id,
+        payment_intent_id=_provider_id(_read_stripe_attr(session, "payment_intent")),
+        context={
+            "order_status_after": next_status.value,
+            "session_status": _read_stripe_attr(session, "status"),
+            "payment_status": _read_stripe_attr(session, "payment_status"),
+            "expires_at": _read_stripe_attr(session, "expires_at"),
+        },
+    )
     return next_status
 
 
@@ -349,6 +473,24 @@ def sync_order_with_paypal(db: Session, order: Order) -> OrderStatus | None:
     )
     db.commit()
     apply_order_values(order, values)
+    record_payment_event_best_effort(
+        db,
+        order_id=order.id,
+        event=(
+            "paypal_sync_marked_paid"
+            if next_status == OrderStatus.PAID
+            else "paypal_sync_marked_failed"
+        ),
+        provider="paypal",
+        source="server_sync",
+        message="Server-side PayPal sync resolved the order status.",
+        context={
+            "order_status_after": next_status.value,
+            "paypal_order_id": order.paypal_order_id,
+            "paypal_capture_id": capture_id,
+            "paypal_status": payload.get("status"),
+        },
+    )
     return next_status
 
 

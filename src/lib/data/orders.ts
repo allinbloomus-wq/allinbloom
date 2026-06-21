@@ -1,5 +1,5 @@
 import { apiFetch } from "@/lib/api-server";
-import type { Order, OrderStripeSession } from "@/lib/api-types";
+import type { Order, OrderStripeSession, PaymentEvent } from "@/lib/api-types";
 
 export type AdminOrdersScope = "active" | "deleted";
 
@@ -82,6 +82,18 @@ export async function getOrderStripeSession(
   const response = await apiFetch(`/api/admin/orders/${orderId}/stripe-session`, {}, true);
   if (!response.ok) return null;
   return response.json() as Promise<OrderStripeSession>;
+}
+
+export async function getOrderPaymentEvents(
+  orderId: string
+): Promise<PaymentEvent[]> {
+  const response = await apiFetch(
+    `/api/admin/orders/${orderId}/payment-events`,
+    {},
+    true
+  );
+  if (!response.ok) return [];
+  return response.json() as Promise<PaymentEvent[]>;
 }
 
 export async function countOrdersByEmail(email: string) {

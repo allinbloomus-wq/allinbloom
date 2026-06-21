@@ -28,6 +28,18 @@ class PaymentDiagnosticsTests(unittest.TestCase):
                     "message": "Your card has insufficient funds.",
                     "type": "card_error",
                 },
+                "latest_charge": {
+                    "id": "ch_123",
+                    "status": "failed",
+                    "failure_code": "card_declined",
+                    "failure_message": "Your card has insufficient funds.",
+                    "outcome": {
+                        "type": "issuer_declined",
+                        "reason": "insufficient_funds",
+                        "network_status": "declined_by_network",
+                        "seller_message": "The bank declined this payment.",
+                    },
+                },
             },
             event_type="payment_intent.payment_failed",
         )
@@ -36,6 +48,8 @@ class PaymentDiagnosticsTests(unittest.TestCase):
         self.assertEqual(diagnostics.code, "card_declined")
         self.assertEqual(diagnostics.message, "Your card has insufficient funds.")
         self.assertIn("Decline code: insufficient_funds", diagnostics.details or "")
+        self.assertIn("Latest charge ID: ch_123", diagnostics.details or "")
+        self.assertIn("Outcome reason: insufficient_funds", diagnostics.details or "")
 
     def test_build_stripe_session_failure_diagnostics_marks_expired_session(self):
         diagnostics = build_stripe_session_failure_diagnostics(

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Optional
 
 from app.schemas.base import SchemaBase
 
@@ -33,6 +33,9 @@ class CheckoutRequest(SchemaBase):
 
 class CheckoutResponse(SchemaBase):
     url: str
+    order_id: Optional[str] = None
+    cancel_token: Optional[str] = None
+    provider: Optional[str] = None
 
 
 class CheckoutCancelRequest(SchemaBase):
@@ -53,3 +56,15 @@ class CheckoutStatusRequest(SchemaBase):
 
 class CheckoutStatusResponse(SchemaBase):
     status: str
+
+
+class CheckoutEventRequest(SchemaBase):
+    order_id: str
+    event: str
+    cancel_token: Optional[str] = None
+    provider: Optional[str] = None
+    context: Optional[dict[str, Any]] = None
+
+
+class CheckoutEventResponse(SchemaBase):
+    received: bool

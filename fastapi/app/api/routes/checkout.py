@@ -21,6 +21,8 @@ from app.models.user import User
 from app.schemas.checkout import (
     CheckoutCancelRequest,
     CheckoutCancelResponse,
+    CheckoutEventRequest,
+    CheckoutEventResponse,
     CheckoutRequest,
     CheckoutResponse,
     CheckoutStatusRequest,
@@ -46,6 +48,7 @@ from app.services.payment_diagnostics import (
     payment_failure_values,
     payment_success_values,
 )
+from app.services.payment_events import record_payment_event_best_effort
 from app.services.paypal import (
     PayPalApiError,
     paypal_create_order,
@@ -114,6 +117,26 @@ def _normalize_payment_method(value: str | None) -> str:
         "paypal_checkout": "paypal",
     }
     return aliases.get(normalized, normalized)
+
+
+def _payment_provider_for_order(order: Order, raw_provider: str | None = None) -> str:
+    if raw_provider:
+        normalized = _normalize_payment_method(raw_provider)
+        if normalized in {"stripe", "paypal"}:
+            return normalized
+    if order.stripe_session_id:
+        return "stripe"
+    if order.paypal_order_id:
+        return "paypal"
+    return "checkout"
+
+
+CLIENT_CHECKOUT_EVENTS = {
+    "browser_redirect_started",
+    "browser_success_returned",
+    "browser_cancel_returned",
+    "browser_status_check_started",
+}
 
 
 def _clean_text(value: str | None) -> str:
@@ -591,6 +614,24 @@ async def start_checkout(
     encoded_cancel_token = quote_plus(checkout_cancel_token)
     encoded_order_id = quote_plus(order.id)
 
+    record_payment_event_best_effort(
+        db,
+        order_id=order.id,
+        event="checkout_order_created",
+        provider=payment_method,
+        source="server",
+        message="Checkout order was created and is waiting for provider session setup.",
+        context={
+            "order_status": order.status.value,
+            "total_cents": computed_total,
+            "currency": order.currency,
+            "item_count": len(discounted_items),
+            "has_delivery_fee": bool(delivery.fee_cents and delivery.fee_cents > 0),
+            "delivery_fee_cents": delivery.fee_cents or 0,
+        },
+        request=request,
+    )
+
     if payment_method == "paypal":
         try:
             paypal_order = paypal_create_order(
@@ -632,11 +673,36 @@ async def start_checkout(
                     provider="paypal",
                 ),
             )
+            record_payment_event_best_effort(
+                db,
+                order_id=order.id,
+                event="paypal_order_create_failed",
+                provider="paypal",
+                source="server",
+                message="PayPal order creation failed before customer approval.",
+                context={"order_status": OrderStatus.FAILED.value},
+                request=request,
+            )
             raise HTTPException(status_code=502, detail="Unable to start checkout.")
 
         order.paypal_order_id = paypal_order.order_id
         db.commit()
-        return CheckoutResponse(url=paypal_order.approve_url)
+        record_payment_event_best_effort(
+            db,
+            order_id=order.id,
+            event="paypal_order_created",
+            provider="paypal",
+            source="server",
+            message="PayPal order was created and approval URL was returned.",
+            context={"paypal_order_id": paypal_order.order_id},
+            request=request,
+        )
+        return CheckoutResponse(
+            url=paypal_order.approve_url,
+            order_id=order.id,
+            cancel_token=checkout_cancel_token,
+            provider="paypal",
+        )
 
     stripe.api_key = settings.stripe_secret_key
     expires_at = (
@@ -674,6 +740,22 @@ async def start_checkout(
                 "quantity": 1,
             }
         )
+
+    record_payment_event_best_effort(
+        db,
+        order_id=order.id,
+        event="stripe_checkout_create_started",
+        provider="stripe",
+        source="server",
+        message="Stripe Checkout session creation started.",
+        context={
+            "expires_at": expires_at,
+            "line_item_count": len(line_items),
+            "total_cents": computed_total,
+            "currency": order.currency,
+        },
+        request=request,
+    )
 
     try:
         session = stripe.checkout.Session.create(
@@ -735,10 +817,36 @@ async def start_checkout(
                 provider="stripe",
             ),
         )
+        record_payment_event_best_effort(
+            db,
+            order_id=order.id,
+            event="stripe_checkout_create_failed",
+            provider="stripe",
+            source="server",
+            message="Stripe Checkout session creation failed.",
+            context={"order_status": OrderStatus.FAILED.value},
+            request=request,
+        )
         raise HTTPException(status_code=502, detail="Unable to start checkout.")
 
     order.stripe_session_id = session.id
     db.commit()
+    record_payment_event_best_effort(
+        db,
+        order_id=order.id,
+        event="stripe_checkout_session_created",
+        provider="stripe",
+        source="server",
+        message="Stripe Checkout session was created and redirect URL is available.",
+        stripe_session_id=session.id,
+        payment_intent_id=getattr(session, "payment_intent", None),
+        context={
+            "session_status": getattr(session, "status", None),
+            "payment_status": getattr(session, "payment_status", None),
+            "expires_at": getattr(session, "expires_at", expires_at),
+        },
+        request=request,
+    )
 
     if not session.url:
         log_critical_event(
@@ -759,8 +867,88 @@ async def start_checkout(
                 extra_details={"Session ID": session.id},
             ),
         )
+        record_payment_event_best_effort(
+            db,
+            order_id=order.id,
+            event="stripe_checkout_redirect_url_missing",
+            provider="stripe",
+            source="server",
+            message="Stripe created a Checkout session without a redirect URL.",
+            stripe_session_id=session.id,
+            context={"order_status": OrderStatus.FAILED.value},
+            request=request,
+        )
         raise HTTPException(status_code=500, detail="Unable to start checkout.")
-    return CheckoutResponse(url=session.url)
+    return CheckoutResponse(
+        url=session.url,
+        order_id=order.id,
+        cancel_token=checkout_cancel_token,
+        provider="stripe",
+    )
+
+
+@router.post("/event", response_model=CheckoutEventResponse)
+async def record_checkout_event(
+    payload: CheckoutEventRequest,
+    request: Request,
+    user=Depends(get_optional_user),
+    db: Session = Depends(get_db),
+):
+    event_name = _clean_text(payload.event).lower()
+    if event_name not in CLIENT_CHECKOUT_EVENTS:
+        log_critical_event(
+            domain="payment",
+            event="checkout_client_event_invalid",
+            message="Checkout client event was rejected: unsupported event name.",
+            request=request,
+            context={"event_name": event_name},
+            level=logging.WARNING,
+        )
+        raise HTTPException(status_code=400, detail="Unsupported checkout event.")
+
+    order = db.get(Order, payload.order_id)
+    if not order:
+        log_critical_event(
+            domain="payment",
+            event="checkout_client_event_order_not_found",
+            message="Checkout client event references a missing order.",
+            request=request,
+            context={"order_id": payload.order_id, "event_name": event_name},
+            level=logging.WARNING,
+        )
+        raise HTTPException(status_code=404, detail="Not found")
+
+    if not _is_order_access_allowed(
+        order, user=user, cancel_token=payload.cancel_token
+    ):
+        log_critical_event(
+            domain="payment",
+            event="checkout_client_event_unauthorized",
+            message="Checkout client event denied: invalid user/token for order.",
+            request=request,
+            context={"order_id": order.id, "event_name": event_name},
+            level=logging.WARNING,
+        )
+        raise HTTPException(status_code=404, detail="Not found")
+
+    provider = _payment_provider_for_order(order, payload.provider)
+    event_context = {
+        **(payload.context or {}),
+        "order_status": order.status.value,
+        "client_event": event_name,
+    }
+    record_payment_event_best_effort(
+        db,
+        order_id=order.id,
+        event=event_name,
+        provider=provider,
+        source="browser",
+        message="Browser reported a checkout flow event.",
+        stripe_session_id=order.stripe_session_id,
+        context=event_context,
+        request=request,
+    )
+    return CheckoutEventResponse(received=True)
 
 
 @router.post("/cancel", response_model=CheckoutCancelResponse)
@@ -819,10 +1007,51 @@ async def cancel_checkout(
         )
         raise HTTPException(status_code=404, detail="Not found")
 
+    provider = _payment_provider_for_order(
+        order, "paypal" if paypal_order_id else None
+    )
+    record_payment_event_best_effort(
+        db,
+        order_id=order.id,
+        event="checkout_cancel_returned",
+        provider=provider,
+        source="server",
+        message="Customer returned to the cart through the checkout cancel flow.",
+        stripe_session_id=order.stripe_session_id,
+        context={
+            "order_status_before": order.status.value,
+            "has_cancel_token": bool(payload.cancel_token),
+            "has_paypal_order_token": bool(paypal_order_id),
+        },
+        request=request,
+    )
+
     if order.status == OrderStatus.PAID:
+        record_payment_event_best_effort(
+            db,
+            order_id=order.id,
+            event="checkout_cancel_observed_paid",
+            provider=provider,
+            source="server",
+            message="Cancel flow found that the order was already paid.",
+            stripe_session_id=order.stripe_session_id,
+            context={"order_status": order.status.value},
+            request=request,
+        )
         return CheckoutCancelResponse(canceled=False, status=order.status.value)
 
     if order.status in {OrderStatus.CANCELED, OrderStatus.FAILED}:
+        record_payment_event_best_effort(
+            db,
+            order_id=order.id,
+            event="checkout_cancel_observed_closed",
+            provider=provider,
+            source="server",
+            message="Cancel flow found that the order was already closed.",
+            stripe_session_id=order.stripe_session_id,
+            context={"order_status": order.status.value},
+            request=request,
+        )
         return CheckoutCancelResponse(canceled=True, status=order.status.value)
 
     if order.stripe_session_id and settings.stripe_secret_key:
@@ -839,12 +1068,38 @@ async def cancel_checkout(
                 exc=exc,
                 level=logging.WARNING,
             )
+            record_payment_event_best_effort(
+                db,
+                order_id=order.id,
+                event="stripe_session_fetch_failed_during_cancel",
+                provider="stripe",
+                source="server",
+                message="Failed to fetch Stripe Checkout session during cancel flow.",
+                stripe_session_id=order.stripe_session_id,
+                context={"order_status": order.status.value},
+                request=request,
+            )
             session = None
 
         if session:
             resolved_status = resolve_order_status_from_session(order, session)
             if resolved_status == OrderStatus.PAID:
                 _set_order_status_safely(db, order, OrderStatus.PAID)
+                record_payment_event_best_effort(
+                    db,
+                    order_id=order.id,
+                    event="checkout_cancel_resolved_paid",
+                    provider="stripe",
+                    source="server",
+                    message="Cancel flow synced Stripe session and resolved the order as paid.",
+                    stripe_session_id=order.stripe_session_id,
+                    payment_intent_id=getattr(session, "payment_intent", None),
+                    context={
+                        "session_status": getattr(session, "status", None),
+                        "payment_status": getattr(session, "payment_status", None),
+                    },
+                    request=request,
+                )
                 return CheckoutCancelResponse(
                     canceled=False, status=OrderStatus.PAID.value
                 )
@@ -854,6 +1109,21 @@ async def cancel_checkout(
                     order,
                     diagnostics=build_stripe_session_failure_diagnostics(session),
                 )
+                record_payment_event_best_effort(
+                    db,
+                    order_id=order.id,
+                    event="checkout_cancel_resolved_failed",
+                    provider="stripe",
+                    source="server",
+                    message="Cancel flow synced Stripe session and resolved the order as failed.",
+                    stripe_session_id=order.stripe_session_id,
+                    payment_intent_id=getattr(session, "payment_intent", None),
+                    context={
+                        "session_status": getattr(session, "status", None),
+                        "payment_status": getattr(session, "payment_status", None),
+                    },
+                    request=request,
+                )
                 return CheckoutCancelResponse(
                     canceled=True, status=OrderStatus.FAILED.value
                 )
@@ -862,6 +1132,17 @@ async def cancel_checkout(
             if session_status == "open":
                 try:
                     stripe.checkout.Session.expire(order.stripe_session_id)
+                    record_payment_event_best_effort(
+                        db,
+                        order_id=order.id,
+                        event="stripe_session_expired_by_cancel",
+                        provider="stripe",
+                        source="server",
+                        message="Open Stripe Checkout session was expired after customer cancel return.",
+                        stripe_session_id=order.stripe_session_id,
+                        context={"session_status_before": session_status},
+                        request=request,
+                    )
                 except Exception as exc:
                     log_critical_event(
                         domain="payment",
@@ -871,6 +1152,17 @@ async def cancel_checkout(
                         context={"order_id": order.id, "user_id": user_id},
                         exc=exc,
                         level=logging.WARNING,
+                    )
+                    record_payment_event_best_effort(
+                        db,
+                        order_id=order.id,
+                        event="stripe_session_expire_failed",
+                        provider="stripe",
+                        source="server",
+                        message="Failed to expire open Stripe Checkout session during cancel flow.",
+                        stripe_session_id=order.stripe_session_id,
+                        context={"session_status_before": session_status},
+                        request=request,
                     )
 
     if order.paypal_order_id and paypal_is_configured():
@@ -887,12 +1179,35 @@ async def cancel_checkout(
                 exc=exc,
                 level=logging.WARNING,
             )
+            record_payment_event_best_effort(
+                db,
+                order_id=order.id,
+                event="paypal_order_fetch_failed_during_cancel",
+                provider="paypal",
+                source="server",
+                message="Failed to fetch PayPal order during cancel flow.",
+                context={"paypal_order_id": order.paypal_order_id},
+                request=request,
+            )
         if paypal_order_payload:
             resolved_status, _capture_id = resolve_order_status_from_paypal_order(
                 order, paypal_order_payload
             )
             if resolved_status == OrderStatus.PAID:
                 _set_order_status_safely(db, order, OrderStatus.PAID)
+                record_payment_event_best_effort(
+                    db,
+                    order_id=order.id,
+                    event="checkout_cancel_resolved_paid",
+                    provider="paypal",
+                    source="server",
+                    message="Cancel flow synced PayPal order and resolved the order as paid.",
+                    context={
+                        "paypal_order_id": order.paypal_order_id,
+                        "paypal_capture_id": _capture_id,
+                    },
+                    request=request,
+                )
                 return CheckoutCancelResponse(
                     canceled=False, status=OrderStatus.PAID.value
                 )
@@ -901,6 +1216,19 @@ async def cancel_checkout(
                     db,
                     order,
                     diagnostics=build_paypal_failure_diagnostics(paypal_order_payload),
+                )
+                record_payment_event_best_effort(
+                    db,
+                    order_id=order.id,
+                    event="checkout_cancel_resolved_failed",
+                    provider="paypal",
+                    source="server",
+                    message="Cancel flow synced PayPal order and resolved the order as failed.",
+                    context={
+                        "paypal_order_id": order.paypal_order_id,
+                        "paypal_capture_id": _capture_id,
+                    },
+                    request=request,
                 )
                 return CheckoutCancelResponse(
                     canceled=True, status=OrderStatus.FAILED.value
@@ -919,6 +1247,19 @@ async def cancel_checkout(
             }:
                 try:
                     paypal_void_order(order.paypal_order_id)
+                    record_payment_event_best_effort(
+                        db,
+                        order_id=order.id,
+                        event="paypal_order_voided_by_cancel",
+                        provider="paypal",
+                        source="server",
+                        message="Open PayPal order was voided after customer cancel return.",
+                        context={
+                            "paypal_order_id": order.paypal_order_id,
+                            "paypal_status_before": paypal_order_status,
+                        },
+                        request=request,
+                    )
                 except PayPalApiError as exc:
                     log_critical_event(
                         domain="payment",
@@ -929,8 +1270,32 @@ async def cancel_checkout(
                         exc=exc,
                         level=logging.WARNING,
                     )
+                    record_payment_event_best_effort(
+                        db,
+                        order_id=order.id,
+                        event="paypal_order_void_failed",
+                        provider="paypal",
+                        source="server",
+                        message="Failed to void PayPal order during cancel flow.",
+                        context={
+                            "paypal_order_id": order.paypal_order_id,
+                            "paypal_status_before": paypal_order_status,
+                        },
+                        request=request,
+                    )
 
     _set_order_status_safely(db, order, OrderStatus.CANCELED)
+    record_payment_event_best_effort(
+        db,
+        order_id=order.id,
+        event="checkout_marked_canceled",
+        provider=provider,
+        source="server",
+        message="Checkout order was marked canceled after cancel return.",
+        stripe_session_id=order.stripe_session_id,
+        context={"order_status": OrderStatus.CANCELED.value},
+        request=request,
+    )
     return CheckoutCancelResponse(canceled=True, status=OrderStatus.CANCELED.value)
 
 
@@ -966,11 +1331,47 @@ async def checkout_status(
         )
         raise HTTPException(status_code=404, detail="Not found")
 
+    provider = _payment_provider_for_order(order)
+    status_before = order.status.value
+    record_payment_event_best_effort(
+        db,
+        order_id=order.id,
+        event="checkout_status_requested",
+        provider=provider,
+        source="browser",
+        message="Checkout success page requested order payment status.",
+        stripe_session_id=order.stripe_session_id,
+        context={"order_status_before": status_before},
+        request=request,
+    )
+
+    stripe_sync_status = None
+    paypal_sync_status = None
     if order.status == OrderStatus.PENDING:
         if order.stripe_session_id and settings.stripe_secret_key:
-            sync_order_with_stripe(db, order)
+            stripe_sync_status = sync_order_with_stripe(db, order)
         if order.paypal_order_id and paypal_is_configured():
-            sync_order_with_paypal(db, order)
+            paypal_sync_status = sync_order_with_paypal(db, order)
         db.refresh(order)
 
+    record_payment_event_best_effort(
+        db,
+        order_id=order.id,
+        event="checkout_status_resolved",
+        provider=_payment_provider_for_order(order),
+        source="server",
+        message="Checkout status request completed.",
+        stripe_session_id=order.stripe_session_id,
+        context={
+            "order_status_before": status_before,
+            "order_status_after": order.status.value,
+            "stripe_sync_status": (
+                stripe_sync_status.value if stripe_sync_status else None
+            ),
+            "paypal_sync_status": (
+                paypal_sync_status.value if paypal_sync_status else None
+            ),
+        },
+        request=request,
+    )
     return CheckoutStatusResponse(status=order.status.value)

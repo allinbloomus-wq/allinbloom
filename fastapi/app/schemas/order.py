@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 from app.models.enums import OrderStatus
 from app.schemas.base import SchemaBase
@@ -100,13 +100,42 @@ class StripeShippingOut(SchemaBase):
 class StripeSessionOut(SchemaBase):
     payment_status: Optional[str] = None
     status: Optional[str] = None
+    created: Optional[int] = None
+    expires_at: Optional[int] = None
     payment_intent_id: Optional[str] = None
     payment_intent_status: Optional[str] = None
     last_payment_error_code: Optional[str] = None
     last_payment_error_decline_code: Optional[str] = None
     last_payment_error_message: Optional[str] = None
+    latest_charge_id: Optional[str] = None
+    latest_charge_status: Optional[str] = None
+    charge_failure_code: Optional[str] = None
+    charge_failure_message: Optional[str] = None
+    charge_outcome_type: Optional[str] = None
+    charge_outcome_reason: Optional[str] = None
+    charge_outcome_network_status: Optional[str] = None
+    charge_outcome_seller_message: Optional[str] = None
+    card_brand: Optional[str] = None
+    card_funding: Optional[str] = None
+    card_country: Optional[str] = None
+    card_check_address_postal_code: Optional[str] = None
+    card_check_cvc: Optional[str] = None
     shipping: Optional[StripeShippingOut] = None
     delivery_address: Optional[str] = None
     delivery_miles: Optional[str] = None
     delivery_fee_cents: Optional[int] = None
     first_order_discount_percent: Optional[int] = None
+
+
+class PaymentEventOut(SchemaBase):
+    id: str
+    order_id: str
+    provider: str
+    source: str
+    event: str
+    message: Optional[str] = None
+    stripe_session_id: Optional[str] = None
+    stripe_event_id: Optional[str] = None
+    payment_intent_id: Optional[str] = None
+    context: Optional[dict[str, Any]] = None
+    created_at: datetime

@@ -2,6 +2,7 @@ from app.models.bouquet import Bouquet
 from app.models.enums import BouquetType, FlowerType, OrderStatus, Role
 from app.models.order import Order
 from app.models.order_item import OrderItem
+from app.models.payment_event import PaymentEvent
 from app.models.promo_slide import PromoSlide
 from app.models.review import Review
 from app.models.store_settings import StoreSettings
@@ -15,6 +16,7 @@ __all__ = [
     "FlowerType",
     "Order",
     "OrderItem",
+    "PaymentEvent",
     "OrderStatus",
     "PromoSlide",
     "Review",

@@ -4,6 +4,51 @@ import { useRef, useState } from "react";
 import type { CartItem } from "@/lib/cart";
 import { clientFetch } from "@/lib/api-client";
 
+type CheckoutResponseData = {
+  url?: string;
+  orderId?: string;
+  order_id?: string;
+  cancelToken?: string;
+  cancel_token?: string;
+  provider?: "stripe" | "paypal";
+  error?: string;
+  detail?: string;
+  message?: string;
+};
+
+const recordCheckoutEvent = async (
+  event: string,
+  data: CheckoutResponseData,
+  fallbackProvider: "stripe" | "paypal"
+) => {
+  const orderId = data.orderId || data.order_id;
+  const cancelToken = data.cancelToken || data.cancel_token;
+  if (!orderId || !cancelToken) return;
+
+  try {
+    await clientFetch(
+      "/api/checkout/event",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId,
+          cancelToken,
+          event,
+          provider: data.provider || fallbackProvider,
+          context: {
+            target: "provider_redirect",
+          },
+        }),
+        keepalive: true,
+      },
+      false
+    );
+  } catch {
+    // Checkout telemetry must never block the payment redirect.
+  }
+};
+
 type CheckoutButtonProps = {
   items: CartItem[];
   deliveryAddress: string;
@@ -125,12 +170,7 @@ export default function CheckoutButton({
         }),
       }, true);
 
-      const data = (await response.json().catch(() => ({}))) as {
-        url?: string;
-        error?: string;
-        detail?: string;
-        message?: string;
-      };
+      const data = (await response.json().catch(() => ({}))) as CheckoutResponseData;
 
       if (!response.ok) {
         setLoading(false);
@@ -141,6 +181,7 @@ export default function CheckoutButton({
       }
 
       if (data.url) {
+        void recordCheckoutEvent("browser_redirect_started", data, method);
         window.location.href = data.url;
         return;
       }

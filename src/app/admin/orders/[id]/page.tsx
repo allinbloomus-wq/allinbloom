@@ -1,7 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getOrderById, getOrderStripeSession } from "@/lib/data/orders";
-import { formatDateTime, formatMoney, formatOrderStatus } from "@/lib/format";
+import {
+  getOrderById,
+  getOrderPaymentEvents,
+  getOrderStripeSession,
+} from "@/lib/data/orders";
+import {
+  formatDateTime,
+  formatLabel,
+  formatMoney,
+  formatOrderStatus,
+} from "@/lib/format";
 import { sanitizeOrderItemDetails } from "@/lib/order-details";
 
 const FAILURE_STAGE_LABELS: Record<string, string> = {
@@ -16,15 +25,88 @@ const FAILURE_STAGE_LABELS: Record<string, string> = {
   paypal_capture: "PayPal capture",
 };
 
+const PAYMENT_EVENT_LABELS: Record<string, string> = {
+  checkout_order_created: "Order created",
+  stripe_checkout_create_started: "Stripe session creation started",
+  stripe_checkout_session_created: "Stripe session created",
+  stripe_checkout_create_failed: "Stripe session creation failed",
+  stripe_checkout_redirect_url_missing: "Stripe redirect URL missing",
+  paypal_order_created: "PayPal order created",
+  paypal_order_create_failed: "PayPal order creation failed",
+  browser_redirect_started: "Browser redirect started",
+  browser_success_returned: "Browser returned to success page",
+  browser_status_check_started: "Browser started status check",
+  checkout_status_requested: "Status check requested",
+  checkout_status_resolved: "Status check resolved",
+  checkout_cancel_returned: "Cancel return received",
+  checkout_cancel_observed_paid: "Cancel flow found paid order",
+  checkout_cancel_observed_closed: "Cancel flow found closed order",
+  checkout_cancel_resolved_paid: "Cancel flow resolved paid",
+  checkout_cancel_resolved_failed: "Cancel flow resolved failed",
+  checkout_marked_canceled: "Checkout marked canceled",
+  checkout_setup_timed_out: "Checkout setup timed out",
+  stripe_webhook_received: "Stripe webhook received",
+  stripe_payment_marked_paid: "Stripe marked paid",
+  stripe_payment_paid_webhook_no_status_change: "Stripe paid webhook had no status change",
+  stripe_checkout_marked_failed: "Stripe checkout marked failed",
+  stripe_payment_intent_marked_failed: "Stripe PaymentIntent marked failed",
+  stripe_failure_webhook_ignored: "Stripe failure webhook ignored",
+  stripe_payment_intent_failure_ignored: "Stripe PaymentIntent failure ignored",
+  stripe_checkout_webhook_unresolved: "Stripe webhook unresolved",
+  stripe_payment_data_mismatch: "Stripe payment data mismatch",
+  stripe_sync_marked_paid: "Stripe sync marked paid",
+  stripe_sync_marked_failed: "Stripe sync marked failed",
+  stripe_session_expired_by_cancel: "Stripe session expired by cancel",
+  stripe_session_expire_failed: "Stripe session expire failed",
+  stripe_session_fetch_failed_during_cancel: "Stripe session fetch failed during cancel",
+  paypal_sync_marked_paid: "PayPal sync marked paid",
+  paypal_sync_marked_failed: "PayPal sync marked failed",
+  paypal_order_voided_by_cancel: "PayPal order voided by cancel",
+  paypal_order_void_failed: "PayPal order void failed",
+  paypal_order_fetch_failed_during_cancel: "PayPal order fetch failed during cancel",
+};
+
+const PAYMENT_SOURCE_LABELS: Record<string, string> = {
+  browser: "Browser",
+  server: "Server",
+  server_sync: "Server sync",
+  stripe_webhook: "Stripe webhook",
+};
+
+const formatStripeTimestamp = (value?: number | null) =>
+  value ? formatDateTime(new Date(value * 1000)) : "";
+
+const formatContextValue = (value: unknown) => {
+  if (value === null || value === undefined || value === "") return "";
+  if (typeof value === "boolean") return value ? "yes" : "no";
+  if (typeof value === "number" || typeof value === "string") return String(value);
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+};
+
+const formatPaymentEventContext = (context: Record<string, unknown> | null) => {
+  if (!context) return [];
+  return Object.entries(context)
+    .map(([key, value]) => {
+      const formatted = formatContextValue(value);
+      return formatted ? `${formatLabel(key)}: ${formatted}` : "";
+    })
+    .filter(Boolean);
+};
+
 export default async function AdminOrderDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [order, stripeSession] = await Promise.all([
+  const [order, stripeSession, paymentEvents] = await Promise.all([
     getOrderById(id),
     getOrderStripeSession(id),
+    getOrderPaymentEvents(id),
   ]);
 
   if (!order) {
@@ -74,12 +156,39 @@ export default async function AdminOrderDetailPage({
   const storedFailureMessage = order.paymentFailureMessage?.trim() || "";
   const storedFailureCode = order.paymentFailureCode?.trim() || "";
   const storedFailureDetails = order.paymentFailureDetails?.trim() || "";
+  const orderStatusLabel =
+    order.status === "FAILED" && storedFailureCode === "session_expired"
+      ? "Checkout expired"
+      : formatOrderStatus(order.status);
   const liveStripeErrorMessage = stripeSession?.lastPaymentErrorMessage?.trim() || "";
   const liveStripeErrorCode = stripeSession?.lastPaymentErrorCode?.trim() || "";
   const liveStripeDeclineCode =
     stripeSession?.lastPaymentErrorDeclineCode?.trim() || "";
   const liveStripeIntentId = stripeSession?.paymentIntentId?.trim() || "";
   const liveStripeIntentStatus = stripeSession?.paymentIntentStatus?.trim() || "";
+  const stripeCreatedAt = formatStripeTimestamp(stripeSession?.created);
+  const stripeExpiresAt = formatStripeTimestamp(stripeSession?.expiresAt);
+  const liveChargeId = stripeSession?.latestChargeId?.trim() || "";
+  const liveChargeStatus = stripeSession?.latestChargeStatus?.trim() || "";
+  const liveChargeFailureCode = stripeSession?.chargeFailureCode?.trim() || "";
+  const liveChargeFailureMessage =
+    stripeSession?.chargeFailureMessage?.trim() || "";
+  const liveOutcomeType = stripeSession?.chargeOutcomeType?.trim() || "";
+  const liveOutcomeReason = stripeSession?.chargeOutcomeReason?.trim() || "";
+  const liveOutcomeNetwork =
+    stripeSession?.chargeOutcomeNetworkStatus?.trim() || "";
+  const liveOutcomeSellerMessage =
+    stripeSession?.chargeOutcomeSellerMessage?.trim() || "";
+  const cardSummary = [
+    stripeSession?.cardBrand?.trim(),
+    stripeSession?.cardFunding?.trim(),
+    stripeSession?.cardCountry?.trim(),
+  ]
+    .filter(Boolean)
+    .join(" / ");
+  const postalCheck =
+    stripeSession?.cardCheckAddressPostalCode?.trim() || "";
+  const cvcCheck = stripeSession?.cardCheckCvc?.trim() || "";
   const hasPaymentDiagnostics = Boolean(
     storedFailureMessage ||
       storedFailureCode ||
@@ -90,7 +199,20 @@ export default async function AdminOrderDetailPage({
       liveStripeErrorCode ||
       liveStripeDeclineCode ||
       liveStripeIntentId ||
-      liveStripeIntentStatus
+      liveStripeIntentStatus ||
+      stripeCreatedAt ||
+      stripeExpiresAt ||
+      liveChargeId ||
+      liveChargeStatus ||
+      liveChargeFailureCode ||
+      liveChargeFailureMessage ||
+      liveOutcomeType ||
+      liveOutcomeReason ||
+      liveOutcomeNetwork ||
+      liveOutcomeSellerMessage ||
+      cardSummary ||
+      postalCheck ||
+      cvcCheck
   );
 
   return (
@@ -161,7 +283,7 @@ export default async function AdminOrderDetailPage({
               Order summary
             </h2>
             <div className="mt-3 space-y-2">
-              <p>Status: {formatOrderStatus(order.status)}</p>
+              <p>Status: {orderStatusLabel}</p>
               <p>Created: {formatDateTime(order.createdAt)}</p>
               {order.email ? <p className="break-all">Email: {order.email}</p> : null}
               {order.phone ? <p>Phone: {order.phone}</p> : null}
@@ -215,6 +337,39 @@ export default async function AdminOrderDetailPage({
                 {liveStripeIntentStatus ? (
                   <p>Stripe intent status: {liveStripeIntentStatus}</p>
                 ) : null}
+                {stripeCreatedAt ? (
+                  <p>Stripe session created: {stripeCreatedAt}</p>
+                ) : null}
+                {stripeExpiresAt ? (
+                  <p>Stripe session expires: {stripeExpiresAt}</p>
+                ) : null}
+                {liveChargeId ? <p>Stripe charge: {liveChargeId}</p> : null}
+                {liveChargeStatus ? (
+                  <p>Stripe charge status: {liveChargeStatus}</p>
+                ) : null}
+                {liveChargeFailureCode ? (
+                  <p>Charge failure code: {liveChargeFailureCode}</p>
+                ) : null}
+                {liveChargeFailureMessage ? (
+                  <p className="text-stone-800">
+                    Charge failure message: {liveChargeFailureMessage}
+                  </p>
+                ) : null}
+                {liveOutcomeType ? <p>Outcome type: {liveOutcomeType}</p> : null}
+                {liveOutcomeReason ? (
+                  <p>Outcome reason: {liveOutcomeReason}</p>
+                ) : null}
+                {liveOutcomeNetwork ? (
+                  <p>Network status: {liveOutcomeNetwork}</p>
+                ) : null}
+                {liveOutcomeSellerMessage ? (
+                  <p className="text-stone-800">
+                    Seller message: {liveOutcomeSellerMessage}
+                  </p>
+                ) : null}
+                {cardSummary ? <p>Card: {cardSummary}</p> : null}
+                {postalCheck ? <p>ZIP check: {postalCheck}</p> : null}
+                {cvcCheck ? <p>CVC check: {cvcCheck}</p> : null}
                 {storedFailureDetails ? (
                   <div className="pt-2">
                     <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
@@ -225,6 +380,70 @@ export default async function AdminOrderDetailPage({
                     </p>
                   </div>
                 ) : null}
+              </div>
+            </div>
+          ) : null}
+
+          {paymentEvents.length ? (
+            <div className="glass rounded-[28px] border border-white/80 p-4 text-sm text-stone-600 sm:p-6">
+              <h2 className="text-lg font-semibold text-stone-900">
+                Payment timeline
+              </h2>
+              <div className="mt-4 space-y-4">
+                {paymentEvents.map((event) => {
+                  const contextLines = formatPaymentEventContext(event.context);
+                  const eventLabel =
+                    PAYMENT_EVENT_LABELS[event.event] || formatLabel(event.event);
+                  const sourceLabel =
+                    PAYMENT_SOURCE_LABELS[event.source] || formatLabel(event.source);
+                  return (
+                    <div
+                      key={event.id}
+                      className="border-t border-stone-200 pt-3 first:border-t-0 first:pt-0"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <p className="font-medium text-stone-900">
+                            {eventLabel}
+                          </p>
+                          <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
+                            {sourceLabel} - {formatLabel(event.provider)}
+                          </p>
+                        </div>
+                        <p className="text-xs text-stone-500">
+                          {formatDateTime(event.createdAt)}
+                        </p>
+                      </div>
+                      {event.message ? (
+                        <p className="mt-2 text-stone-700">{event.message}</p>
+                      ) : null}
+                      {event.stripeEventId ? (
+                        <p className="mt-1 break-all text-xs">
+                          Stripe event: {event.stripeEventId}
+                        </p>
+                      ) : null}
+                      {event.stripeSessionId ? (
+                        <p className="mt-1 break-all text-xs">
+                          Stripe session: {event.stripeSessionId}
+                        </p>
+                      ) : null}
+                      {event.paymentIntentId ? (
+                        <p className="mt-1 break-all text-xs">
+                          PaymentIntent: {event.paymentIntentId}
+                        </p>
+                      ) : null}
+                      {contextLines.length ? (
+                        <div className="mt-2 space-y-1 text-xs text-stone-500">
+                          {contextLines.map((line) => (
+                            <p key={`${event.id}-${line}`} className="break-words">
+                              {line}
+                            </p>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ) : null}

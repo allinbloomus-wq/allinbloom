@@ -169,14 +169,43 @@ export type OrderStripeShipping = {
 export type OrderStripeSession = {
   paymentStatus: string | null;
   status: string | null;
+  created: number | null;
+  expiresAt: number | null;
   paymentIntentId: string | null;
   paymentIntentStatus: string | null;
   lastPaymentErrorCode: string | null;
   lastPaymentErrorDeclineCode: string | null;
   lastPaymentErrorMessage: string | null;
+  latestChargeId: string | null;
+  latestChargeStatus: string | null;
+  chargeFailureCode: string | null;
+  chargeFailureMessage: string | null;
+  chargeOutcomeType: string | null;
+  chargeOutcomeReason: string | null;
+  chargeOutcomeNetworkStatus: string | null;
+  chargeOutcomeSellerMessage: string | null;
+  cardBrand: string | null;
+  cardFunding: string | null;
+  cardCountry: string | null;
+  cardCheckAddressPostalCode: string | null;
+  cardCheckCvc: string | null;
   shipping: OrderStripeShipping | null;
   deliveryAddress: string | null;
   deliveryMiles: string | null;
   deliveryFeeCents: number | null;
   firstOrderDiscountPercent: number | null;
+};
+
+export type PaymentEvent = {
+  id: string;
+  orderId: string;
+  provider: string;
+  source: string;
+  event: string;
+  message: string | null;
+  stripeSessionId: string | null;
+  stripeEventId: string | null;
+  paymentIntentId: string | null;
+  context: Record<string, unknown> | null;
+  createdAt: string;
 };
