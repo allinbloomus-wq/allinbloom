@@ -342,7 +342,20 @@ async def start_checkout(
             level=logging.WARNING,
         )
         raise HTTPException(status_code=400, detail="Order comment is too long.")
-    if delivery_date_time and len(delivery_date_time) > 80:
+    if not delivery_date_time:
+        log_critical_event(
+            domain="cart",
+            event="checkout_missing_delivery_datetime",
+            message="Checkout request is missing the requested delivery date/time.",
+            request=request,
+            context={"user_id": user_id},
+            level=logging.WARNING,
+        )
+        raise HTTPException(
+            status_code=400,
+            detail="Delivery date and time is required.",
+        )
+    if len(delivery_date_time) > 80:
         log_critical_event(
             domain="cart",
             event="checkout_delivery_datetime_too_long",
@@ -355,6 +368,34 @@ async def start_checkout(
             level=logging.WARNING,
         )
         raise HTTPException(status_code=400, detail="Delivery date/time is too long.")
+    try:
+        datetime.fromisoformat(delivery_date_time)
+    except ValueError:
+        log_critical_event(
+            domain="cart",
+            event="checkout_delivery_datetime_invalid",
+            message="Checkout request contains an invalid delivery date/time.",
+            request=request,
+            context={"user_id": user_id},
+            level=logging.WARNING,
+        )
+        raise HTTPException(
+            status_code=400,
+            detail="Delivery date and time is invalid.",
+        )
+    if "T" not in delivery_date_time:
+        log_critical_event(
+            domain="cart",
+            event="checkout_delivery_datetime_missing_time",
+            message="Checkout request contains a delivery date without a time.",
+            request=request,
+            context={"user_id": user_id},
+            level=logging.WARNING,
+        )
+        raise HTTPException(
+            status_code=400,
+            detail="Delivery date and time is required.",
+        )
     if payment_method == "stripe" and not normalized_phone:
         log_critical_event(
             domain="personal_data",

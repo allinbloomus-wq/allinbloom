@@ -169,7 +169,7 @@ export default function TidioChatWidget() {
       aria-label="Open support chat"
       onClick={handleOpenChat}
       disabled={!isReady}
-      className={`fixed bottom-5 right-5 z-[60] flex h-14 w-14 items-center justify-center rounded-full border border-white/70 bg-[var(--brand)] text-white shadow-[0_16px_34px_rgba(108,20,10,0.35)] transition duration-200 hover:-translate-y-0.5 hover:bg-[var(--brand-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] focus-visible:ring-offset-2 sm:bottom-6 sm:right-6 ${
+      className={`fixed bottom-5 right-5 z-[60] flex h-14 w-14 items-center justify-center rounded-full border border-white/70 bg-[var(--brand)] text-white shadow-[0_16px_34px_rgba(var(--brand-rgb),0.35)] transition duration-200 hover:-translate-y-0.5 hover:bg-[var(--brand-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] focus-visible:ring-offset-2 sm:bottom-6 sm:right-6 ${
         isOpen ? "pointer-events-none opacity-0" : "opacity-100"
       } ${!isReady ? "cursor-wait opacity-65" : ""}`}
     >

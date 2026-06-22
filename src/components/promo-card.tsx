@@ -11,7 +11,7 @@ export default function PromoCard({
 }: PromoCardProps) {
   const toneClasses =
     tone === "leaf"
-      ? "from-[#f4ede8] to-[#ead9d2] text-[color:var(--brand)]"
+      ? "from-[color:var(--cream)] to-[color:var(--soft-rose-2)] text-[color:var(--brand)]"
       : "from-[color:var(--soft-rose)] to-[color:var(--accent)] text-[color:var(--brand)]";
 
   return (

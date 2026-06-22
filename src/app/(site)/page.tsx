@@ -92,8 +92,8 @@ export default async function HomePage() {
       <section className="grid gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-center animate-rise">
         <div className="space-y-6">
           <div className="relative lg:hidden">
-            <div className="pointer-events-none absolute -inset-x-3 -top-6 h-[340px] rounded-[40px] bg-[radial-gradient(circle_at_20%_20%,rgba(243,217,207,0.85),transparent_58%),radial-gradient(circle_at_85%_15%,rgba(108,20,10,0.22),transparent_45%)] blur-2xl" />
-            <div className="relative overflow-hidden rounded-[34px] border border-white/80 bg-[linear-gradient(140deg,rgba(255,255,255,0.9),rgba(248,233,227,0.78))] p-3 shadow-[0_26px_70px_rgba(108,20,10,0.22)]">
+            <div className="pointer-events-none absolute -inset-x-3 -top-6 h-[340px] rounded-[40px] bg-[radial-gradient(circle_at_20%_20%,rgba(var(--cream-rgb),0.86),transparent_58%),radial-gradient(circle_at_85%_15%,rgba(var(--accent-rgb),0.36),transparent_45%)] blur-2xl" />
+            <div className="relative overflow-hidden rounded-[34px] border border-white/80 bg-[linear-gradient(140deg,rgba(255,255,255,0.9),rgba(var(--cream-rgb),0.72))] p-3 shadow-[0_26px_70px_rgba(var(--brand-rgb),0.22)]">
               <div className="relative overflow-hidden rounded-[26px] border border-white/70">
                 <Image
                   src={heroImage}
@@ -157,7 +157,7 @@ export default async function HomePage() {
             href="https://www.instagram.com/all_in_bloom_studio"
             target="_blank"
             rel="noreferrer"
-            className="inline-flex w-full items-center justify-center gap-3 rounded-full bg-[color:var(--brand)] px-6 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-white shadow-[0_12px_28px_rgba(108,20,10,0.28)] transition hover:-translate-y-0.5 hover:bg-[color:var(--brand-dark)] sm:w-auto"
+            className="inline-flex w-full items-center justify-center gap-3 rounded-full bg-[color:var(--brand)] px-6 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-white shadow-[0_12px_28px_rgba(var(--brand-rgb),0.28)] transition hover:-translate-y-0.5 hover:bg-[color:var(--brand-dark)] sm:w-auto"
           >
             Instagram
             <Image

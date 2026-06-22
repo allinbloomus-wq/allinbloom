@@ -255,8 +255,8 @@ export default function ReviewsGallery({ reviews }: ReviewsGalleryProps) {
                 key={review.id}
                 className="w-full min-w-0 flex-shrink-0 snap-start cursor-grab active:cursor-grabbing md:w-[calc((100%-1rem)/2)] lg:w-[calc((100%-2rem)/3)]"
               >
-                <article className="flex h-full min-w-0 flex-col rounded-[24px] border border-[#f2ccc2]/85 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(255,241,236,0.92)_100%)] p-4 sm:p-5">
-                  <div className="w-full min-w-0 overflow-hidden rounded-[18px] border border-[#edcdc4]/90 bg-white aspect-[4/3]">
+                <article className="flex h-full min-w-0 flex-col rounded-[24px] border border-[rgba(var(--accent-rgb),0.34)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(var(--cream-rgb),0.56)_100%)] p-4 sm:p-5">
+                  <div className="w-full min-w-0 overflow-hidden rounded-[18px] border border-[rgba(var(--accent-rgb),0.32)] bg-white aspect-[4/3]">
                     <BouquetImageLightbox
                       src={review.image || ""}
                       alt={`${review.name} review photo`}
@@ -300,7 +300,7 @@ export default function ReviewsGallery({ reviews }: ReviewsGalleryProps) {
             type="button"
             onClick={handlePrev}
             disabled={!canScrollPrev}
-            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-[#f1cbc1]/55 bg-white/60 text-[color:var(--brand)] shadow-sm backdrop-blur-[2px] transition hover:scale-105 hover:bg-white/75 disabled:cursor-not-allowed disabled:opacity-40 sm:h-11 sm:w-11"
+            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-[rgba(var(--accent-rgb),0.35)] bg-white/60 text-[color:var(--brand)] shadow-sm backdrop-blur-[2px] transition hover:scale-105 hover:bg-white/75 disabled:cursor-not-allowed disabled:opacity-40 sm:h-11 sm:w-11"
             aria-label="Previous review"
           >
             <svg
@@ -320,7 +320,7 @@ export default function ReviewsGallery({ reviews }: ReviewsGalleryProps) {
             type="button"
             onClick={handleNext}
             disabled={!canScrollNext}
-            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-[#f1cbc1]/55 bg-white/60 text-[color:var(--brand)] shadow-sm backdrop-blur-[2px] transition hover:scale-105 hover:bg-white/75 disabled:cursor-not-allowed disabled:opacity-40 sm:h-11 sm:w-11"
+            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-[rgba(var(--accent-rgb),0.35)] bg-white/60 text-[color:var(--brand)] shadow-sm backdrop-blur-[2px] transition hover:scale-105 hover:bg-white/75 disabled:cursor-not-allowed disabled:opacity-40 sm:h-11 sm:w-11"
             aria-label="Next review"
           >
             <svg
@@ -350,7 +350,7 @@ export default function ReviewsGallery({ reviews }: ReviewsGalleryProps) {
             type="button"
             onClick={() => goToIndex(idx)}
             className={`h-2 w-2 rounded-full transition ${
-              idx === clampedActiveIndex ? "bg-[color:var(--brand)]" : "bg-[#deb8ae]"
+              idx === clampedActiveIndex ? "bg-[color:var(--brand)]" : "bg-[rgba(var(--accent-rgb),0.45)]"
             }`}
             aria-label={`Go to page ${idx + 1}`}
           />

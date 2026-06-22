@@ -1203,7 +1203,7 @@ export default function CartView({
   }
 
   return (
-    <div className="glass min-w-0 space-y-5 rounded-[28px] border border-white/80 p-4 sm:p-6">
+    <div className="glass min-w-0 space-y-6 rounded-[28px] border border-white/80 p-4 sm:p-6">
       <h2 className="text-xl font-semibold text-stone-900">Order summary</h2>
       {canceledCheckoutStatus === "CANCELED" || canceledCheckoutStatus === "FAILED" ? (
         <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs uppercase tracking-[0.24em] text-amber-800">
@@ -1359,8 +1359,9 @@ export default function CartView({
           );
         })}
       </div>
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.72fr)]">
-        <div className="space-y-3">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.42fr)] xl:items-start">
+        <div className="space-y-3 rounded-[24px] border border-white/80 bg-white/45 p-4 sm:p-5">
+          <h3 className="text-lg font-semibold text-stone-900">Delivery details</h3>
           <label className="flex flex-col gap-2 text-sm text-stone-700">
             Email for receipt
             <input
@@ -1463,7 +1464,7 @@ export default function CartView({
               />
               {googleAutocompleteMode !== "none" &&
               (addressSuggestionsOpen || addressSuggestionsLoading) ? (
-                <div className="absolute left-0 right-0 top-[calc(100%+0.35rem)] z-40 overflow-hidden rounded-2xl border border-[rgba(108,20,10,0.16)] bg-[rgba(255,255,255,0.98)] shadow-[0_18px_36px_rgba(108,20,10,0.16)] backdrop-blur">
+                <div className="absolute left-0 right-0 top-[calc(100%+0.35rem)] z-40 overflow-hidden rounded-2xl border border-[rgba(var(--brand-rgb),0.16)] bg-[rgba(255,255,255,0.98)] shadow-[0_18px_36px_rgba(var(--brand-rgb),0.16)] backdrop-blur">
                   {addressSuggestionsLoading ? (
                     <div className="px-4 py-3 text-xs uppercase tracking-[0.2em] text-stone-500">
                       Searching...
@@ -1486,9 +1487,9 @@ export default function CartView({
                                 closeAddressSuggestions();
                               });
                             }}
-                            className={`block w-full border-0 border-b border-[rgba(108,20,10,0.08)] px-4 py-3 text-left text-sm text-stone-700 last:border-b-0 ${
+                            className={`block w-full border-0 border-b border-[rgba(var(--brand-rgb),0.08)] px-4 py-3 text-left text-sm text-stone-700 last:border-b-0 ${
                               index === activeAddressSuggestionIndex
-                                ? "bg-[rgba(108,20,10,0.08)]"
+                                ? "bg-[rgba(var(--brand-rgb),0.08)]"
                                 : "bg-transparent"
                             }`}
                           >
@@ -1496,7 +1497,7 @@ export default function CartView({
                           </button>
                         );
                       })}
-                      <div className="border-t border-[rgba(108,20,10,0.08)] px-4 py-2 text-[10px] uppercase tracking-[0.22em] text-stone-400">
+                      <div className="border-t border-[rgba(var(--brand-rgb),0.08)] px-4 py-2 text-[10px] uppercase tracking-[0.22em] text-stone-400">
                         Powered by Google
                       </div>
                     </>
@@ -1633,6 +1634,7 @@ export default function CartView({
               type="datetime-local"
               value={deliveryDateTime}
               min={minDeliveryDateTime}
+              required
               onChange={(event) => setDeliveryDateTime(event.target.value)}
               className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
             />
@@ -1693,170 +1695,169 @@ export default function CartView({
             </p>
           ) : null}
         </div>
-        </div>
-        <div className="space-y-4 rounded-[24px] border border-white/80 bg-white/55 p-4 sm:p-5">
+        <div className="space-y-4 rounded-[24px] border border-white/80 bg-white/55 p-4 sm:p-5 xl:sticky xl:top-24">
           <div className="space-y-2 text-sm text-stone-600">
-          <div className="flex justify-between">
-            <span>Subtotal</span>
-            <span>{formatMoney(subtotalCents)}</span>
-          </div>
-          {showFirstOrderDiscount && firstOrderDiscount ? (
-            <div className="flex justify-between text-sm text-stone-600">
-              <span>
-                First order discount ({firstOrderDiscount.percent}%)
-              </span>
-              <span>-{formatMoney(firstOrderDiscountCents)}</span>
+            <div className="flex justify-between">
+              <span>Subtotal</span>
+              <span>{formatMoney(subtotalCents)}</span>
             </div>
-          ) : null}
-          <div className="flex justify-between">
-            <span>Delivery</span>
-            <span>
-              {!quote
-                ? "Add address"
-                : shippingCents === 0
-                ? "Free"
-                : formatMoney(shippingCents)}
+            {showFirstOrderDiscount && firstOrderDiscount ? (
+              <div className="flex justify-between text-sm text-stone-600">
+                <span>
+                  First order discount ({firstOrderDiscount.percent}%)
+                </span>
+                <span>-{formatMoney(firstOrderDiscountCents)}</span>
+              </div>
+            ) : null}
+            <div className="flex justify-between">
+              <span>Delivery</span>
+              <span>
+                {!quote
+                  ? "Add address"
+                  : shippingCents === 0
+                  ? "Free"
+                  : formatMoney(shippingCents)}
+              </span>
+            </div>
+            <div className="flex justify-between font-semibold text-stone-900">
+              <span>Total</span>
+              <span>{quote ? formatMoney(totalCents) : "--"}</span>
+            </div>
+          </div>
+          <CheckoutButton
+            items={items}
+            deliveryAddress={addressForQuote}
+            deliveryAddressLine1={addressLine1.trim()}
+            deliveryAddressLine2={addressLine2.trim()}
+            deliveryCity={addressCity.trim()}
+            deliveryState={addressState.trim()}
+            deliveryPostalCode={postalCode.trim()}
+            deliveryCountry={country.trim()}
+            deliveryFloor={addressFloor.trim()}
+            deliveryDateTime={deliveryDateTime.trim()}
+            orderComment={orderComment.trim()}
+            phone={checkoutPhone}
+            email={checkoutEmail}
+            disabled={stripeCheckoutDisabled}
+            onBusyChange={setCheckoutBusy}
+            label="Checkout"
+            paymentMethod="stripe"
+          />
+          <div className="flex min-w-0 max-w-full items-center gap-3 overflow-x-auto py-1 lg:justify-start">
+            {[
+              {
+                label: "Visa",
+                src: "/payments/visa.svg",
+                fallbackSrc: "https://api.iconify.design/logos/visa.svg?height=18",
+              },
+              {
+                label: "Mastercard",
+                src: "/payments/mastercard.svg",
+                fallbackSrc:
+                  "https://api.iconify.design/logos/mastercard.svg?height=18",
+              },
+              {
+                label: "Amex",
+                src: "/payments/amex.svg",
+                fallbackSrc:
+                  "https://api.iconify.design/logos/american-express.svg?height=18",
+              },
+              {
+                label: "Discover",
+                src: "/payments/discover.svg",
+                fallbackSrc:
+                  "https://api.iconify.design/logos/discover.svg?height=18",
+              },
+              {
+                label: "Apple Pay",
+                src: "/payments/apple-pay.svg",
+                fallbackSrc:
+                  "https://api.iconify.design/logos/apple-pay.svg?height=18",
+              },
+              {
+                label: "Google Pay",
+                src: "/payments/google-pay.svg",
+                fallbackSrc:
+                  "https://api.iconify.design/logos/google-pay.svg?height=18",
+              },
+              {
+                label: "Link",
+                src: "/payments/link.svg",
+                fallbackSrc:
+                  "https://api.iconify.design/logos/stripe.svg?height=18",
+              },
+              {
+                label: "Cash App Pay",
+                src: "/payments/cash-app-pay.svg",
+                fallbackSrc:
+                  "https://api.iconify.design/lineicons/cash-app.svg?height=18&color=%2300d632",
+              },
+              {
+                label: "Amazon Pay",
+                src: "/payments/amazon-pay.svg",
+                fallbackSrc:
+                  "https://api.iconify.design/fa6-brands/amazon-pay.svg?height=18&color=%23ff9900",
+              },
+              {
+                label: "Samsung Pay",
+                src: "/payments/samsung-pay.svg",
+                fallbackSrc:
+                  "https://api.iconify.design/fa6-brands/samsung-pay.svg?height=18&color=%231428a0",
+              },
+              {
+                label: "UnionPay",
+                src: "/payments/unionpay.svg",
+                fallbackSrc:
+                  "https://api.iconify.design/logos/unionpay.svg?height=18",
+              },
+              {
+                label: "JCB",
+                src: "/payments/jcb.svg",
+                fallbackSrc: "https://api.iconify.design/logos/jcb.svg?height=18",
+              },
+              {
+                label: "Diners Club",
+                src: "/payments/diners-club.svg",
+                fallbackSrc:
+                  "https://api.iconify.design/fa6-brands/cc-diners-club.svg?height=18&color=%230079be",
+              },
+            ].map((icon) => (
+              <PaymentIcon key={`${icon.label}:${icon.src}`} icon={icon} />
+            ))}
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="h-px flex-1 bg-stone-200" />
+            <span className="text-[10px] uppercase tracking-[0.3em] text-stone-400">
+              or
             </span>
+            <span className="h-px flex-1 bg-stone-200" />
           </div>
-          <div className="flex justify-between font-semibold text-stone-900">
-            <span>Total</span>
-            <span>{quote ? formatMoney(totalCents) : "--"}</span>
-          </div>
+          <CheckoutButton
+            items={items}
+            deliveryAddress={addressForQuote}
+            deliveryAddressLine1={addressLine1.trim()}
+            deliveryAddressLine2={addressLine2.trim()}
+            deliveryCity={addressCity.trim()}
+            deliveryState={addressState.trim()}
+            deliveryPostalCode={postalCode.trim()}
+            deliveryCountry={country.trim()}
+            deliveryFloor={addressFloor.trim()}
+            deliveryDateTime={deliveryDateTime.trim()}
+            orderComment={orderComment.trim()}
+            phone={checkoutPhone}
+            email={checkoutEmail}
+            disabled={paypalCheckoutDisabled}
+            onBusyChange={setCheckoutBusy}
+            label="Pay with PayPal"
+            paymentMethod="paypal"
+            iconSrc="/paypal.webp"
+            iconAlt="PayPal"
+            iconClassName="h-4 w-auto"
+          />
+          <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
+            Secure checkout with Stripe or PayPal
+          </p>
         </div>
-        <CheckoutButton
-          items={items}
-          deliveryAddress={addressForQuote}
-          deliveryAddressLine1={addressLine1.trim()}
-          deliveryAddressLine2={addressLine2.trim()}
-          deliveryCity={addressCity.trim()}
-          deliveryState={addressState.trim()}
-          deliveryPostalCode={postalCode.trim()}
-          deliveryCountry={country.trim()}
-          deliveryFloor={addressFloor.trim()}
-          deliveryDateTime={deliveryDateTime.trim()}
-          orderComment={orderComment.trim()}
-          phone={checkoutPhone}
-          email={checkoutEmail}
-          disabled={stripeCheckoutDisabled}
-          onBusyChange={setCheckoutBusy}
-          label="Checkout"
-          paymentMethod="stripe"
-        />
-        <div className="flex min-w-0 max-w-full items-center gap-3 overflow-x-auto py-1 lg:justify-start">
-          {[
-            {
-              label: "Visa",
-              src: "/payments/visa.svg",
-              fallbackSrc: "https://api.iconify.design/logos/visa.svg?height=18",
-            },
-            {
-              label: "Mastercard",
-              src: "/payments/mastercard.svg",
-              fallbackSrc:
-                "https://api.iconify.design/logos/mastercard.svg?height=18",
-            },
-            {
-              label: "Amex",
-              src: "/payments/amex.svg",
-              fallbackSrc:
-                "https://api.iconify.design/logos/american-express.svg?height=18",
-            },
-            {
-              label: "Discover",
-              src: "/payments/discover.svg",
-              fallbackSrc:
-                "https://api.iconify.design/logos/discover.svg?height=18",
-            },
-            {
-              label: "Apple Pay",
-              src: "/payments/apple-pay.svg",
-              fallbackSrc:
-                "https://api.iconify.design/logos/apple-pay.svg?height=18",
-            },
-            {
-              label: "Google Pay",
-              src: "/payments/google-pay.svg",
-              fallbackSrc:
-                "https://api.iconify.design/logos/google-pay.svg?height=18",
-            },
-            {
-              label: "Link",
-              src: "/payments/link.svg",
-              fallbackSrc:
-                "https://api.iconify.design/logos/stripe.svg?height=18",
-            },
-            {
-              label: "Cash App Pay",
-              src: "/payments/cash-app-pay.svg",
-              fallbackSrc:
-                "https://api.iconify.design/lineicons/cash-app.svg?height=18&color=%2300d632",
-            },
-            {
-              label: "Amazon Pay",
-              src: "/payments/amazon-pay.svg",
-              fallbackSrc:
-                "https://api.iconify.design/fa6-brands/amazon-pay.svg?height=18&color=%23ff9900",
-            },
-            {
-              label: "Samsung Pay",
-              src: "/payments/samsung-pay.svg",
-              fallbackSrc:
-                "https://api.iconify.design/fa6-brands/samsung-pay.svg?height=18&color=%231428a0",
-            },
-            {
-              label: "UnionPay",
-              src: "/payments/unionpay.svg",
-              fallbackSrc:
-                "https://api.iconify.design/logos/unionpay.svg?height=18",
-            },
-            {
-              label: "JCB",
-              src: "/payments/jcb.svg",
-              fallbackSrc: "https://api.iconify.design/logos/jcb.svg?height=18",
-            },
-            {
-              label: "Diners Club",
-              src: "/payments/diners-club.svg",
-              fallbackSrc:
-                "https://api.iconify.design/fa6-brands/cc-diners-club.svg?height=18&color=%230079be",
-            },
-          ].map((icon) => (
-            <PaymentIcon key={`${icon.label}:${icon.src}`} icon={icon} />
-          ))}
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="h-px flex-1 bg-stone-200" />
-          <span className="text-[10px] uppercase tracking-[0.3em] text-stone-400">
-            or
-          </span>
-          <span className="h-px flex-1 bg-stone-200" />
-        </div>
-        <CheckoutButton
-          items={items}
-          deliveryAddress={addressForQuote}
-          deliveryAddressLine1={addressLine1.trim()}
-          deliveryAddressLine2={addressLine2.trim()}
-          deliveryCity={addressCity.trim()}
-          deliveryState={addressState.trim()}
-          deliveryPostalCode={postalCode.trim()}
-          deliveryCountry={country.trim()}
-          deliveryFloor={addressFloor.trim()}
-          deliveryDateTime={deliveryDateTime.trim()}
-          orderComment={orderComment.trim()}
-          phone={checkoutPhone}
-          email={checkoutEmail}
-          disabled={paypalCheckoutDisabled}
-          onBusyChange={setCheckoutBusy}
-          label="Pay with PayPal"
-          paymentMethod="paypal"
-          iconSrc="/paypal.webp"
-          iconAlt="PayPal"
-          iconClassName="h-4 w-auto"
-        />
-        <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
-          Secure checkout with Stripe or PayPal
-        </p>
-      </div>
       </div>
     </div>
   );
