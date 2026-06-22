@@ -221,13 +221,69 @@ const ADDRESS_BROWSER_AUTOCOMPLETE = "off";
 const GOOGLE_MAPS_SCRIPT_ID = "google-maps-js";
 const GOOGLE_MAPS_READY_CALLBACK = "__allInBloomGoogleMapsReady";
 
-const toDateTimeLocalValue = (date: Date) => {
+const toDateInputValue = (date: Date) => {
   const pad = (value: number) => String(value).padStart(2, "0");
   return [
     date.getFullYear(),
     pad(date.getMonth() + 1),
     pad(date.getDate()),
-  ].join("-") + `T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  ].join("-");
+};
+
+const DELIVERY_TIME_WINDOWS = [
+  { value: "8 am - 12 pm", label: "8 am - 12 pm" },
+  { value: "12 pm - 16 pm", label: "12 pm - 16 pm" },
+  { value: "16 pm - 20 pm", label: "16 pm - 20 pm" },
+] as const;
+
+const isValidDateValue = (value: string) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split("-").map((part) => Number(part));
+  const date = new Date(year, month - 1, day);
+  return (
+    date.getFullYear() === year &&
+    date.getMonth() === month - 1 &&
+    date.getDate() === day
+  );
+};
+
+const isPastDateValue = (value: string) => {
+  if (!isValidDateValue(value)) return false;
+  const [year, month, day] = value.split("-").map((part) => Number(part));
+  const selected = new Date(year, month - 1, day);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return selected < today;
+};
+
+const isValidTimeValue = (value: string) =>
+  !value || /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+
+const parseStoredDeliverySchedule = (value: string | undefined) => {
+  const trimmed = value?.trim() || "";
+  if (!trimmed) {
+    return { date: "", timeWindow: "", idealTime: "" };
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed) as {
+      date?: unknown;
+      timeWindow?: unknown;
+      idealTime?: unknown;
+    };
+    return {
+      date: typeof parsed.date === "string" ? parsed.date : "",
+      timeWindow: typeof parsed.timeWindow === "string" ? parsed.timeWindow : "",
+      idealTime: typeof parsed.idealTime === "string" ? parsed.idealTime : "",
+    };
+  } catch {
+    const [datePart, timePart = ""] = trimmed.split("T");
+    return {
+      date: isValidDateValue(datePart) ? datePart : "",
+      timeWindow: "",
+      idealTime: timePart.slice(0, 5),
+    };
+  }
 };
 
 let googleMapsLoadPromise: Promise<void> | null = null;
@@ -532,7 +588,9 @@ export default function CartView({
   const [addressState, setAddressState] = useState("");
   const [postalCode, setPostalCode] = useState("");
   const [country, setCountry] = useState(DEFAULT_COUNTRY);
-  const [deliveryDateTime, setDeliveryDateTime] = useState("");
+  const [deliveryDate, setDeliveryDate] = useState("");
+  const [deliveryTimeWindow, setDeliveryTimeWindow] = useState("");
+  const [idealDeliveryTime, setIdealDeliveryTime] = useState("");
   const [orderComment, setOrderComment] = useState("");
   const [phoneLocal, setPhoneLocal] = useState(() => toLocalPhoneDigits(userPhone));
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -565,7 +623,7 @@ export default function CartView({
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [storageReady, setStorageReady] = useState(false);
-  const minDeliveryDateTime = useMemo(() => toDateTimeLocalValue(new Date()), []);
+  const minDeliveryDate = useMemo(() => toDateInputValue(new Date()), []);
   const checkoutEmail = (isAuthenticated ? userEmail || "" : guestEmail).trim().toLowerCase();
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(checkoutEmail);
   const showEmailError = !isAuthenticated && guestEmail.trim().length > 0 && !emailValid;
@@ -581,7 +639,25 @@ export default function CartView({
   };
   const phoneValid = phoneLocal.length === 10;
   const phoneValue = formatPhone(phoneLocal);
-  const deliveryDateTimeValid = Boolean(deliveryDateTime.trim());
+  const deliveryDateValid =
+    Boolean(deliveryDate.trim()) &&
+    isValidDateValue(deliveryDate) &&
+    !isPastDateValue(deliveryDate);
+  const deliveryTimeWindowValid = DELIVERY_TIME_WINDOWS.some(
+    (window) => window.value === deliveryTimeWindow
+  );
+  const idealDeliveryTimeValid = isValidTimeValue(idealDeliveryTime);
+  const deliveryDateTime = useMemo(
+    () =>
+      JSON.stringify({
+        date: deliveryDate.trim(),
+        timeWindow: deliveryTimeWindow.trim(),
+        idealTime: idealDeliveryTime.trim(),
+      }),
+    [deliveryDate, deliveryTimeWindow, idealDeliveryTime]
+  );
+  const deliveryDateTimeValid =
+    deliveryDateValid && deliveryTimeWindowValid && idealDeliveryTimeValid;
   const addressForQuote = useMemo(
     () =>
       formatAddressForQuote({
@@ -773,7 +849,14 @@ export default function CartView({
       if (!isAuthenticated && stored.guestEmail) {
         setGuestEmail(stored.guestEmail);
       }
-      setDeliveryDateTime(stored.deliveryDateTime?.trim() || "");
+      const storedSchedule = parseStoredDeliverySchedule(stored.deliveryDateTime);
+      setDeliveryDate(stored.deliveryDate?.trim() || storedSchedule.date);
+      setDeliveryTimeWindow(
+        stored.deliveryTimeWindow?.trim() || storedSchedule.timeWindow
+      );
+      setIdealDeliveryTime(
+        stored.idealDeliveryTime?.trim() || storedSchedule.idealTime
+      );
       setOrderComment(stored.orderComment?.trim() || "");
       if (stored.phoneLocal) {
         setPhoneLocal(stored.phoneLocal);
@@ -787,12 +870,18 @@ export default function CartView({
     saveCheckoutFormStorage({
       guestEmail: isAuthenticated ? "" : guestEmail,
       deliveryDateTime: deliveryDateTime.trim(),
+      deliveryDate: deliveryDate.trim(),
+      deliveryTimeWindow: deliveryTimeWindow.trim(),
+      idealDeliveryTime: idealDeliveryTime.trim(),
       orderComment: orderComment.trim(),
       phoneLocal,
     });
   }, [
+    deliveryDate,
     deliveryDateTime,
+    deliveryTimeWindow,
     guestEmail,
+    idealDeliveryTime,
     isAuthenticated,
     orderComment,
     phoneLocal,
@@ -811,7 +900,9 @@ export default function CartView({
     setAddressState("");
     setPostalCode("");
     setCountry(DEFAULT_COUNTRY);
-    setDeliveryDateTime("");
+    setDeliveryDate("");
+    setDeliveryTimeWindow("");
+    setIdealDeliveryTime("");
     setQuote(null);
     setQuoteError(null);
     setAddressSuggestionsLoading(false);
@@ -1628,17 +1719,55 @@ export default function CartView({
               className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
             />
           </label>
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
-            Delivery date and time
-            <input
-              type="datetime-local"
-              value={deliveryDateTime}
-              min={minDeliveryDateTime}
-              required
-              onChange={(event) => setDeliveryDateTime(event.target.value)}
-              className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
-            />
-          </label>
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="flex flex-col gap-2 text-sm text-stone-700">
+                Delivery date
+                <input
+                  type="date"
+                  value={deliveryDate}
+                  min={minDeliveryDate}
+                  required
+                  onChange={(event) => setDeliveryDate(event.target.value)}
+                  className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+                />
+              </label>
+              <label className="flex flex-col gap-2 text-sm text-stone-700">
+                Time
+                <select
+                  value={deliveryTimeWindow}
+                  required
+                  onChange={(event) => setDeliveryTimeWindow(event.target.value)}
+                  className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+                >
+                  <option value="">Select time</option>
+                  {DELIVERY_TIME_WINDOWS.map((window) => (
+                    <option key={window.value} value={window.value}>
+                      {window.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            {deliveryDate && !deliveryDateValid ? (
+              <p className="text-xs uppercase tracking-[0.24em] text-rose-700">
+                Enter a valid delivery date.
+              </p>
+            ) : null}
+            <label className="flex flex-col gap-2 text-sm text-stone-700">
+              Ideal delivery time
+              <input
+                type="time"
+                value={idealDeliveryTime}
+                onChange={(event) => setIdealDeliveryTime(event.target.value)}
+                className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+              />
+              <span className="text-xs text-stone-500">
+                We will do our best to deliver at this time or within the selected
+                window.
+              </span>
+            </label>
+          </div>
           <label className="flex flex-col gap-2 text-sm text-stone-700">
             Phone number
             <input

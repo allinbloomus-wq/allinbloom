@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import date, datetime
+import json
 import logging
 from typing import Iterable
 
@@ -59,6 +61,49 @@ def _format_fee(value: str | int | None) -> str:
     except (TypeError, ValueError):
         return str(value)
     return _format_money(cents)
+
+
+def _format_date(value: str) -> str:
+    try:
+        parsed = date.fromisoformat(value)
+    except ValueError:
+        return value
+    return parsed.strftime("%b ") + str(parsed.day) + parsed.strftime(", %Y")
+
+
+def _format_time(value: str) -> str:
+    try:
+        parsed = datetime.strptime(value, "%H:%M")
+    except ValueError:
+        return value
+    hour = parsed.hour % 12 or 12
+    suffix = "AM" if parsed.hour < 12 else "PM"
+    return f"{hour}:{parsed.minute:02d} {suffix}"
+
+
+def _format_delivery_date_time(value: str | None) -> str:
+    raw = (value or "").strip()
+    if not raw:
+        return "-"
+
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        return raw
+
+    if not isinstance(parsed, dict):
+        return raw
+
+    date_value = parsed.get("date")
+    time_window = parsed.get("timeWindow")
+    ideal_time = parsed.get("idealTime")
+    if not isinstance(date_value, str) or not isinstance(time_window, str):
+        return raw
+
+    parts = [f"Date: {_format_date(date_value)}", f"Window: {time_window}"]
+    if isinstance(ideal_time, str) and ideal_time.strip():
+        parts.append(f"Ideal delivery time: {_format_time(ideal_time.strip())}")
+    return "; ".join(parts)
 
 
 def _format_item_details_text(item: dict) -> str:
@@ -160,7 +205,8 @@ async def send_admin_order_email(params: dict) -> None:
     safe_miles = _escape(params.get("delivery_miles") or "-")
     safe_fee = _escape(_format_fee(params.get("delivery_fee")))
     safe_discount = _escape(params.get("first_order_discount") or "0")
-    safe_delivery_date_time = _escape(params.get("delivery_date_time") or "")
+    delivery_date_time = _format_delivery_date_time(params.get("delivery_date_time"))
+    safe_delivery_date_time = _escape(delivery_date_time)
     safe_comment = _escape(params.get("order_comment") or "")
     total = _escape(_format_money(params["total_cents"]))
 
@@ -186,7 +232,7 @@ async def send_admin_order_email(params: dict) -> None:
             f"Phone: {params.get('phone') or '-'}",
             f"Total: {_format_money(params['total_cents'])}",
             f"Delivery address: {_format_delivery_address(params)}",
-            f"Delivery date/time: {params.get('delivery_date_time') or '-'}",
+            f"Delivery date/time: {delivery_date_time}",
             f"Delivery miles: {params.get('delivery_miles') or '-'}",
             f"Delivery fee: {_format_fee(params.get('delivery_fee'))}",
             f"First order discount %: {params.get('first_order_discount') or '0'}",
@@ -229,7 +275,8 @@ async def send_customer_order_email(params: dict) -> None:
     safe_miles = _escape(params.get("delivery_miles") or "-")
     safe_fee = _escape(_format_fee(params.get("delivery_fee")))
     safe_discount = _escape(params.get("first_order_discount") or "0")
-    safe_delivery_date_time = _escape(params.get("delivery_date_time") or "")
+    delivery_date_time = _format_delivery_date_time(params.get("delivery_date_time"))
+    safe_delivery_date_time = _escape(delivery_date_time)
     safe_comment = _escape(params.get("order_comment") or "")
     total = _escape(_format_money(params["total_cents"]))
 
@@ -255,7 +302,7 @@ async def send_customer_order_email(params: dict) -> None:
             f"Phone: {params.get('phone') or '-'}",
             f"Total: {_format_money(params['total_cents'])}",
             f"Delivery address: {_format_delivery_address(params)}",
-            f"Delivery date/time: {params.get('delivery_date_time') or '-'}",
+            f"Delivery date/time: {delivery_date_time}",
             f"Delivery miles: {params.get('delivery_miles') or '-'}",
             f"Delivery fee: {_format_fee(params.get('delivery_fee'))}",
             f"First order discount %: {params.get('first_order_discount') or '0'}",

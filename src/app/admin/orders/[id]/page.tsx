@@ -100,6 +100,37 @@ const formatPaymentEventContext = (context: Record<string, unknown> | null) => {
 const formatDeliveryDateTime = (value: string) => {
   const trimmed = value.trim();
   if (!trimmed) return "";
+  try {
+    const parsed = JSON.parse(trimmed) as {
+      date?: unknown;
+      timeWindow?: unknown;
+      idealTime?: unknown;
+    };
+    if (typeof parsed.date === "string" && typeof parsed.timeWindow === "string") {
+      const [year, month, day] = parsed.date
+        .split("-")
+        .map((part) => Number(part));
+      const date = new Date(year, month - 1, day);
+      const formattedDate =
+        year && month && day && !Number.isNaN(date.getTime())
+          ? new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(date)
+          : parsed.date;
+      const parts = [`Date: ${formattedDate}`, `Window: ${parsed.timeWindow}`];
+      if (typeof parsed.idealTime === "string" && parsed.idealTime.trim()) {
+        const [hour = 0, minute = 0] = parsed.idealTime
+          .split(":")
+          .map((part) => Number(part));
+        const time = new Date(2000, 0, 1, hour, minute);
+        const formattedTime = Number.isNaN(time.getTime())
+          ? parsed.idealTime
+          : new Intl.DateTimeFormat("en-US", { timeStyle: "short" }).format(time);
+        parts.push(`Ideal delivery time: ${formattedTime}`);
+      }
+      return parts.join(" | ");
+    }
+  } catch {
+    // Older orders used a plain datetime-local string.
+  }
   const [datePart, timePart = ""] = trimmed.split("T");
   const [year, month, day] = datePart.split("-").map((part) => Number(part));
   const [hour = 0, minute = 0] = timePart

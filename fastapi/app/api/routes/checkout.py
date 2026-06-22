@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
+import json
 import logging
 from urllib.parse import quote_plus
 
@@ -62,6 +63,7 @@ from app.services.settings import get_store_settings
 router = APIRouter(prefix="/api/checkout", tags=["checkout"])
 FLOWER_QUANTITY_MIN = 1
 FLOWER_QUANTITY_MAX = 1001
+DELIVERY_TIME_WINDOWS = {"8 am - 12 pm", "12 pm - 16 pm", "16 pm - 20 pm"}
 
 
 def _is_flower_quantity_enabled_for_bouquet(bouquet: Bouquet) -> bool:
@@ -141,6 +143,47 @@ CLIENT_CHECKOUT_EVENTS = {
 
 def _clean_text(value: str | None) -> str:
     return (value or "").strip()
+
+
+def _validate_delivery_date_time(value: str) -> bool:
+    trimmed = _clean_text(value)
+    if not trimmed:
+        return False
+
+    try:
+        parsed = json.loads(trimmed)
+    except json.JSONDecodeError:
+        try:
+            datetime.fromisoformat(trimmed)
+        except ValueError:
+            return False
+        return "T" in trimmed
+
+    if not isinstance(parsed, dict):
+        return False
+
+    raw_date = parsed.get("date")
+    raw_window = parsed.get("timeWindow")
+    raw_ideal_time = parsed.get("idealTime")
+    delivery_date = raw_date.strip() if isinstance(raw_date, str) else ""
+    time_window = raw_window.strip() if isinstance(raw_window, str) else ""
+    ideal_time = raw_ideal_time.strip() if isinstance(raw_ideal_time, str) else ""
+
+    try:
+        date.fromisoformat(delivery_date)
+    except ValueError:
+        return False
+
+    if time_window not in DELIVERY_TIME_WINDOWS:
+        return False
+
+    if ideal_time:
+        try:
+            datetime.strptime(ideal_time, "%H:%M")
+        except ValueError:
+            return False
+
+    return True
 
 
 def _format_delivery_address(
@@ -355,7 +398,7 @@ async def start_checkout(
             status_code=400,
             detail="Delivery date and time is required.",
         )
-    if len(delivery_date_time) > 80:
+    if len(delivery_date_time) > 160:
         log_critical_event(
             domain="cart",
             event="checkout_delivery_datetime_too_long",
@@ -368,9 +411,7 @@ async def start_checkout(
             level=logging.WARNING,
         )
         raise HTTPException(status_code=400, detail="Delivery date/time is too long.")
-    try:
-        datetime.fromisoformat(delivery_date_time)
-    except ValueError:
+    if not _validate_delivery_date_time(delivery_date_time):
         log_critical_event(
             domain="cart",
             event="checkout_delivery_datetime_invalid",
@@ -382,19 +423,6 @@ async def start_checkout(
         raise HTTPException(
             status_code=400,
             detail="Delivery date and time is invalid.",
-        )
-    if "T" not in delivery_date_time:
-        log_critical_event(
-            domain="cart",
-            event="checkout_delivery_datetime_missing_time",
-            message="Checkout request contains a delivery date without a time.",
-            request=request,
-            context={"user_id": user_id},
-            level=logging.WARNING,
-        )
-        raise HTTPException(
-            status_code=400,
-            detail="Delivery date and time is required.",
         )
     if payment_method == "stripe" and not normalized_phone:
         log_critical_event(
