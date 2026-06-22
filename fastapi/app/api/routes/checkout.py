@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import calendar
 from datetime import date, datetime, timezone
 import json
 import logging
@@ -145,6 +146,16 @@ def _clean_text(value: str | None) -> str:
     return (value or "").strip()
 
 
+def _add_one_month(value: date) -> date:
+    month = value.month + 1
+    year = value.year
+    if month > 12:
+        month = 1
+        year += 1
+    day = min(value.day, calendar.monthrange(year, month)[1])
+    return date(year, month, day)
+
+
 def _validate_delivery_date_time(value: str) -> bool:
     trimmed = _clean_text(value)
     if not trimmed:
@@ -170,18 +181,28 @@ def _validate_delivery_date_time(value: str) -> bool:
     ideal_time = raw_ideal_time.strip() if isinstance(raw_ideal_time, str) else ""
 
     try:
-        date.fromisoformat(delivery_date)
+        parsed_date = date.fromisoformat(delivery_date)
     except ValueError:
+        return False
+
+    today = date.today()
+    if parsed_date < today or parsed_date > _add_one_month(today):
         return False
 
     if time_window not in DELIVERY_TIME_WINDOWS:
         return False
 
-    if ideal_time:
-        try:
-            datetime.strptime(ideal_time, "%H:%M")
-        except ValueError:
-            return False
+    if not ideal_time:
+        return False
+
+    normalized_ideal_time = ideal_time.upper().replace(" ", "")
+    try:
+        parsed_ideal_time = datetime.strptime(normalized_ideal_time, "%I:%M%p").time()
+    except ValueError:
+        return False
+    ideal_minutes = parsed_ideal_time.hour * 60 + parsed_ideal_time.minute
+    if ideal_minutes < 8 * 60 or ideal_minutes > 20 * 60:
+        return False
 
     return True
 

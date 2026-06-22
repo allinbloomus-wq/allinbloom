@@ -231,10 +231,37 @@ const toDateInputValue = (date: Date) => {
 };
 
 const DELIVERY_TIME_WINDOWS = [
-  { value: "8 am - 12 pm", label: "8 am - 12 pm" },
-  { value: "12 pm - 16 pm", label: "12 pm - 16 pm" },
-  { value: "16 pm - 20 pm", label: "16 pm - 20 pm" },
+  {
+    value: "8 am - 12 pm",
+    label: "8 am - 12 pm",
+    start: 8 * 60,
+    end: 12 * 60,
+    example: "10:30 AM",
+  },
+  {
+    value: "12 pm - 16 pm",
+    label: "12 pm - 16 pm",
+    start: 12 * 60,
+    end: 16 * 60,
+    example: "2:30 PM",
+  },
+  {
+    value: "16 pm - 20 pm",
+    label: "16 pm - 20 pm",
+    start: 16 * 60,
+    end: 20 * 60,
+    example: "6:30 PM",
+  },
 ] as const;
+
+const dateTimeFieldWrapClass =
+  "relative h-11 w-full min-w-0 max-w-full overflow-hidden rounded-2xl border border-stone-200 bg-white/80 transition-colors focus-within:border-stone-400";
+
+const dateTimeFieldClass =
+  "admin-datetime-input block h-full w-full min-w-0 max-w-full border-0 bg-transparent py-0 pl-4 pr-10 text-left text-sm leading-[2.75rem] text-stone-800 outline-none [inline-size:100%] [min-inline-size:0] [max-inline-size:100%]";
+
+const fieldClass =
+  "w-full min-w-0 max-w-full rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400";
 
 const isValidDateValue = (value: string) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -256,8 +283,48 @@ const isPastDateValue = (value: string) => {
   return selected < today;
 };
 
-const isValidTimeValue = (value: string) =>
-  !value || /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+const addOneMonth = (date: Date) => {
+  const next = new Date(date);
+  const day = next.getDate();
+  next.setMonth(next.getMonth() + 1);
+  if (next.getDate() !== day) {
+    next.setDate(0);
+  }
+  return next;
+};
+
+const parseMeridiemTimeToMinutes = (value: string) => {
+  const match = value
+    .trim()
+    .match(/^(0?[1-9]|1[0-2]):([0-5]\d)\s?(AM|PM)$/i);
+  if (!match) return null;
+  const hour12 = Number(match[1]);
+  const minute = Number(match[2]);
+  const suffix = match[3].toUpperCase();
+  const hour24 =
+    suffix === "AM" ? hour12 % 12 : hour12 === 12 ? 12 : hour12 + 12;
+  return hour24 * 60 + minute;
+};
+
+const getDeliveryTimeWindow = (value: string) =>
+  DELIVERY_TIME_WINDOWS.find((window) => window.value === value) || null;
+
+const isValidTimeValue = (value: string, timeWindowValue: string) => {
+  const minutes = parseMeridiemTimeToMinutes(value);
+  if (minutes === null) return false;
+  const timeWindow = getDeliveryTimeWindow(timeWindowValue);
+  if (!timeWindow) return false;
+  return minutes >= timeWindow.start && minutes <= timeWindow.end;
+};
+
+const formatHourMinuteToMeridiem = (value: string) => {
+  const match = value.match(/^([01]\d|2[0-3]):([0-5]\d)$/);
+  if (!match) return value;
+  const hour24 = Number(match[1]);
+  const hour12 = hour24 % 12 || 12;
+  const suffix = hour24 < 12 ? "AM" : "PM";
+  return `${hour12}:${match[2]} ${suffix}`;
+};
 
 const parseStoredDeliverySchedule = (value: string | undefined) => {
   const trimmed = value?.trim() || "";
@@ -274,14 +341,17 @@ const parseStoredDeliverySchedule = (value: string | undefined) => {
     return {
       date: typeof parsed.date === "string" ? parsed.date : "",
       timeWindow: typeof parsed.timeWindow === "string" ? parsed.timeWindow : "",
-      idealTime: typeof parsed.idealTime === "string" ? parsed.idealTime : "",
+      idealTime:
+        typeof parsed.idealTime === "string"
+          ? formatHourMinuteToMeridiem(parsed.idealTime)
+          : "",
     };
   } catch {
     const [datePart, timePart = ""] = trimmed.split("T");
     return {
       date: isValidDateValue(datePart) ? datePart : "",
       timeWindow: "",
-      idealTime: timePart.slice(0, 5),
+      idealTime: formatHourMinuteToMeridiem(timePart.slice(0, 5)),
     };
   }
 };
@@ -624,6 +694,7 @@ export default function CartView({
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [storageReady, setStorageReady] = useState(false);
   const minDeliveryDate = useMemo(() => toDateInputValue(new Date()), []);
+  const maxDeliveryDate = useMemo(() => toDateInputValue(addOneMonth(new Date())), []);
   const checkoutEmail = (isAuthenticated ? userEmail || "" : guestEmail).trim().toLowerCase();
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(checkoutEmail);
   const showEmailError = !isAuthenticated && guestEmail.trim().length > 0 && !emailValid;
@@ -642,17 +713,25 @@ export default function CartView({
   const deliveryDateValid =
     Boolean(deliveryDate.trim()) &&
     isValidDateValue(deliveryDate) &&
-    !isPastDateValue(deliveryDate);
+    !isPastDateValue(deliveryDate) &&
+    deliveryDate <= maxDeliveryDate;
   const deliveryTimeWindowValid = DELIVERY_TIME_WINDOWS.some(
     (window) => window.value === deliveryTimeWindow
   );
-  const idealDeliveryTimeValid = isValidTimeValue(idealDeliveryTime);
+  const selectedDeliveryTimeWindow = getDeliveryTimeWindow(deliveryTimeWindow);
+  const idealDeliveryTimeValid = isValidTimeValue(
+    idealDeliveryTime,
+    deliveryTimeWindow
+  );
+  const idealDeliveryTimeHelp = selectedDeliveryTimeWindow
+    ? `Enter a time within ${selectedDeliveryTimeWindow.label}, for example ${selectedDeliveryTimeWindow.example}.`
+    : "Select a delivery time window first.";
   const deliveryDateTime = useMemo(
     () =>
       JSON.stringify({
         date: deliveryDate.trim(),
         timeWindow: deliveryTimeWindow.trim(),
-        idealTime: idealDeliveryTime.trim(),
+        idealTime: idealDeliveryTime.trim().toUpperCase(),
       }),
     [deliveryDate, deliveryTimeWindow, idealDeliveryTime]
   );
@@ -1723,14 +1802,20 @@ export default function CartView({
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="flex flex-col gap-2 text-sm text-stone-700">
                 Delivery date
-                <input
-                  type="date"
-                  value={deliveryDate}
-                  min={minDeliveryDate}
-                  required
-                  onChange={(event) => setDeliveryDate(event.target.value)}
-                  className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
-                />
+                <div className={dateTimeFieldWrapClass}>
+                  <input
+                    type="date"
+                    value={deliveryDate}
+                    min={minDeliveryDate}
+                    max={maxDeliveryDate}
+                    required
+                    aria-label="Delivery date"
+                    title="Choose a delivery date within the next month."
+                    onChange={(event) => setDeliveryDate(event.target.value)}
+                    className={dateTimeFieldClass}
+                    lang="en-US"
+                  />
+                </div>
               </label>
               <label className="flex flex-col gap-2 text-sm text-stone-700">
                 Time
@@ -1751,17 +1836,37 @@ export default function CartView({
             </div>
             {deliveryDate && !deliveryDateValid ? (
               <p className="text-xs uppercase tracking-[0.24em] text-rose-700">
-                Enter a valid delivery date.
+                Choose a valid delivery date within the next month.
               </p>
             ) : null}
             <label className="flex flex-col gap-2 text-sm text-stone-700">
               Ideal delivery time
               <input
-                type="time"
+                type="text"
                 value={idealDeliveryTime}
-                onChange={(event) => setIdealDeliveryTime(event.target.value)}
-                className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+                required
+                inputMode="text"
+                placeholder="2:30 PM"
+                pattern="^(0?[1-9]|1[0-2]):[0-5][0-9]\s?(AM|PM|am|pm)$"
+                title={idealDeliveryTimeHelp}
+                onChange={(event) =>
+                  setIdealDeliveryTime(
+                    event.target.value
+                      .replace(/[^0-9: apmAPM]/g, "")
+                      .replace(/\s+/g, " ")
+                      .slice(0, 8)
+                  )
+                }
+                onBlur={() => {
+                  setIdealDeliveryTime((current) => current.trim().toUpperCase());
+                }}
+                className={fieldClass}
               />
+              {idealDeliveryTime && !idealDeliveryTimeValid ? (
+                <span className="text-xs uppercase tracking-[0.24em] text-rose-700">
+                  {idealDeliveryTimeHelp}
+                </span>
+              ) : null}
               <span className="text-xs text-stone-500">
                 We will do our best to deliver at this time or within the selected
                 window.
