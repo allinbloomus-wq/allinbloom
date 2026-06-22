@@ -64,7 +64,7 @@ from app.services.settings import get_store_settings
 router = APIRouter(prefix="/api/checkout", tags=["checkout"])
 FLOWER_QUANTITY_MIN = 1
 FLOWER_QUANTITY_MAX = 1001
-DELIVERY_TIME_WINDOWS = {"8 am - 12 pm", "12 pm - 16 pm", "16 pm - 20 pm"}
+DELIVERY_TIME_WINDOWS = {"8 AM - 12 PM", "12 PM - 4 PM", "4 PM - 8 PM"}
 
 
 def _is_flower_quantity_enabled_for_bouquet(bouquet: Bouquet) -> bool:
@@ -241,7 +241,7 @@ def _is_order_access_allowed(order: Order, *, user, cancel_token: str | None) ->
     if not order_email:
         return False
 
-    user_email = ((getattr(user, "email", None) or "")).strip().lower()
+    user_email = (getattr(user, "email", None) or "").strip().lower()
     if user_email and user_email == order_email:
         return True
 
@@ -1113,9 +1113,7 @@ async def cancel_checkout(
         )
         raise HTTPException(status_code=404, detail="Not found")
 
-    provider = _payment_provider_for_order(
-        order, "paypal" if paypal_order_id else None
-    )
+    provider = _payment_provider_for_order(order, "paypal" if paypal_order_id else None)
     record_payment_event_best_effort(
         db,
         order_id=order.id,
