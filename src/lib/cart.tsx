@@ -55,6 +55,7 @@ const CHECKOUT_FORM_KEY = "all-in-bloom-checkout-form";
 
 export type CheckoutFormStorage = {
   guestEmail: string;
+  deliveryDateTime?: string;
   orderComment?: string;
   phoneLocal: string;
 };

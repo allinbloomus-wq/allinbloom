@@ -27,6 +27,7 @@ class Order(Base):
     delivery_postal_code = Column("deliveryPostalCode", String, nullable=True)
     delivery_country = Column("deliveryCountry", String, nullable=True)
     delivery_floor = Column("deliveryFloor", String, nullable=True)
+    delivery_date_time = Column("deliveryDateTime", String, nullable=True)
     order_comment = Column("orderComment", String, nullable=True)
     delivery_miles = Column("deliveryMiles", String, nullable=True)
     delivery_fee_cents = Column("deliveryFeeCents", Integer, nullable=True)

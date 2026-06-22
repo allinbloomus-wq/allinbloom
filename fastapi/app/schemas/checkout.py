@@ -25,6 +25,7 @@ class CheckoutRequest(SchemaBase):
     postal_code: Optional[str] = None
     country: Optional[str] = None
     floor: Optional[str] = None
+    delivery_date_time: Optional[str] = None
     order_comment: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None

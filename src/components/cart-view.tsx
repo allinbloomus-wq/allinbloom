@@ -221,6 +221,15 @@ const ADDRESS_BROWSER_AUTOCOMPLETE = "off";
 const GOOGLE_MAPS_SCRIPT_ID = "google-maps-js";
 const GOOGLE_MAPS_READY_CALLBACK = "__allInBloomGoogleMapsReady";
 
+const toDateTimeLocalValue = (date: Date) => {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return [
+    date.getFullYear(),
+    pad(date.getMonth() + 1),
+    pad(date.getDate()),
+  ].join("-") + `T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
 let googleMapsLoadPromise: Promise<void> | null = null;
 
 const suppressBrowserAddressAutocomplete = (input: HTMLInputElement | null) => {
@@ -523,6 +532,7 @@ export default function CartView({
   const [addressState, setAddressState] = useState("");
   const [postalCode, setPostalCode] = useState("");
   const [country, setCountry] = useState(DEFAULT_COUNTRY);
+  const [deliveryDateTime, setDeliveryDateTime] = useState("");
   const [orderComment, setOrderComment] = useState("");
   const [phoneLocal, setPhoneLocal] = useState(() => toLocalPhoneDigits(userPhone));
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -555,6 +565,7 @@ export default function CartView({
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [storageReady, setStorageReady] = useState(false);
+  const minDeliveryDateTime = useMemo(() => toDateTimeLocalValue(new Date()), []);
   const checkoutEmail = (isAuthenticated ? userEmail || "" : guestEmail).trim().toLowerCase();
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(checkoutEmail);
   const showEmailError = !isAuthenticated && guestEmail.trim().length > 0 && !emailValid;
@@ -570,6 +581,7 @@ export default function CartView({
   };
   const phoneValid = phoneLocal.length === 10;
   const phoneValue = formatPhone(phoneLocal);
+  const deliveryDateTimeValid = Boolean(deliveryDateTime.trim());
   const addressForQuote = useMemo(
     () =>
       formatAddressForQuote({
@@ -761,6 +773,7 @@ export default function CartView({
       if (!isAuthenticated && stored.guestEmail) {
         setGuestEmail(stored.guestEmail);
       }
+      setDeliveryDateTime(stored.deliveryDateTime?.trim() || "");
       setOrderComment(stored.orderComment?.trim() || "");
       if (stored.phoneLocal) {
         setPhoneLocal(stored.phoneLocal);
@@ -773,10 +786,12 @@ export default function CartView({
     if (!storageReady) return;
     saveCheckoutFormStorage({
       guestEmail: isAuthenticated ? "" : guestEmail,
+      deliveryDateTime: deliveryDateTime.trim(),
       orderComment: orderComment.trim(),
       phoneLocal,
     });
   }, [
+    deliveryDateTime,
     guestEmail,
     isAuthenticated,
     orderComment,
@@ -796,6 +811,7 @@ export default function CartView({
     setAddressState("");
     setPostalCode("");
     setCountry(DEFAULT_COUNTRY);
+    setDeliveryDateTime("");
     setQuote(null);
     setQuoteError(null);
     setAddressSuggestionsLoading(false);
@@ -1114,6 +1130,7 @@ export default function CartView({
     Boolean(quoteError) ||
     !emailValid ||
     !phoneValid ||
+    !deliveryDateTimeValid ||
     !hasRequiredAddress ||
     checkoutBusy;
   const paypalCheckoutDisabled =
@@ -1121,6 +1138,7 @@ export default function CartView({
     quoteLoading ||
     Boolean(quoteError) ||
     !emailValid ||
+    !deliveryDateTimeValid ||
     !hasRequiredAddress ||
     checkoutBusy;
   const checkoutPhone = phoneValid ? phoneValue : "";
@@ -1185,8 +1203,20 @@ export default function CartView({
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-      <div className="min-w-0 space-y-4">
+    <div className="glass min-w-0 space-y-5 rounded-[28px] border border-white/80 p-4 sm:p-6">
+      <h2 className="text-xl font-semibold text-stone-900">Order summary</h2>
+      {canceledCheckoutStatus === "CANCELED" || canceledCheckoutStatus === "FAILED" ? (
+        <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs uppercase tracking-[0.24em] text-amber-800">
+          Previous checkout was canceled.
+        </p>
+      ) : null}
+      {canceledCheckoutStatus === "PAID" ? (
+        <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs uppercase tracking-[0.24em] text-emerald-800">
+          Previous checkout is already paid.
+        </p>
+      ) : null}
+
+      <div className="space-y-3 rounded-[24px] border border-white/80 bg-white/45 p-3 sm:p-4">
         {lineItems.map((item) => {
           const displayDiscount =
             item.discount || (showFirstOrderDiscount ? firstOrderDiscount : null);
@@ -1201,7 +1231,7 @@ export default function CartView({
           return (
             <div
               key={item.id}
-              className="glass flex flex-col gap-4 rounded-[28px] border border-white/80 p-4 sm:flex-row sm:items-center sm:justify-between"
+              className="flex flex-col gap-4 rounded-[22px] border border-stone-200/80 bg-white/70 p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="flex min-w-0 items-center gap-4">
                 <div className="h-20 w-20 overflow-hidden rounded-2xl border border-white/80 bg-white">
@@ -1329,18 +1359,7 @@ export default function CartView({
           );
         })}
       </div>
-      <div className="glass h-fit min-w-0 space-y-4 rounded-[28px] border border-white/80 p-5 sm:p-6">
-        <h2 className="text-xl font-semibold text-stone-900">Order summary</h2>
-        {canceledCheckoutStatus === "CANCELED" || canceledCheckoutStatus === "FAILED" ? (
-          <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs uppercase tracking-[0.24em] text-amber-800">
-            Previous checkout was canceled.
-          </p>
-        ) : null}
-        {canceledCheckoutStatus === "PAID" ? (
-          <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs uppercase tracking-[0.24em] text-emerald-800">
-            Previous checkout is already paid.
-          </p>
-        ) : null}
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.72fr)]">
         <div className="space-y-3">
           <label className="flex flex-col gap-2 text-sm text-stone-700">
             Email for receipt
@@ -1522,7 +1541,7 @@ export default function CartView({
               />
             </label>
           </div>
-          <div className="grid gap-3 sm:grid-cols-[1.2fr_0.8fr_0.9fr]">
+          <div className="grid gap-3 sm:grid-cols-3">
             <label className="flex flex-col gap-2 text-sm text-stone-700">
               City
               <input
@@ -1609,6 +1628,16 @@ export default function CartView({
             />
           </label>
           <label className="flex flex-col gap-2 text-sm text-stone-700">
+            Delivery date and time
+            <input
+              type="datetime-local"
+              value={deliveryDateTime}
+              min={minDeliveryDateTime}
+              onChange={(event) => setDeliveryDateTime(event.target.value)}
+              className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+            />
+          </label>
+          <label className="flex flex-col gap-2 text-sm text-stone-700">
             Phone number
             <input
               value={phoneValue}
@@ -1664,7 +1693,9 @@ export default function CartView({
             </p>
           ) : null}
         </div>
-        <div className="space-y-2 text-sm text-stone-600">
+        </div>
+        <div className="space-y-4 rounded-[24px] border border-white/80 bg-white/55 p-4 sm:p-5">
+          <div className="space-y-2 text-sm text-stone-600">
           <div className="flex justify-between">
             <span>Subtotal</span>
             <span>{formatMoney(subtotalCents)}</span>
@@ -1702,6 +1733,7 @@ export default function CartView({
           deliveryPostalCode={postalCode.trim()}
           deliveryCountry={country.trim()}
           deliveryFloor={addressFloor.trim()}
+          deliveryDateTime={deliveryDateTime.trim()}
           orderComment={orderComment.trim()}
           phone={checkoutPhone}
           email={checkoutEmail}
@@ -1809,6 +1841,7 @@ export default function CartView({
           deliveryPostalCode={postalCode.trim()}
           deliveryCountry={country.trim()}
           deliveryFloor={addressFloor.trim()}
+          deliveryDateTime={deliveryDateTime.trim()}
           orderComment={orderComment.trim()}
           phone={checkoutPhone}
           email={checkoutEmail}
@@ -1823,6 +1856,7 @@ export default function CartView({
         <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
           Secure checkout with Stripe or PayPal
         </p>
+      </div>
       </div>
     </div>
   );

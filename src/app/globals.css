@@ -1,5 +1,48 @@
 ﻿@import "tailwindcss";
 
+@theme {
+  --color-stone-50: #f4f1ea;
+  --color-stone-100: #e8e3d8;
+  --color-stone-200: #d8d2c6;
+  --color-stone-300: #c3bdae;
+  --color-stone-400: #a8a28f;
+  --color-stone-500: #83866f;
+  --color-stone-600: #686d58;
+  --color-stone-700: #4f5647;
+  --color-stone-800: #363b32;
+  --color-stone-900: #242820;
+  --color-rose-50: #eee6e1;
+  --color-rose-100: #dfd0ca;
+  --color-rose-200: #c7aaa1;
+  --color-rose-300: #aa8177;
+  --color-rose-400: #935f59;
+  --color-rose-500: #7d4946;
+  --color-rose-600: #6b3d3b;
+  --color-rose-700: #573131;
+  --color-rose-800: #402625;
+  --color-rose-900: #2c1b1b;
+  --color-amber-50: #f0eadb;
+  --color-amber-100: #e3d7ba;
+  --color-amber-200: #cfbd8f;
+  --color-amber-300: #b69e66;
+  --color-amber-400: #967b49;
+  --color-amber-500: #806840;
+  --color-amber-600: #685437;
+  --color-amber-700: #55452f;
+  --color-amber-800: #3f3528;
+  --color-amber-900: #2a251d;
+  --color-emerald-50: #e8ece0;
+  --color-emerald-100: #d5dcc8;
+  --color-emerald-200: #b9c4a9;
+  --color-emerald-300: #98a884;
+  --color-emerald-400: #7d8e6b;
+  --color-emerald-500: #657654;
+  --color-emerald-600: #526145;
+  --color-emerald-700: #414d38;
+  --color-emerald-800: #323b2c;
+  --color-emerald-900: #22281f;
+}
+
 @font-face {
   font-family: "SnellRoundhand";
   src: url("/fonts/SnellRoundhand.ttc") format("truetype");
@@ -10,16 +53,17 @@
 
 :root {
   --font-script: "SnellRoundhand", "Snell Roundhand", "Brush Script MT", cursive;
-  --brand: #6c140a;
-  --brand-dark: #4f0f07;
-  --ink: #2a1a18;
+  --brand: #626953;
+  --brand-dark: #414937;
+  --brand-rgb: 98, 105, 83;
+  --ink: #242820;
   --caps-tracking: 0.24em;
-  --soft-rose: #f6e5e2;
-  --soft-rose-2: #f1d4cf;
-  --petal: #fbf6f4;
-  --cream: #fffaf8;
-  --accent: #f3d9cf;
-  --shadow: 0 22px 60px rgba(108, 20, 10, 0.18);
+  --soft-rose: #ded7cd;
+  --soft-rose-2: #c9c2b7;
+  --petal: #e8e4dc;
+  --cream: #d1cbc1;
+  --accent: #989a82;
+  --shadow: 0 22px 60px rgba(var(--brand-rgb), 0.18);
 }
 
 @layer base {
@@ -30,9 +74,7 @@
   body {
     color: var(--ink);
     background:
-      radial-gradient(1200px 600px at 8% -10%, #f7e1de 0%, transparent 55%),
-      radial-gradient(900px 500px at 95% 0%, #f2e1dc 0%, transparent 55%),
-      radial-gradient(800px 500px at 70% 110%, #fbeee8 0%, transparent 55%),
+      linear-gradient(180deg, rgba(209, 203, 193, 1) 0%, rgba(224, 220, 211, 0.96) 52%, rgba(193, 190, 177, 0.9) 100%),
       var(--cream);
     font-family: var(--font-sans);
     font-size: 15.5px;

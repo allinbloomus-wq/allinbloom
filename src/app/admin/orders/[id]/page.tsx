@@ -97,6 +97,22 @@ const formatPaymentEventContext = (context: Record<string, unknown> | null) => {
     .filter(Boolean);
 };
 
+const formatDeliveryDateTime = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  const [datePart, timePart = ""] = trimmed.split("T");
+  const [year, month, day] = datePart.split("-").map((part) => Number(part));
+  const [hour = 0, minute = 0] = timePart
+    .split(":")
+    .map((part) => Number(part));
+  if (!year || !month || !day) return trimmed;
+  const date = new Date(year, month - 1, day, hour, minute);
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+};
+
 export default async function AdminOrderDetailPage({
   params,
 }: {
@@ -137,6 +153,9 @@ export default async function AdminOrderDetailPage({
   const deliveryMiles = stripeSession?.deliveryMiles || order.deliveryMiles;
   const deliveryFeeCents =
     stripeSession?.deliveryFeeCents ?? order.deliveryFeeCents ?? null;
+  const deliveryDateTime =
+    stripeSession?.deliveryDateTime?.trim() || order.deliveryDateTime?.trim() || "";
+  const formattedDeliveryDateTime = formatDeliveryDateTime(deliveryDateTime);
   const shipping = stripeSession?.shipping;
   const address = shipping?.address;
   const hasStripeSession = Boolean(
@@ -246,7 +265,7 @@ export default async function AdminOrderDetailPage({
         </Link>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+      <div className="space-y-6">
         <div className="glass rounded-[28px] border border-white/80 p-4 sm:p-6">
           <h2 className="text-lg font-semibold text-stone-900">
             Items in order
@@ -277,8 +296,7 @@ export default async function AdminOrderDetailPage({
           </div>
         </div>
 
-        <div className="space-y-4">
-          <div className="glass rounded-[28px] border border-white/80 p-4 text-sm text-stone-600 sm:p-6">
+        <div className="glass rounded-[28px] border border-white/80 p-4 text-sm text-stone-600 sm:p-6">
             <h2 className="text-lg font-semibold text-stone-900">
               Order summary
             </h2>
@@ -302,10 +320,10 @@ export default async function AdminOrderDetailPage({
                 <p>PayPal capture: {order.paypalCaptureId}</p>
               ) : null}
             </div>
-          </div>
+        </div>
 
-          {hasPaymentDiagnostics ? (
-            <div className="glass rounded-[28px] border border-white/80 p-4 text-sm text-stone-600 sm:p-6">
+        {hasPaymentDiagnostics ? (
+          <div className="glass rounded-[28px] border border-white/80 p-4 text-sm text-stone-600 sm:p-6">
               <h2 className="text-lg font-semibold text-stone-900">
                 Payment diagnostics
               </h2>
@@ -381,74 +399,10 @@ export default async function AdminOrderDetailPage({
                   </div>
                 ) : null}
               </div>
-            </div>
-          ) : null}
+          </div>
+        ) : null}
 
-          {paymentEvents.length ? (
-            <div className="glass rounded-[28px] border border-white/80 p-4 text-sm text-stone-600 sm:p-6">
-              <h2 className="text-lg font-semibold text-stone-900">
-                Payment timeline
-              </h2>
-              <div className="mt-4 space-y-4">
-                {paymentEvents.map((event) => {
-                  const contextLines = formatPaymentEventContext(event.context);
-                  const eventLabel =
-                    PAYMENT_EVENT_LABELS[event.event] || formatLabel(event.event);
-                  const sourceLabel =
-                    PAYMENT_SOURCE_LABELS[event.source] || formatLabel(event.source);
-                  return (
-                    <div
-                      key={event.id}
-                      className="border-t border-stone-200 pt-3 first:border-t-0 first:pt-0"
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div>
-                          <p className="font-medium text-stone-900">
-                            {eventLabel}
-                          </p>
-                          <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
-                            {sourceLabel} - {formatLabel(event.provider)}
-                          </p>
-                        </div>
-                        <p className="text-xs text-stone-500">
-                          {formatDateTime(event.createdAt)}
-                        </p>
-                      </div>
-                      {event.message ? (
-                        <p className="mt-2 text-stone-700">{event.message}</p>
-                      ) : null}
-                      {event.stripeEventId ? (
-                        <p className="mt-1 break-all text-xs">
-                          Stripe event: {event.stripeEventId}
-                        </p>
-                      ) : null}
-                      {event.stripeSessionId ? (
-                        <p className="mt-1 break-all text-xs">
-                          Stripe session: {event.stripeSessionId}
-                        </p>
-                      ) : null}
-                      {event.paymentIntentId ? (
-                        <p className="mt-1 break-all text-xs">
-                          PaymentIntent: {event.paymentIntentId}
-                        </p>
-                      ) : null}
-                      {contextLines.length ? (
-                        <div className="mt-2 space-y-1 text-xs text-stone-500">
-                          {contextLines.map((line) => (
-                            <p key={`${event.id}-${line}`} className="break-words">
-                              {line}
-                            </p>
-                          ))}
-                        </div>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ) : null}
-
-          <div className="glass rounded-[28px] border border-white/80 p-4 text-sm text-stone-600 sm:p-6">
+        <div className="glass rounded-[28px] border border-white/80 p-4 text-sm text-stone-600 sm:p-6">
             <h2 className="text-lg font-semibold text-stone-900">
               Delivery address
             </h2>
@@ -470,6 +424,9 @@ export default async function AdminOrderDetailPage({
                       Delivery fee:{" "}
                       {deliveryFeeCents > 0 ? formatMoney(deliveryFeeCents) : "Free"}
                     </p>
+                  ) : null}
+                  {formattedDeliveryDateTime ? (
+                    <p>Delivery date/time: {formattedDeliveryDateTime}</p>
                   ) : null}
                   {order.orderComment ? (
                     <div className="pt-2">
@@ -501,8 +458,71 @@ export default async function AdminOrderDetailPage({
                 </p>
               )}
             </div>
-          </div>
         </div>
+
+        {paymentEvents.length ? (
+          <div className="glass rounded-[28px] border border-white/80 p-4 text-sm text-stone-600 sm:p-6">
+            <h2 className="text-lg font-semibold text-stone-900">
+              Payment timeline
+            </h2>
+            <div className="mt-4 space-y-4">
+              {paymentEvents.map((event) => {
+                const contextLines = formatPaymentEventContext(event.context);
+                const eventLabel =
+                  PAYMENT_EVENT_LABELS[event.event] || formatLabel(event.event);
+                const sourceLabel =
+                  PAYMENT_SOURCE_LABELS[event.source] || formatLabel(event.source);
+                return (
+                  <div
+                    key={event.id}
+                    className="border-t border-stone-200 pt-3 first:border-t-0 first:pt-0"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <p className="font-medium text-stone-900">
+                          {eventLabel}
+                        </p>
+                        <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
+                          {sourceLabel} - {formatLabel(event.provider)}
+                        </p>
+                      </div>
+                      <p className="text-xs text-stone-500">
+                        {formatDateTime(event.createdAt)}
+                      </p>
+                    </div>
+                    {event.message ? (
+                      <p className="mt-2 text-stone-700">{event.message}</p>
+                    ) : null}
+                    {event.stripeEventId ? (
+                      <p className="mt-1 break-all text-xs">
+                        Stripe event: {event.stripeEventId}
+                      </p>
+                    ) : null}
+                    {event.stripeSessionId ? (
+                      <p className="mt-1 break-all text-xs">
+                        Stripe session: {event.stripeSessionId}
+                      </p>
+                    ) : null}
+                    {event.paymentIntentId ? (
+                      <p className="mt-1 break-all text-xs">
+                        PaymentIntent: {event.paymentIntentId}
+                      </p>
+                    ) : null}
+                    {contextLines.length ? (
+                      <div className="mt-2 space-y-1 text-xs text-stone-500">
+                        {contextLines.map((line) => (
+                          <p key={`${event.id}-${line}`} className="break-words">
+                            {line}
+                          </p>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

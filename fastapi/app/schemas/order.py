@@ -37,6 +37,7 @@ class OrderOut(SchemaBase):
     delivery_postal_code: Optional[str] = None
     delivery_country: Optional[str] = None
     delivery_floor: Optional[str] = None
+    delivery_date_time: Optional[str] = None
     order_comment: Optional[str] = None
     delivery_miles: Optional[str] = None
     delivery_fee_cents: Optional[int] = None
@@ -122,6 +123,7 @@ class StripeSessionOut(SchemaBase):
     card_check_cvc: Optional[str] = None
     shipping: Optional[StripeShippingOut] = None
     delivery_address: Optional[str] = None
+    delivery_date_time: Optional[str] = None
     delivery_miles: Optional[str] = None
     delivery_fee_cents: Optional[int] = None
     first_order_discount_percent: Optional[int] = None

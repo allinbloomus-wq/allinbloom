@@ -160,6 +160,7 @@ async def send_admin_order_email(params: dict) -> None:
     safe_miles = _escape(params.get("delivery_miles") or "-")
     safe_fee = _escape(_format_fee(params.get("delivery_fee")))
     safe_discount = _escape(params.get("first_order_discount") or "0")
+    safe_delivery_date_time = _escape(params.get("delivery_date_time") or "")
     safe_comment = _escape(params.get("order_comment") or "")
     total = _escape(_format_money(params["total_cents"]))
 
@@ -185,6 +186,7 @@ async def send_admin_order_email(params: dict) -> None:
             f"Phone: {params.get('phone') or '-'}",
             f"Total: {_format_money(params['total_cents'])}",
             f"Delivery address: {_format_delivery_address(params)}",
+            f"Delivery date/time: {params.get('delivery_date_time') or '-'}",
             f"Delivery miles: {params.get('delivery_miles') or '-'}",
             f"Delivery fee: {_format_fee(params.get('delivery_fee'))}",
             f"First order discount %: {params.get('first_order_discount') or '0'}",
@@ -200,6 +202,7 @@ async def send_admin_order_email(params: dict) -> None:
       <p><strong>Phone:</strong> {safe_phone}</p>
       <p><strong>Total:</strong> {total}</p>
       <p><strong>Delivery address:</strong> {safe_address}</p>
+      <p><strong>Delivery date/time:</strong> {safe_delivery_date_time or "-"}</p>
       <p><strong>Delivery miles:</strong> {safe_miles}</p>
       <p><strong>Delivery fee:</strong> {safe_fee}</p>
       <p><strong>First order discount %:</strong> {safe_discount}</p>
@@ -226,6 +229,7 @@ async def send_customer_order_email(params: dict) -> None:
     safe_miles = _escape(params.get("delivery_miles") or "-")
     safe_fee = _escape(_format_fee(params.get("delivery_fee")))
     safe_discount = _escape(params.get("first_order_discount") or "0")
+    safe_delivery_date_time = _escape(params.get("delivery_date_time") or "")
     safe_comment = _escape(params.get("order_comment") or "")
     total = _escape(_format_money(params["total_cents"]))
 
@@ -251,6 +255,7 @@ async def send_customer_order_email(params: dict) -> None:
             f"Phone: {params.get('phone') or '-'}",
             f"Total: {_format_money(params['total_cents'])}",
             f"Delivery address: {_format_delivery_address(params)}",
+            f"Delivery date/time: {params.get('delivery_date_time') or '-'}",
             f"Delivery miles: {params.get('delivery_miles') or '-'}",
             f"Delivery fee: {_format_fee(params.get('delivery_fee'))}",
             f"First order discount %: {params.get('first_order_discount') or '0'}",
@@ -266,6 +271,7 @@ async def send_customer_order_email(params: dict) -> None:
       <p><strong>Phone:</strong> {safe_phone}</p>
       <p><strong>Total:</strong> {total}</p>
       <p><strong>Delivery address:</strong> {safe_address}</p>
+      <p><strong>Delivery date/time:</strong> {safe_delivery_date_time or "-"}</p>
       <p><strong>Delivery miles:</strong> {safe_miles}</p>
       <p><strong>Delivery fee:</strong> {safe_fee}</p>
       <p><strong>First order discount %:</strong> {safe_discount}</p>

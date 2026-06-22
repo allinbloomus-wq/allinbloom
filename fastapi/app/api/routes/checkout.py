@@ -267,6 +267,7 @@ async def start_checkout(
     postal_code = _clean_text(payload.postal_code)
     country = _clean_text(payload.country) or "United States"
     floor = _clean_text(payload.floor)
+    delivery_date_time = _clean_text(payload.delivery_date_time)
     order_comment = _clean_text(payload.order_comment)
     raw_phone = _clean_text(payload.phone)
     payload_email = _clean_text(payload.email).lower()
@@ -341,6 +342,19 @@ async def start_checkout(
             level=logging.WARNING,
         )
         raise HTTPException(status_code=400, detail="Order comment is too long.")
+    if delivery_date_time and len(delivery_date_time) > 80:
+        log_critical_event(
+            domain="cart",
+            event="checkout_delivery_datetime_too_long",
+            message="Checkout request contains a delivery date/time that is too long.",
+            request=request,
+            context={
+                "user_id": user_id,
+                "delivery_date_time_length": len(delivery_date_time),
+            },
+            level=logging.WARNING,
+        )
+        raise HTTPException(status_code=400, detail="Delivery date/time is too long.")
     if payment_method == "stripe" and not normalized_phone:
         log_critical_event(
             domain="personal_data",
@@ -594,6 +608,7 @@ async def start_checkout(
         delivery_postal_code=postal_code or None,
         delivery_country=country or None,
         delivery_floor=floor or None,
+        delivery_date_time=delivery_date_time or None,
         order_comment=order_comment or None,
         delivery_miles=f"{delivery.miles:.1f}" if delivery.miles is not None else None,
         delivery_fee_cents=delivery.fee_cents,
@@ -782,6 +797,7 @@ async def start_checkout(
                 "deliveryPostalCode": postal_code or "",
                 "deliveryCountry": country or "",
                 "deliveryFloor": floor or "",
+                "deliveryDateTime": delivery_date_time or "",
                 "deliveryMiles": (
                     f"{delivery.miles:.1f}" if delivery.miles is not None else ""
                 ),

@@ -89,6 +89,7 @@ export type Order = {
   deliveryPostalCode: string | null;
   deliveryCountry: string | null;
   deliveryFloor: string | null;
+  deliveryDateTime: string | null;
   orderComment: string | null;
   deliveryMiles: string | null;
   deliveryFeeCents: number | null;
@@ -191,6 +192,7 @@ export type OrderStripeSession = {
   cardCheckCvc: string | null;
   shipping: OrderStripeShipping | null;
   deliveryAddress: string | null;
+  deliveryDateTime: string | null;
   deliveryMiles: string | null;
   deliveryFeeCents: number | null;
   firstOrderDiscountPercent: number | null;

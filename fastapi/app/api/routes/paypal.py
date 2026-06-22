@@ -76,6 +76,7 @@ def _build_email_payload(order: Order) -> dict:
         "delivery_postal_code": order.delivery_postal_code,
         "delivery_country": order.delivery_country,
         "delivery_floor": order.delivery_floor,
+        "delivery_date_time": order.delivery_date_time,
         "order_comment": order.order_comment,
         "delivery_miles": order.delivery_miles,
         "delivery_fee": order.delivery_fee_cents,

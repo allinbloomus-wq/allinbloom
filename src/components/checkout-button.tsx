@@ -59,6 +59,7 @@ type CheckoutButtonProps = {
   deliveryPostalCode?: string;
   deliveryCountry?: string;
   deliveryFloor?: string;
+  deliveryDateTime?: string;
   orderComment?: string;
   phone?: string;
   email: string;
@@ -82,6 +83,7 @@ export default function CheckoutButton({
   deliveryPostalCode,
   deliveryCountry,
   deliveryFloor,
+  deliveryDateTime,
   orderComment,
   phone,
   email,
@@ -162,6 +164,7 @@ export default function CheckoutButton({
           postalCode: deliveryPostalCode,
           country: deliveryCountry,
           floor: deliveryFloor,
+          deliveryDateTime,
           orderComment,
           phone: phone || "",
           email,

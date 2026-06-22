@@ -303,6 +303,7 @@ def get_order_stripe_session(
         if shipping
         else None,
         delivery_address=metadata.get("deliveryAddress"),
+        delivery_date_time=metadata.get("deliveryDateTime"),
         delivery_miles=metadata.get("deliveryMiles"),
         delivery_fee_cents=_parse_optional_int(metadata.get("deliveryFeeCents")),
         first_order_discount_percent=_parse_optional_int(
