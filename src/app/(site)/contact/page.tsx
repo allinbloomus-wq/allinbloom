@@ -44,7 +44,10 @@ export default function ContactPage() {
             </a>
           </p>
           <p>Email: allinbloom.us@gmail.com</p>
-          <p>Hours: Mon-Sat 9:00 AM to 7:00 PM</p>
+          <p>Hours:</p>
+          <p>Mon–Fri: 8:30 AM – 5:00 PM</p>
+          <p>Sat: 10:00 AM – 6:00 PM</p>
+          <p>Sun: Closed</p>
           <a
             href="https://www.instagram.com/all_in_bloom_studio"
             target="_blank"
