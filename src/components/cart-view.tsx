@@ -232,8 +232,8 @@ const toDateInputValue = (date: Date) => {
 
 const DELIVERY_TIME_WINDOWS = [
   {
-    value: "8 AM - 12 PM",
-    label: "8 AM - 12 PM",
+    value: "8:30 AM - 12 PM",
+    label: "8:30 AM - 12 PM",
     start: 8 * 60,
     end: 12 * 60,
     example: "10:30 AM",

@@ -64,7 +64,7 @@ from app.services.settings import get_store_settings
 router = APIRouter(prefix="/api/checkout", tags=["checkout"])
 FLOWER_QUANTITY_MIN = 1
 FLOWER_QUANTITY_MAX = 1001
-DELIVERY_TIME_WINDOWS = {"8 AM - 12 PM", "12 PM - 4 PM", "4 PM - 8 PM"}
+DELIVERY_TIME_WINDOWS = {"8:30 AM - 12 PM", "12 PM - 4 PM", "4 PM - 8 PM"}
 
 
 def _is_flower_quantity_enabled_for_bouquet(bouquet: Bouquet) -> bool:
