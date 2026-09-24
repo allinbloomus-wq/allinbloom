@@ -152,6 +152,8 @@ type CheckoutButtonProps = {
   iconAlt?: string;
   iconClassName?: string;
   onBusyChange?: (busy: boolean) => void;
+  /** Return false to cancel the click, e.g. when required fields are empty. */
+  onBeforeCheckout?: () => boolean;
 };
 
 export default function CheckoutButton({
@@ -178,16 +180,21 @@ export default function CheckoutButton({
   iconAlt,
   iconClassName,
   onBusyChange,
+  onBeforeCheckout,
 }: CheckoutButtonProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const busyRef = useRef(false);
   const checkoutAttemptRef = useRef<CheckoutAttempt | null>(null);
   const method = paymentMethod ?? "stripe";
-  const buttonLabel = label ?? (method === "paypal" ? "Pay with PayPal" : "Checkout");
+  const buttonLabel = label ?? (method === "paypal" ? "PayPal" : "Checkout");
 
   const handleCheckout = async () => {
     if (busyRef.current) return;
+    if (onBeforeCheckout && !onBeforeCheckout()) {
+      setError(null);
+      return;
+    }
     busyRef.current = true;
     setLoading(true);
     setError(null);

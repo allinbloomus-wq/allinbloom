@@ -255,6 +255,19 @@ const DELIVERY_TIME_WINDOWS = [
   },
 ] as const;
 
+type CheckoutField =
+  | "email"
+  | "street"
+  | "city"
+  | "state"
+  | "postalCode"
+  | "deliveryDate"
+  | "deliveryTimeWindow"
+  | "idealTime"
+  | "phone"
+  | "recipientName"
+  | "recipientPhone";
+
 const dateTimeFieldWrapClass =
   "relative h-11 w-full min-w-0 max-w-full overflow-hidden rounded-2xl border border-stone-200 bg-white/80 transition-colors focus-within:border-stone-400";
 
@@ -740,8 +753,6 @@ export default function CartView({
       }),
     [deliveryDate, deliveryTimeWindow, idealDeliveryTime]
   );
-  const deliveryDateTimeValid =
-    deliveryDateValid && deliveryTimeWindowValid && idealDeliveryTimeValid;
   const addressForQuote = useMemo(
     () =>
       formatAddressForQuote({
@@ -1304,28 +1315,79 @@ export default function CartView({
     0,
     discountedSubtotalCents + shippingCents
   );
-  const stripeCheckoutDisabled =
-    !quote ||
-    quoteLoading ||
-    Boolean(quoteError) ||
-    !emailValid ||
-    !phoneValid ||
-    !recipientName.trim() ||
-    !recipientPhoneValid ||
-    !deliveryDateTimeValid ||
-    !hasRequiredAddress ||
-    checkoutBusy;
-  const paypalCheckoutDisabled =
-    !quote ||
-    quoteLoading ||
-    Boolean(quoteError) ||
-    !emailValid ||
-    !recipientName.trim() ||
-    !recipientPhoneValid ||
-    !deliveryDateTimeValid ||
-    !hasRequiredAddress ||
-    checkoutBusy;
   const checkoutPhone = phoneValid ? phoneValue : "";
+
+  const [invalidFields, setInvalidFields] = useState<Set<CheckoutField>>(
+    () => new Set()
+  );
+  const [checkoutHint, setCheckoutHint] = useState<string | null>(null);
+
+  const clearInvalidField = (field: CheckoutField) => {
+    setInvalidFields((current) => {
+      if (!current.has(field)) return current;
+      const next = new Set(current);
+      next.delete(field);
+      if (!next.size) setCheckoutHint(null);
+      return next;
+    });
+  };
+
+  // Spread onto the wrapper of a required field: focusing or tapping anything
+  // inside it (input, date picker, dropdown button) removes the red state.
+  const checkoutFieldProps = (field: CheckoutField) => ({
+    "data-checkout-field": field,
+    onFocusCapture: () => clearInvalidField(field),
+    onPointerDownCapture: () => clearInvalidField(field),
+  });
+
+  const invalidFieldClass = (field: CheckoutField) =>
+    invalidFields.has(field)
+      ? field === "deliveryDate"
+        ? "text-rose-700 [&_div]:border-rose-400 [&_div]:bg-rose-50/70"
+        : "text-rose-700 [&_input]:border-rose-400 [&_input]:bg-rose-50/70"
+      : "";
+
+  // Mirrors the *CheckoutDisabled conditions so the buttons stay clickable and
+  // can explain what is missing instead of silently doing nothing.
+  const validateCheckout = (method: "stripe" | "paypal") => {
+    const missing: CheckoutField[] = [];
+    if (!emailValid) missing.push("email");
+    if (!addressLine1.trim()) missing.push("street");
+    if (!addressCity.trim()) missing.push("city");
+    if (!addressState.trim()) missing.push("state");
+    if (!postalCode.trim()) missing.push("postalCode");
+    if (!deliveryDateValid) missing.push("deliveryDate");
+    if (!deliveryTimeWindowValid) missing.push("deliveryTimeWindow");
+    if (!idealDeliveryTimeValid) missing.push("idealTime");
+    if (method === "stripe" && !phoneValid) missing.push("phone");
+    if (!recipientName.trim()) missing.push("recipientName");
+    if (!recipientPhoneValid) missing.push("recipientPhone");
+
+    if (missing.length) {
+      setInvalidFields(new Set(missing));
+      setCheckoutHint("Please fill in the required fields highlighted in red.");
+      document
+        .querySelector(`[data-checkout-field="${missing[0]}"]`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return false;
+    }
+
+    setInvalidFields(new Set());
+    if (quoteLoading) {
+      setCheckoutHint("Checking delivery, please wait a moment.");
+      return false;
+    }
+    if (!quote || quoteError) {
+      setCheckoutHint(
+        quoteError
+          ? "We can't deliver to this address yet. Please check it and try again."
+          : "Press \u201cCheck delivery\u201d to calculate the delivery fee first."
+      );
+      return false;
+    }
+    setCheckoutHint(null);
+    return true;
+  };
 
   const requestQuote = async () => {
     if (!hasRequiredAddress) {
@@ -1546,7 +1608,10 @@ export default function CartView({
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.42fr)] xl:items-start">
         <div className="space-y-3 rounded-[24px] border border-white/80 bg-white/45 p-4 sm:p-5">
           <h3 className="text-lg font-semibold text-stone-900">Delivery details</h3>
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label
+            {...checkoutFieldProps("email")}
+            className={`flex flex-col gap-2 text-sm text-stone-700 ${invalidFieldClass("email")}`}
+          >
             Email for receipt
             <input
               value={isAuthenticated ? userEmail || "" : guestEmail}
@@ -1566,7 +1631,10 @@ export default function CartView({
               Enter a valid email address.
             </p>
           ) : null}
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label
+            {...checkoutFieldProps("street")}
+            className={`flex flex-col gap-2 text-sm text-stone-700 ${invalidFieldClass("street")}`}
+          >
             Street address
             <div className="relative">
               <input
@@ -1727,7 +1795,10 @@ export default function CartView({
             </label>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
-            <label className="flex flex-col gap-2 text-sm text-stone-700">
+            <label
+              {...checkoutFieldProps("city")}
+              className={`flex flex-col gap-2 text-sm text-stone-700 ${invalidFieldClass("city")}`}
+            >
               City
               <input
                 name={addressFieldNames.city}
@@ -1746,7 +1817,10 @@ export default function CartView({
                 className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
               />
             </label>
-            <label className="flex flex-col gap-2 text-sm text-stone-700">
+            <label
+              {...checkoutFieldProps("state")}
+              className={`flex flex-col gap-2 text-sm text-stone-700 ${invalidFieldClass("state")}`}
+            >
               State
               <input
                 name={addressFieldNames.state}
@@ -1770,7 +1844,10 @@ export default function CartView({
                 className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 uppercase outline-none focus:border-stone-400"
               />
             </label>
-            <label className="flex flex-col gap-2 text-sm text-stone-700">
+            <label
+              {...checkoutFieldProps("postalCode")}
+              className={`flex flex-col gap-2 text-sm text-stone-700 ${invalidFieldClass("postalCode")}`}
+            >
               ZIP code
               <input
                 name={addressFieldNames.postalCode}
@@ -1814,7 +1891,10 @@ export default function CartView({
           </label>
           <div className="space-y-3">
             <div className="grid gap-3 sm:grid-cols-2">
-              <label className="flex flex-col gap-2 text-sm text-stone-700">
+              <label
+                {...checkoutFieldProps("deliveryDate")}
+                className={`flex flex-col gap-2 text-sm text-stone-700 ${invalidFieldClass("deliveryDate")}`}
+              >
                 Delivery date
                 <div className={dateTimeFieldWrapClass}>
                   <input
@@ -1831,7 +1911,9 @@ export default function CartView({
                   />
                 </div>
               </label>
+              <div {...checkoutFieldProps("deliveryTimeWindow")} className="min-w-0">
               <SingleSelectDropdown
+                invalid={invalidFields.has("deliveryTimeWindow")}
                 label="Time"
                 controlId={`delivery-time-${addressAutofillId}`}
                 name="deliveryTimeWindow"
@@ -1845,13 +1927,17 @@ export default function CartView({
                 ]}
                 onChange={setDeliveryTimeWindow}
               />
+              </div>
             </div>
             {deliveryDate && !deliveryDateValid ? (
               <p className="text-xs uppercase tracking-[0.24em] text-rose-700">
                 Choose a valid delivery date within the next month.
               </p>
             ) : null}
-            <label className="flex flex-col gap-2 text-sm text-stone-700">
+            <label
+              {...checkoutFieldProps("idealTime")}
+              className={`flex flex-col gap-2 text-sm text-stone-700 ${invalidFieldClass("idealTime")}`}
+            >
               Ideal delivery time
               <input
                 type="text"
@@ -1885,7 +1971,10 @@ export default function CartView({
               </span>
             </label>
           </div>
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label
+            {...checkoutFieldProps("phone")}
+            className={`flex flex-col gap-2 text-sm text-stone-700 ${invalidFieldClass("phone")}`}
+          >
             Sender phone number
             <input
               value={phoneValue}
@@ -1908,7 +1997,10 @@ export default function CartView({
               Use format +1 312 555 0123.
             </p>
           ) : null}
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label
+            {...checkoutFieldProps("recipientName")}
+            className={`flex flex-col gap-2 text-sm text-stone-700 ${invalidFieldClass("recipientName")}`}
+          >
             Recipient name
             <input
               value={recipientName}
@@ -1919,7 +2011,10 @@ export default function CartView({
               className={fieldClass}
             />
           </label>
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label
+            {...checkoutFieldProps("recipientPhone")}
+            className={`flex flex-col gap-2 text-sm text-stone-700 ${invalidFieldClass("recipientPhone")}`}
+          >
             Recipient phone number
             <input
               value={recipientPhoneLocal ? recipientPhoneValue : ""}
@@ -2016,11 +2111,20 @@ export default function CartView({
             recipientName={recipientName.trim()}
             recipientPhone={recipientPhoneValid ? recipientPhoneValue : ""}
             email={checkoutEmail}
-            disabled={stripeCheckoutDisabled}
+            disabled={checkoutBusy}
+            onBeforeCheckout={() => validateCheckout("stripe")}
             onBusyChange={setCheckoutBusy}
             label="Checkout"
             paymentMethod="stripe"
           />
+          {checkoutHint ? (
+            <p
+              role="alert"
+              className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-700"
+            >
+              {checkoutHint}
+            </p>
+          ) : null}
           <div className="flex min-w-0 max-w-full items-center gap-3 overflow-x-auto py-1 lg:justify-start">
             {[
               {
@@ -2126,9 +2230,10 @@ export default function CartView({
             recipientName={recipientName.trim()}
             recipientPhone={recipientPhoneValid ? recipientPhoneValue : ""}
             email={checkoutEmail}
-            disabled={paypalCheckoutDisabled}
+            disabled={checkoutBusy}
+            onBeforeCheckout={() => validateCheckout("paypal")}
             onBusyChange={setCheckoutBusy}
-            label="Pay with PayPal"
+            label="PayPal"
             paymentMethod="paypal"
             iconSrc="/paypal.webp"
             iconAlt="PayPal"
