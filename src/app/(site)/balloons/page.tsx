@@ -2,14 +2,14 @@ import type { Metadata } from "next";
 import CatalogListing from "@/components/catalog-listing";
 
 export const metadata: Metadata = {
-  title: "Balloons in Wheeling, IL: Birthday & Party Balloons",
+  title: "Flower & Balloon Delivery in Wheeling, IL",
   description:
-    "Balloon bouquets for birthdays, baby showers and parties. Pick up in Wheeling, IL or order with same-day delivery.",
+    "Same-day balloon and flower delivery in Wheeling, IL. Balloon bouquets for birthdays, baby showers and parties, on their own or with flowers.",
   alternates: { canonical: "/balloons" },
   openGraph: {
-    title: "Balloons | All in Bloom Floral Studio",
+    title: "Flower & Balloon Delivery | All in Bloom Floral Studio",
     description:
-      "Balloon bouquets for birthdays and parties with same-day delivery from Wheeling, IL.",
+      "Same-day balloon and flower delivery in Wheeling, IL.",
     url: "/balloons",
   },
 };

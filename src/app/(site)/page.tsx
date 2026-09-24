@@ -28,14 +28,14 @@ import {
 
 export const metadata: Metadata = {
   title: {
-    absolute: "Florist in Wheeling, IL: Flowers & Balloons | All in Bloom",
+    absolute: "Flower Delivery in Wheeling, IL | Local Florist | All in Bloom",
   },
   description: SITE_DESCRIPTION,
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "Florist in Wheeling, IL: Flowers & Balloons | All in Bloom",
+    title: "Flower Delivery in Wheeling, IL | Local Florist | All in Bloom",
     description: SITE_DESCRIPTION,
     url: "/",
     images: [
@@ -173,12 +173,12 @@ export default async function HomePage() {
             <PromoGallery slides={promoSlides} />
           </div>
           <h1 className="text-3xl font-semibold text-stone-900 text-balance sm:text-5xl lg:text-6xl">
-            Flower Shop in Wheeling, IL
+            Flower Delivery in Wheeling, IL
           </h1>
           <p className="max-w-xl text-balance text-lg text-stone-700">
-            Bouquets, balloons and gift boxes for birthdays, dates and
-            &ldquo;just because&rdquo;. Order online and get same-day
-            delivery.
+            Order a bouquet online and we&apos;ll deliver it the same day.
+            Flowers, balloons and gift boxes for birthdays, dates and
+            &ldquo;just because&rdquo;.
           </p>
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
             <Link
@@ -274,11 +274,28 @@ export default async function HomePage() {
             pick one from the showcase, or order online and we&apos;ll
             deliver it.
           </p>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <PromoCard
-              title="Every bouquet is wrapped in our signature paper and ribbon."
-              description="Add a greeting card with your message, and we can send you a photo before delivery."
-            />
+          <div className="rounded-[28px] border border-white/80 bg-gradient-to-br from-[color:var(--soft-rose)] to-[color:var(--accent)] p-5 text-[color:var(--brand)] shadow-sm sm:p-6">
+            <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
+              Exclusive
+            </p>
+            <h3 className="mt-2 text-xl font-semibold sm:text-2xl">
+              A little extra care in every bouquet
+            </h3>
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <div className="rounded-2xl border border-white/70 bg-white/60 p-4">
+                <p className="text-sm font-semibold">Beautifully wrapped</p>
+                <p className="mt-2 text-sm leading-relaxed text-stone-600">
+                  Every bouquet is wrapped in our signature paper and ribbon.
+                </p>
+              </div>
+              <div className="rounded-2xl border border-white/70 bg-white/60 p-4">
+                <p className="text-sm font-semibold">Made personal</p>
+                <p className="mt-2 text-sm leading-relaxed text-stone-600">
+                  Add a greeting card with your message. We can also send you a
+                  photo before delivery.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
         <div className="space-y-4">
@@ -351,7 +368,7 @@ export default async function HomePage() {
             Delivery areas
           </p>
           <h2 className="mt-2 text-3xl font-semibold text-stone-900 sm:text-4xl">
-            Flower Delivery in Wheeling & Nearby Suburbs
+            Where We Deliver
           </h2>
         </div>
         <p className="max-w-3xl text-sm leading-relaxed text-stone-600">
@@ -438,5 +455,4 @@ export default async function HomePage() {
     </div>
   );
 }
-
 

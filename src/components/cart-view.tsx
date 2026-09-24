@@ -15,6 +15,7 @@ import { formatMoney } from "@/lib/format";
 import { applyPercentDiscount, getCartItemDiscount } from "@/lib/pricing";
 import CheckoutButton from "@/components/checkout-button";
 import ImageWithFallback from "@/components/image-with-fallback";
+import SingleSelectDropdown from "@/components/single-select-dropdown";
 
 type DiscountInfo = {
   percent: number;
@@ -1309,7 +1310,8 @@ export default function CartView({
     Boolean(quoteError) ||
     !emailValid ||
     !phoneValid ||
-    (recipientPhoneLocal.length > 0 && !recipientPhoneValid) ||
+    !recipientName.trim() ||
+    !recipientPhoneValid ||
     !deliveryDateTimeValid ||
     !hasRequiredAddress ||
     checkoutBusy;
@@ -1318,7 +1320,8 @@ export default function CartView({
     quoteLoading ||
     Boolean(quoteError) ||
     !emailValid ||
-    (recipientPhoneLocal.length > 0 && !recipientPhoneValid) ||
+    !recipientName.trim() ||
+    !recipientPhoneValid ||
     !deliveryDateTimeValid ||
     !hasRequiredAddress ||
     checkoutBusy;
@@ -1828,22 +1831,20 @@ export default function CartView({
                   />
                 </div>
               </label>
-              <label className="flex flex-col gap-2 text-sm text-stone-700">
-                Time
-                <select
-                  value={deliveryTimeWindow}
-                  required
-                  onChange={(event) => setDeliveryTimeWindow(event.target.value)}
-                  className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
-                >
-                  <option value="">Select time</option>
-                  {DELIVERY_TIME_WINDOWS.map((window) => (
-                    <option key={window.value} value={window.value}>
-                      {window.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <SingleSelectDropdown
+                label="Time"
+                controlId={`delivery-time-${addressAutofillId}`}
+                name="deliveryTimeWindow"
+                value={deliveryTimeWindow}
+                options={[
+                  { value: "", label: "Select time" },
+                  ...DELIVERY_TIME_WINDOWS.map((window) => ({
+                    value: window.value,
+                    label: window.label,
+                  })),
+                ]}
+                onChange={setDeliveryTimeWindow}
+              />
             </div>
             {deliveryDate && !deliveryDateValid ? (
               <p className="text-xs uppercase tracking-[0.24em] text-rose-700">
@@ -1911,6 +1912,7 @@ export default function CartView({
             Recipient name
             <input
               value={recipientName}
+              required
               onChange={(event) => setRecipientName(event.target.value.slice(0, 120))}
               placeholder="Recipient name"
               autoComplete="off"
@@ -1921,6 +1923,7 @@ export default function CartView({
             Recipient phone number
             <input
               value={recipientPhoneLocal ? recipientPhoneValue : ""}
+              required
               onChange={(event) => {
                 const digits = event.target.value.replace(/\D/g, "");
                 const local = digits.startsWith("1") ? digits.slice(1) : digits;

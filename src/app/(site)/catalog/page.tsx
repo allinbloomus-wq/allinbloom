@@ -155,19 +155,19 @@ export async function generateMetadata({
   const isShopAllScreen = !hasListingContext && !isFlowersCategoryScreen;
   const isFeatured = params.filter === "featured";
   const title = isShopAllScreen
-    ? "Shop Flowers, Balloons & Gifts"
+    ? "Flower Delivery: Shop Flowers, Balloons & Gifts"
     : !hasListingContext
-    ? "Bouquets by Category: Mono, Mixed & Seasonal"
+    ? "Flower Delivery: Mono, Mixed & Seasonal Bouquets"
     : isFeatured
-    ? "Best-Selling Bouquets"
-    : "Order Bouquets Online with Same-Day Delivery";
+    ? "Flower Delivery: Best-Selling Bouquets"
+    : "Flower Delivery Online: Same-Day Bouquets";
   const description = isShopAllScreen
-    ? "Shop bouquets, balloons and gift boxes from All in Bloom Floral Studio in Wheeling, IL, or book our event space. Same-day delivery available."
+    ? "Same-day flower delivery in Wheeling, IL. Shop bouquets, balloons and gift boxes from All in Bloom Floral Studio, or book our event space."
     : !hasListingContext
-    ? "Mono, mixed and seasonal bouquets made to order in Wheeling, IL. Pick a category and filter by flower, color and price."
+    ? "Flower delivery in Wheeling, IL: mono, mixed and seasonal bouquets made to order. Pick a category and filter by flower, color and price."
     : isFeatured
-    ? "Our most-ordered bouquets, made fresh in Wheeling, IL and delivered the same day."
-    : "Order fresh bouquets online from our Wheeling, IL flower shop. Filter by flower, color, style and price. Same-day delivery to nearby suburbs.";
+    ? "Same-day delivery of our most-ordered bouquets, made fresh in Wheeling, IL."
+    : "Flower delivery from our Wheeling, IL shop. Order fresh bouquets online, filter by flower, color, style and price. Same-day delivery to nearby suburbs.";
   const canonical = isShopAllScreen
     ? "/catalog"
     : isFeatured

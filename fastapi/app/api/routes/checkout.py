@@ -497,11 +497,12 @@ async def start_checkout(
     raw_phone = _clean_text(payload.phone)
     recipient_name = _clean_text(payload.recipient_name)
     recipient_phone = _clean_text(payload.recipient_phone)
-    if recipient_phone:
-        recipient_digits = "".join(char for char in recipient_phone if char.isdigit())
-        if len(recipient_digits) != 11 or not recipient_digits.startswith("1"):
-            raise HTTPException(status_code=400, detail="Recipient phone number is invalid.")
-        recipient_phone = f"+{recipient_digits}"
+    if not recipient_name:
+        raise HTTPException(status_code=400, detail="Recipient name is required.")
+    recipient_digits = "".join(char for char in recipient_phone if char.isdigit())
+    if len(recipient_digits) != 11 or not recipient_digits.startswith("1"):
+        raise HTTPException(status_code=400, detail="Recipient phone number is required or invalid.")
+    recipient_phone = f"+{recipient_digits}"
     payload_email = _clean_text(payload.email).lower()
     has_structured_address = any(
         [address_line1, address_line2, city, state, postal_code, floor]

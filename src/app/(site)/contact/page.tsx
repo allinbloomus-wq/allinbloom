@@ -14,16 +14,16 @@ import {
 } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Contact Us: Address, Phone & Hours",
+  title: "Flower Delivery Wheeling, IL: Contact, Address & Hours",
   description:
-    "Call, email or visit All in Bloom Floral Studio at 224 S Milwaukee Ave, Wheeling, IL. Custom bouquets, corporate orders and event flowers.",
+    "Order flower delivery by phone or visit All in Bloom Floral Studio at 224 S Milwaukee Ave, Wheeling, IL. Custom bouquets, corporate orders and events.",
   alternates: {
     canonical: "/contact",
   },
   openGraph: {
-    title: "Contact All in Bloom Floral Studio",
+    title: "Contact | Flower Delivery in Wheeling, IL",
     description:
-      "Address, phone and opening hours of our flower studio in Wheeling, IL.",
+      "Phone, address and hours of All in Bloom Floral Studio, flower delivery in Wheeling, IL.",
     url: "/contact",
   },
 };

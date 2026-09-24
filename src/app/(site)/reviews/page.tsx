@@ -4,16 +4,16 @@ import ReviewsGallery from "@/components/reviews-gallery";
 import { getActiveReviews } from "@/lib/data/reviews";
 
 export const metadata: Metadata = {
-  title: "Customer Reviews",
+  title: "Flower Delivery Reviews: Wheeling, IL",
   description:
-    "Read what customers say about bouquets and delivery from All in Bloom Floral Studio in Wheeling, IL, and leave your own review.",
+    "Flower delivery reviews from customers of All in Bloom Floral Studio in Wheeling, IL. Read what people say about our bouquets and leave your own.",
   alternates: {
     canonical: "/reviews",
   },
   openGraph: {
-    title: "Reviews | All in Bloom Floral Studio",
+    title: "Flower Delivery Reviews | All in Bloom Floral Studio",
     description:
-      "Customer reviews of All in Bloom Floral Studio, a flower shop in Wheeling, IL.",
+      "Customer reviews of flower delivery from All in Bloom Floral Studio in Wheeling, IL.",
     url: "/reviews",
   },
 };

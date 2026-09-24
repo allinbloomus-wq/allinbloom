@@ -1,15 +1,18 @@
 export const SITE_NAME = "All in Bloom Floral Studio";
-export const SITE_TAGLINE = "Florist in Wheeling, IL — bouquets, balloons and same-day delivery.";
+export const SITE_TAGLINE = "Same-day flower delivery in Wheeling, IL and nearby suburbs.";
 export const SITE_DESCRIPTION =
-  "Flower and balloon shop in Wheeling, IL. Fresh bouquets, gift boxes and same-day delivery to Buffalo Grove, Arlington Heights, Northbrook and nearby suburbs.";
+  "Same-day flower delivery in Wheeling, IL and nearby suburbs: Buffalo Grove, Arlington Heights, Northbrook and more. Fresh bouquets, balloons and gift boxes.";
 export const SITE_KEYWORDS = [
-  "florist Wheeling IL",
-  "flower delivery Wheeling",
+  "flower delivery Wheeling IL",
   "same-day flower delivery",
+  "flower delivery near me",
+  "florist Wheeling IL",
   "flower shop near me",
   "balloons Wheeling IL",
   "Buffalo Grove florist",
   "Arlington Heights flower delivery",
+  "Buffalo Grove flower delivery",
+  "Northbrook flower delivery",
   "Northwest suburbs florist",
   "gift boxes",
   "All in Bloom Floral Studio",
