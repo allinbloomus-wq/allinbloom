@@ -336,6 +336,8 @@ export default async function AdminOrderDetailPage({
               <p>Created: {formatDateTime(order.createdAt)}</p>
               {order.email ? <p className="break-all">Email: {order.email}</p> : null}
               {order.phone ? <p>Phone: {order.phone}</p> : null}
+              {order.recipientName ? <p>Recipient: {order.recipientName}</p> : null}
+              {order.recipientPhone ? <p>Recipient phone: {order.recipientPhone}</p> : null}
               <p>Payment method: {paymentProvider}</p>
               {hasStripeSession ? (
                 <p>

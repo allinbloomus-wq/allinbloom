@@ -14,6 +14,8 @@ class Order(Base):
     id = Column(String, primary_key=True, default=generate_cuid)
     email = Column(String, nullable=True, index=True)
     phone = Column(String, nullable=True)
+    recipient_name = Column("recipientName", String, nullable=True)
+    recipient_phone = Column("recipientPhone", String, nullable=True)
     stripe_session_id = Column("stripeSessionId", String, unique=True, nullable=True)
     stripe_payment_intent_id = Column("stripePaymentIntentId", String, unique=True, nullable=True)
     stripe_charge_id = Column("stripeChargeId", String, unique=True, nullable=True)

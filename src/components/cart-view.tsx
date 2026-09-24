@@ -663,6 +663,8 @@ export default function CartView({
   const [idealDeliveryTime, setIdealDeliveryTime] = useState("");
   const [orderComment, setOrderComment] = useState("");
   const [phoneLocal, setPhoneLocal] = useState(() => toLocalPhoneDigits(userPhone));
+  const [recipientName, setRecipientName] = useState("");
+  const [recipientPhoneLocal, setRecipientPhoneLocal] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [addressInputElement, setAddressInputElement] =
     useState<HTMLInputElement | null>(null);
@@ -710,6 +712,8 @@ export default function CartView({
   };
   const phoneValid = phoneLocal.length === 10;
   const phoneValue = formatPhone(phoneLocal);
+  const recipientPhoneValid = recipientPhoneLocal.length === 10;
+  const recipientPhoneValue = formatPhone(recipientPhoneLocal);
   const deliveryDateValid =
     Boolean(deliveryDate.trim()) &&
     isValidDateValue(deliveryDate) &&
@@ -940,6 +944,8 @@ export default function CartView({
       if (stored.phoneLocal) {
         setPhoneLocal(stored.phoneLocal);
       }
+      setRecipientName(stored.recipientName || "");
+      setRecipientPhoneLocal(stored.recipientPhoneLocal || "");
     }
     setStorageReady(true);
   }, [isAuthenticated]);
@@ -954,6 +960,8 @@ export default function CartView({
       idealDeliveryTime: idealDeliveryTime.trim(),
       orderComment: orderComment.trim(),
       phoneLocal,
+      recipientName: recipientName.trim(),
+      recipientPhoneLocal,
     });
   }, [
     deliveryDate,
@@ -964,6 +972,8 @@ export default function CartView({
     isAuthenticated,
     orderComment,
     phoneLocal,
+    recipientName,
+    recipientPhoneLocal,
     storageReady,
   ]);
 
@@ -1299,6 +1309,7 @@ export default function CartView({
     Boolean(quoteError) ||
     !emailValid ||
     !phoneValid ||
+    (recipientPhoneLocal.length > 0 && !recipientPhoneValid) ||
     !deliveryDateTimeValid ||
     !hasRequiredAddress ||
     checkoutBusy;
@@ -1307,6 +1318,7 @@ export default function CartView({
     quoteLoading ||
     Boolean(quoteError) ||
     !emailValid ||
+    (recipientPhoneLocal.length > 0 && !recipientPhoneValid) ||
     !deliveryDateTimeValid ||
     !hasRequiredAddress ||
     checkoutBusy;
@@ -1873,7 +1885,7 @@ export default function CartView({
             </label>
           </div>
           <label className="flex flex-col gap-2 text-sm text-stone-700">
-            Phone number
+            Sender phone number
             <input
               value={phoneValue}
               onChange={(event) => {
@@ -1896,6 +1908,38 @@ export default function CartView({
             </p>
           ) : null}
           <label className="flex flex-col gap-2 text-sm text-stone-700">
+            Recipient name
+            <input
+              value={recipientName}
+              onChange={(event) => setRecipientName(event.target.value.slice(0, 120))}
+              placeholder="Recipient name"
+              autoComplete="off"
+              className={fieldClass}
+            />
+          </label>
+          <label className="flex flex-col gap-2 text-sm text-stone-700">
+            Recipient phone number
+            <input
+              value={recipientPhoneLocal ? recipientPhoneValue : ""}
+              onChange={(event) => {
+                const digits = event.target.value.replace(/\D/g, "");
+                const local = digits.startsWith("1") ? digits.slice(1) : digits;
+                setRecipientPhoneLocal(local.slice(0, 10));
+              }}
+              placeholder="+1 312 555 0123"
+              inputMode="numeric"
+              autoComplete="off"
+              maxLength={15}
+              pattern="^\\+1 \\d{3} \\d{3} \\d{4}$"
+              className={fieldClass}
+            />
+          </label>
+          {recipientPhoneLocal.length > 0 && !recipientPhoneValid ? (
+            <p className="text-xs uppercase tracking-[0.24em] text-rose-700">
+              Use format +1 312 555 0123.
+            </p>
+          ) : null}
+          <label className="flex flex-col gap-2 text-sm text-stone-700">
             Order comment (optional)
             <textarea
               value={orderComment}
@@ -1913,10 +1957,6 @@ export default function CartView({
           >
             {quoteLoading ? "Checking..." : "Check delivery"}
           </button>
-          <p className="text-xs text-stone-500">
-            Delivery pricing: free within 10 miles. After 10 miles, delivery
-            is $20 plus $2 for each additional mile, up to 29.99 miles.
-          </p>
           {quote ? (
             <p className="text-xs text-stone-500">
               Distance: {quote.distanceText}
@@ -1970,6 +2010,8 @@ export default function CartView({
             deliveryDateTime={deliveryDateTime.trim()}
             orderComment={orderComment.trim()}
             phone={checkoutPhone}
+            recipientName={recipientName.trim()}
+            recipientPhone={recipientPhoneValid ? recipientPhoneValue : ""}
             email={checkoutEmail}
             disabled={stripeCheckoutDisabled}
             onBusyChange={setCheckoutBusy}
@@ -2078,6 +2120,8 @@ export default function CartView({
             deliveryDateTime={deliveryDateTime.trim()}
             orderComment={orderComment.trim()}
             phone={checkoutPhone}
+            recipientName={recipientName.trim()}
+            recipientPhone={recipientPhoneValid ? recipientPhoneValue : ""}
             email={checkoutEmail}
             disabled={paypalCheckoutDisabled}
             onBusyChange={setCheckoutBusy}

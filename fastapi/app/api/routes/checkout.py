@@ -495,6 +495,13 @@ async def start_checkout(
     delivery_date_time = _clean_text(payload.delivery_date_time)
     order_comment = _clean_text(payload.order_comment)
     raw_phone = _clean_text(payload.phone)
+    recipient_name = _clean_text(payload.recipient_name)
+    recipient_phone = _clean_text(payload.recipient_phone)
+    if recipient_phone:
+        recipient_digits = "".join(char for char in recipient_phone if char.isdigit())
+        if len(recipient_digits) != 11 or not recipient_digits.startswith("1"):
+            raise HTTPException(status_code=400, detail="Recipient phone number is invalid.")
+        recipient_phone = f"+{recipient_digits}"
     payload_email = _clean_text(payload.email).lower()
     has_structured_address = any(
         [address_line1, address_line2, city, state, postal_code, floor]
@@ -931,6 +938,8 @@ async def start_checkout(
         order = Order(
             email=checkout_email,
             phone=normalized_phone or None,
+            recipient_name=recipient_name or None,
+            recipient_phone=recipient_phone or None,
             total_cents=computed_total,
             currency=_SUPPORTED_CURRENCY,
             items=order_items,

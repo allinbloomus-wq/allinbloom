@@ -1,7 +1,7 @@
 export const SITE_NAME = "All in Bloom Floral Studio";
 export const SITE_TAGLINE = "Wheeling flower delivery and luxury bouquets.";
 export const SITE_DESCRIPTION =
-  "Luxury bouquets, balloons and same-day flower delivery in Wheeling, IL and Chicago's Northwest Suburbs.";
+  "All in Bloom Floral Studio is a flower and balloon shop located in Wheeling, Illinois, serving Wheeling and Chicago’s Northwest Suburbs.";
 export const SITE_KEYWORDS = [
   "Chicago florist",
   "Chicago flower delivery",

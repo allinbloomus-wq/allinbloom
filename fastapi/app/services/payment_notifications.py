@@ -31,6 +31,8 @@ def _email_payload(order: Order) -> dict:
         "currency": order.currency,
         "email": order.email,
         "phone": order.phone,
+        "recipient_name": order.recipient_name,
+        "recipient_phone": order.recipient_phone,
         "items": [
             {
                 "name": item.name,

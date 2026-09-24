@@ -141,6 +141,8 @@ type CheckoutButtonProps = {
   deliveryDateTime?: string;
   orderComment?: string;
   phone?: string;
+  recipientName?: string;
+  recipientPhone?: string;
   email: string;
   disabled?: boolean;
   paymentMethod?: "stripe" | "paypal";
@@ -165,6 +167,8 @@ export default function CheckoutButton({
   deliveryDateTime,
   orderComment,
   phone,
+  recipientName,
+  recipientPhone,
   email,
   disabled,
   paymentMethod,
@@ -244,6 +248,8 @@ export default function CheckoutButton({
         deliveryDateTime,
         orderComment,
         phone: phone || "",
+        recipientName: recipientName || "",
+        recipientPhone: recipientPhone || "",
         email,
         paymentMethod: method,
         payment_method: method,

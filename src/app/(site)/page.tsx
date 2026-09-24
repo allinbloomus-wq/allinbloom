@@ -27,16 +27,16 @@ import {
 } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Wheeling Florist & Same-Day Flower Delivery | All in Bloom",
-  description:
-    "Luxury bouquets, balloons and same-day flower delivery in Wheeling, IL and Chicago's Northwest Suburbs. Order online or visit All in Bloom Floral Studio.",
+  title: {
+    absolute: "All in Bloom Floral Studio Flower & Balloon Shop in Wheeling, Illinois",
+  },
+  description: SITE_DESCRIPTION,
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "Wheeling Florist & Same-Day Flower Delivery | All in Bloom",
-    description:
-      "Luxury bouquets, balloons and same-day flower delivery in Wheeling, IL and Chicago's Northwest Suburbs. Order online or visit All in Bloom Floral Studio.",
+    title: "All in Bloom Floral Studio Flower & Balloon Shop in Wheeling, Illinois",
+    description: SITE_DESCRIPTION,
     url: "/",
     images: [
       {
@@ -111,8 +111,19 @@ export default async function HomePage() {
     ],
   };
 
+  const websiteSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "All In Bloom Floral Studio",
+    url: SITE_ORIGIN,
+  };
+
   return (
     <div className="flex flex-col gap-14 sm:gap-20 lg:gap-[4.5rem]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -156,17 +167,17 @@ export default async function HomePage() {
             </div>
           </div>
           <div className="inline-flex items-center gap-2 rounded-full bg-white/70 px-4 py-2 text-xs uppercase tracking-[0.24em] text-stone-700 shadow-sm">
-            Same-day flower delivery in Wheeling & Northwest Suburbs
+            Flowers, balloons & event space
           </div>
           <div className="lg:hidden animate-rise [animation-delay:80ms]">
             <PromoGallery slides={promoSlides} />
           </div>
           <h1 className="text-3xl font-semibold text-stone-900 text-balance sm:text-5xl lg:text-6xl">
-            Modern Flower Delivery in Wheeling, IL
+            Your Floral Studio in Wheeling, IL
           </h1>
           <p className="max-w-xl text-balance text-lg text-stone-700">
-            Luxury bouquets, balloons and same-day flower delivery in Wheeling,
-            IL and Chicago&apos;s Northwest Suburbs.
+            Thoughtful bouquets for every occasion, with same-day delivery
+            in Wheeling and across Chicago&apos;s Northwest Suburbs.
           </p>
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
             <Link

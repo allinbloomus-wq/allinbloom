@@ -205,6 +205,8 @@ async def send_admin_order_email(params: dict) -> None:
     safe_order = _escape(params["order_id"])
     safe_email = _escape(params.get("email") or "-")
     safe_phone = _escape(params.get("phone") or "-")
+    safe_recipient_name = _escape(params.get("recipient_name") or "-")
+    safe_recipient_phone = _escape(params.get("recipient_phone") or "-")
     safe_address = _escape(_format_delivery_address(params))
     safe_miles = _escape(params.get("delivery_miles") or "-")
     safe_fee = _escape(_format_fee(params.get("delivery_fee")))
@@ -234,6 +236,8 @@ async def send_admin_order_email(params: dict) -> None:
             f"Order: {params['order_id']}",
             f"Customer email: {params.get('email') or '-'}",
             f"Phone: {params.get('phone') or '-'}",
+            f"Recipient: {params.get('recipient_name') or '-'}",
+            f"Recipient phone: {params.get('recipient_phone') or '-'}",
             f"Total: {_format_money(params['total_cents'])}",
             f"Delivery address: {_format_delivery_address(params)}",
             f"Delivery date/time: {delivery_date_time}",
@@ -250,6 +254,8 @@ async def send_admin_order_email(params: dict) -> None:
       <p><strong>Order:</strong> {safe_order}</p>
       <p><strong>Customer email:</strong> {safe_email}</p>
       <p><strong>Phone:</strong> {safe_phone}</p>
+      <p><strong>Recipient:</strong> {safe_recipient_name}</p>
+      <p><strong>Recipient phone:</strong> {safe_recipient_phone}</p>
       <p><strong>Total:</strong> {total}</p>
       <p><strong>Delivery address:</strong> {safe_address}</p>
       <p><strong>Delivery date/time:</strong> {safe_delivery_date_time or "-"}</p>
@@ -275,6 +281,8 @@ async def send_customer_order_email(params: dict) -> None:
     safe_order = _escape(params["order_id"])
     safe_email = _escape(params.get("email") or "-")
     safe_phone = _escape(params.get("phone") or "-")
+    safe_recipient_name = _escape(params.get("recipient_name") or "-")
+    safe_recipient_phone = _escape(params.get("recipient_phone") or "-")
     safe_address = _escape(_format_delivery_address(params))
     safe_miles = _escape(params.get("delivery_miles") or "-")
     safe_fee = _escape(_format_fee(params.get("delivery_fee")))
@@ -304,6 +312,8 @@ async def send_customer_order_email(params: dict) -> None:
             f"Order: {params['order_id']}",
             f"Email: {params.get('email') or '-'}",
             f"Phone: {params.get('phone') or '-'}",
+            f"Recipient: {params.get('recipient_name') or '-'}",
+            f"Recipient phone: {params.get('recipient_phone') or '-'}",
             f"Total: {_format_money(params['total_cents'])}",
             f"Delivery address: {_format_delivery_address(params)}",
             f"Delivery date/time: {delivery_date_time}",
@@ -320,6 +330,8 @@ async def send_customer_order_email(params: dict) -> None:
       <p><strong>Order:</strong> {safe_order}</p>
       <p><strong>Email:</strong> {safe_email}</p>
       <p><strong>Phone:</strong> {safe_phone}</p>
+      <p><strong>Recipient:</strong> {safe_recipient_name}</p>
+      <p><strong>Recipient phone:</strong> {safe_recipient_phone}</p>
       <p><strong>Total:</strong> {total}</p>
       <p><strong>Delivery address:</strong> {safe_address}</p>
       <p><strong>Delivery date/time:</strong> {safe_delivery_date_time or "-"}</p>

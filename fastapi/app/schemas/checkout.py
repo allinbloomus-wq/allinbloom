@@ -38,6 +38,8 @@ class CheckoutRequest(SchemaBase):
     delivery_date_time: Optional[str] = Field(default=None, max_length=160)
     order_comment: Optional[str] = Field(default=None, max_length=500)
     phone: Optional[str] = Field(default=None, max_length=40)
+    recipient_name: Optional[str] = Field(default=None, max_length=120)
+    recipient_phone: Optional[str] = Field(default=None, max_length=40)
     email: Optional[str] = Field(default=None, max_length=320)
     payment_method: Optional[str] = Field(default=None, max_length=32)
     idempotency_key: Optional[str] = Field(default=None, min_length=16, max_length=128)

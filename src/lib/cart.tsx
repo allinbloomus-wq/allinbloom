@@ -63,6 +63,8 @@ export type CheckoutFormStorage = {
   idealDeliveryTime?: string;
   orderComment?: string;
   phoneLocal: string;
+  recipientName?: string;
+  recipientPhoneLocal?: string;
 };
 
 export function loadCheckoutFormStorage(): CheckoutFormStorage | null {

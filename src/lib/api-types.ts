@@ -129,6 +129,8 @@ export type Order = {
   deliveryFloor: string | null;
   deliveryDateTime: string | null;
   orderComment: string | null;
+  recipientName: string | null;
+  recipientPhone: string | null;
   deliveryMiles: string | null;
   deliveryFeeCents: number | null;
   firstOrderDiscountPercent: number | null;

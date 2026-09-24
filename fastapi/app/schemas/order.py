@@ -22,6 +22,8 @@ class OrderOut(SchemaBase):
     id: str
     email: Optional[str] = None
     phone: Optional[str] = None
+    recipient_name: Optional[str] = None
+    recipient_phone: Optional[str] = None
     stripe_session_id: Optional[str] = None
     paypal_order_id: Optional[str] = None
     paypal_capture_id: Optional[str] = None
