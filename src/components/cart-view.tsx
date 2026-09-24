@@ -2237,7 +2237,8 @@ export default function CartView({
             paymentMethod="paypal"
             iconSrc="/paypal.webp"
             iconAlt="PayPal"
-            iconClassName="h-4 w-auto"
+            iconClassName="h-5 w-auto"
+            iconOnly
           />
           <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
             Secure checkout with Stripe or PayPal

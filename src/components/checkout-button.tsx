@@ -151,6 +151,8 @@ type CheckoutButtonProps = {
   iconSrc?: string;
   iconAlt?: string;
   iconClassName?: string;
+  /** Show only the icon; the label is still used as the accessible name. */
+  iconOnly?: boolean;
   onBusyChange?: (busy: boolean) => void;
   /** Return false to cancel the click, e.g. when required fields are empty. */
   onBeforeCheckout?: () => boolean;
@@ -179,6 +181,7 @@ export default function CheckoutButton({
   iconSrc,
   iconAlt,
   iconClassName,
+  iconOnly = false,
   onBusyChange,
   onBeforeCheckout,
 }: CheckoutButtonProps) {
@@ -319,6 +322,7 @@ export default function CheckoutButton({
         type="button"
         onClick={handleCheckout}
         disabled={loading || disabled}
+        aria-label={iconOnly ? buttonLabel : undefined}
         className={`inline-flex w-full items-center justify-center gap-2 rounded-full px-6 py-3 text-xs uppercase tracking-[0.3em] text-white transition disabled:opacity-60 ${className || "bg-[color:var(--brand)] hover:bg-[color:var(--brand-dark)]"}`}
       >
         {iconSrc ? (
@@ -330,7 +334,7 @@ export default function CheckoutButton({
             loading="lazy"
           />
         ) : null}
-        {loading ? "Redirecting..." : buttonLabel}
+        {loading ? "Redirecting..." : iconOnly && iconSrc ? null : buttonLabel}
       </button>
       {error ? (
         <p className="text-xs uppercase tracking-[0.24em] text-rose-700">
