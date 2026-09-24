@@ -4,9 +4,9 @@ import ContactForm from "@/components/contact-form";
 import {
   SITE_ADDRESS_LINE_1,
   SITE_CITY,
-  SITE_DESCRIPTION,
   SITE_EMAIL,
   SITE_HOURS,
+  SITE_INSTAGRAM,
   SITE_PHONE,
   SITE_PHONE_DISPLAY,
   SITE_POSTAL_CODE,
@@ -14,15 +14,16 @@ import {
 } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Contact | Wheeling Flower Delivery",
+  title: "Contact Us: Address, Phone & Hours",
   description:
-    "Contact All in Bloom Floral Studio for custom bouquets, corporate gifting, and event florals in Wheeling, IL.",
+    "Call, email or visit All in Bloom Floral Studio at 224 S Milwaukee Ave, Wheeling, IL. Custom bouquets, corporate orders and event flowers.",
   alternates: {
     canonical: "/contact",
   },
   openGraph: {
-    title: "Contact | Wheeling Flower Delivery",
-    description: SITE_DESCRIPTION,
+    title: "Contact All in Bloom Floral Studio",
+    description:
+      "Address, phone and opening hours of our flower studio in Wheeling, IL.",
     url: "/contact",
   },
 };
@@ -37,11 +38,12 @@ export default function ContactPage() {
           Contact
         </p>
         <h1 className="text-3xl font-semibold text-stone-900 sm:text-5xl">
-          We are here for your floral moments
+          Get in touch
         </h1>
         <p className="text-sm leading-relaxed text-stone-600">
-          Ask about custom bouquets, corporate subscriptions, or event florals.
-          Our concierge team responds within one business day.
+          Questions about an order, a custom bouquet, corporate flowers or
+          an event? Call us or send a message, and we&apos;ll reply within
+          one business day.
         </p>
         <div className="space-y-2 text-sm text-stone-600">
           <p>
@@ -65,7 +67,7 @@ export default function ContactPage() {
             </p>
           ))}
           <a
-            href="https://www.instagram.com/all_in_bloom_studio"
+            href={SITE_INSTAGRAM}
             target="_blank"
             rel="noreferrer"
             className="inline-flex w-full items-center justify-center gap-3 rounded-full bg-[color:var(--brand)] px-6 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-white shadow-[0_12px_28px_rgba(var(--brand-rgb),0.28)] transition hover:-translate-y-0.5 hover:bg-[color:var(--brand-dark)] sm:w-auto"

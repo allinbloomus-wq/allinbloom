@@ -2,18 +2,18 @@ import type { Metadata } from "next";
 import ReviewForm from "@/components/review-form";
 import ReviewsGallery from "@/components/reviews-gallery";
 import { getActiveReviews } from "@/lib/data/reviews";
-import { SITE_DESCRIPTION } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Reviews | Chicago Flower Delivery",
+  title: "Customer Reviews",
   description:
-    "Read customer reviews for All in Bloom Floral Studio and share your own bouquet experience.",
+    "Read what customers say about bouquets and delivery from All in Bloom Floral Studio in Wheeling, IL, and leave your own review.",
   alternates: {
     canonical: "/reviews",
   },
   openGraph: {
-    title: "Reviews | Chicago Flower Delivery",
-    description: SITE_DESCRIPTION,
+    title: "Reviews | All in Bloom Floral Studio",
+    description:
+      "Customer reviews of All in Bloom Floral Studio, a flower shop in Wheeling, IL.",
     url: "/reviews",
   },
 };
@@ -34,10 +34,10 @@ export default async function ReviewsPage() {
           Reviews
         </p>
         <h1 className="text-3xl font-semibold text-stone-900 sm:text-5xl">
-          Stories from our customers
+          What our customers say
         </h1>
         <p className="max-w-2xl text-sm leading-relaxed text-stone-600">
-          Real feedback from people who ordered our bouquets in Chicago.
+          Reviews from people who ordered flowers from our studio.
         </p>
         <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
           <div className="rounded-[24px] border border-white/80 bg-white/75 px-4 py-4 shadow-sm">

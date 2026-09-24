@@ -2,9 +2,16 @@ import type { Metadata } from "next";
 import CatalogListing from "@/components/catalog-listing";
 
 export const metadata: Metadata = {
-  title: "Gift Box | All in Bloom Floral Studio",
-  description: "Discover thoughtful gift boxes curated by All in Bloom Floral Studio.",
+  title: "Gift Boxes in Wheeling, IL",
+  description:
+    "Gift boxes you can send alone or add to a bouquet. Order online from All in Bloom Floral Studio with same-day delivery around Wheeling, IL.",
   alternates: { canonical: "/gifts" },
+  openGraph: {
+    title: "Gift Boxes | All in Bloom Floral Studio",
+    description:
+      "Gift boxes to send alone or with flowers, delivered from Wheeling, IL.",
+    url: "/gifts",
+  },
 };
 
 export default function GiftsPage() {
@@ -12,11 +19,11 @@ export default function GiftsPage() {
     <CatalogListing
       catalogType="GIFTS"
       eyebrow="Gift Box"
-      title="Thoughtful gift boxes, beautifully chosen"
-      description="A collection of elegant gifts for meaningful moments, ready to add to your order."
+      title="Gift boxes"
+      description="Send a gift box on its own or add one to your bouquet order."
       cardVariant="gift"
       productLabel="gift boxes"
-      emptyMessage="Our Gift Box collection is being curated. Please check back soon."
+      emptyMessage="No gift boxes available right now. Please check back soon."
     />
   );
 }

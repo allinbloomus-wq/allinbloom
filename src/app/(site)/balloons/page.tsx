@@ -2,9 +2,16 @@ import type { Metadata } from "next";
 import CatalogListing from "@/components/catalog-listing";
 
 export const metadata: Metadata = {
-  title: "Balloons | All in Bloom Floral Studio",
-  description: "Explore balloons for birthdays, celebrations, and memorable moments.",
+  title: "Balloons in Wheeling, IL: Birthday & Party Balloons",
+  description:
+    "Balloon bouquets for birthdays, baby showers and parties. Pick up in Wheeling, IL or order with same-day delivery.",
   alternates: { canonical: "/balloons" },
+  openGraph: {
+    title: "Balloons | All in Bloom Floral Studio",
+    description:
+      "Balloon bouquets for birthdays and parties with same-day delivery from Wheeling, IL.",
+    url: "/balloons",
+  },
 };
 
 export default function BalloonsPage() {
@@ -12,10 +19,10 @@ export default function BalloonsPage() {
     <CatalogListing
       catalogType="BALOONS"
       eyebrow="Balloons"
-      title="Balloons for every celebration"
-      description="Choose from our curated balloon designs for bright birthdays, thoughtful surprises, and every kind of special occasion."
+      title="Balloons for birthdays and parties"
+      description="Balloon sets you can order on their own or add to flowers. Ready for pickup or delivery."
       productLabel="balloons"
-      emptyMessage="Our balloon collection is being refreshed. Please check back soon."
+      emptyMessage="No balloons available right now. Please check back soon or give us a call."
     />
   );
 }

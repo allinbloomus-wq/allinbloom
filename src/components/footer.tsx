@@ -21,8 +21,8 @@ export default function Footer() {
             {SITE_NAME}
           </p>
           <p className="text-sm text-stone-600">
-            Elegant bouquets curated daily in Wheeling with gentle, feminine
-            palettes and modern floral artistry.
+            Flower and balloon shop in Wheeling, IL. Fresh bouquets and
+            same-day delivery to the Northwest suburbs.
           </p>
         </div>
         <div className="space-y-2 text-sm text-stone-600">
@@ -53,7 +53,7 @@ export default function Footer() {
         </div>
         <div className="space-y-2 text-sm text-stone-600">
           <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
-            Atelier
+            Studio
           </p>
           <p>{SITE_NAME}</p>
           <a

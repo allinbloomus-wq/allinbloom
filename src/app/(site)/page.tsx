@@ -28,14 +28,14 @@ import {
 
 export const metadata: Metadata = {
   title: {
-    absolute: "All in Bloom Floral Studio Flower & Balloon Shop in Wheeling, Illinois",
+    absolute: "Florist in Wheeling, IL: Flowers & Balloons | All in Bloom",
   },
   description: SITE_DESCRIPTION,
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "All in Bloom Floral Studio Flower & Balloon Shop in Wheeling, Illinois",
+    title: "Florist in Wheeling, IL: Flowers & Balloons | All in Bloom",
     description: SITE_DESCRIPTION,
     url: "/",
     images: [
@@ -58,7 +58,7 @@ export default async function HomePage() {
   const [mainGalleryImage, ...compactGalleryImages] = galleryImages;
   const atelierGalleryItems = galleryImages.map((src, idx) => ({
     src,
-    alt: `Atelier gallery image ${idx + 1}`,
+    alt: `Bouquet by All in Bloom Floral Studio, photo ${idx + 1}`,
     lightboxWidth: 1600,
     lightboxHeight: 1600,
   }));
@@ -114,7 +114,7 @@ export default async function HomePage() {
   const websiteSchema = {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    name: "All In Bloom Floral Studio",
+    name: SITE_NAME,
     url: SITE_ORIGIN,
   };
 
@@ -138,7 +138,7 @@ export default async function HomePage() {
               <div className="relative overflow-hidden rounded-[26px] border border-white/70">
                 <Image
                   src={heroImage}
-                  alt="Elegant floral bouquet"
+                  alt="Fresh bouquet from All in Bloom Floral Studio in Wheeling"
                   width={760}
                   height={940}
                   className="h-[420px] w-full object-cover object-center"
@@ -151,10 +151,10 @@ export default async function HomePage() {
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
                   <p className="text-[11px] uppercase tracking-[0.3em] text-white/75">
-                    Floral atelier
+                    Wheeling, IL
                   </p>
                   <p className="mt-1 text-2xl font-semibold leading-tight text-balance">
-                    Modern bouquets for your most special moments
+                    Fresh bouquets, made to order
                   </p>
                 </div>
               </div>
@@ -173,11 +173,12 @@ export default async function HomePage() {
             <PromoGallery slides={promoSlides} />
           </div>
           <h1 className="text-3xl font-semibold text-stone-900 text-balance sm:text-5xl lg:text-6xl">
-            Your Floral Studio in Wheeling, IL
+            Flower Shop in Wheeling, IL
           </h1>
           <p className="max-w-xl text-balance text-lg text-stone-700">
-            Thoughtful bouquets for every occasion, with same-day delivery
-            in Wheeling and across Chicago&apos;s Northwest Suburbs.
+            Bouquets, balloons and gift boxes for birthdays, dates and
+            &ldquo;just because&rdquo;. Order online and get same-day
+            delivery.
           </p>
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
             <Link
@@ -194,7 +195,7 @@ export default async function HomePage() {
             </Link>
           </div>
           <a
-            href="https://www.instagram.com/all_in_bloom_studio"
+            href={SITE_INSTAGRAM}
             target="_blank"
             rel="noreferrer"
             className="inline-flex w-full items-center justify-center gap-3 rounded-full bg-[color:var(--brand)] px-6 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-white shadow-[0_12px_28px_rgba(var(--brand-rgb),0.28)] transition hover:-translate-y-0.5 hover:bg-[color:var(--brand-dark)] sm:w-auto"
@@ -217,7 +218,7 @@ export default async function HomePage() {
           <div className="glass overflow-hidden rounded-[32px] border border-white/80 p-4">
             <Image
               src={heroImage}
-              alt="Elegant floral bouquet"
+              alt="Fresh bouquet from All in Bloom Floral Studio in Wheeling"
               width={520}
               height={640}
               className="h-auto w-full rounded-[26px] object-cover"
@@ -239,7 +240,7 @@ export default async function HomePage() {
               Signature bouquets
             </p>
             <h2 className="text-2xl font-semibold text-stone-900 sm:text-4xl">
-              Our curated favorites
+              Customer favorites
             </h2>
           </div>
           <Link
@@ -263,31 +264,30 @@ export default async function HomePage() {
       <section className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center animate-rise [animation-delay:280ms]">
         <div className="space-y-4">
           <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
-            About the atelier
+            About us
           </p>
           <h2 className="text-3xl font-semibold text-stone-900 sm:text-4xl">
-            A poetic studio of blooms, fragrance, and quiet luxury
+            A small flower studio on Milwaukee Ave
           </h2>
           <p className="text-sm leading-relaxed text-stone-600">
-            All in Bloom Floral Studio blends old-world floral artistry with
-            contemporary styling. Our Wheeling floral studio creates premium
-            bouquets for delivery throughout Wheeling, the Northwest Suburbs,
-            and Chicago.
+            We build every bouquet by hand on the day it goes out. Stop by to
+            pick one from the showcase, or order online and we&apos;ll
+            deliver it.
           </p>
           <div className="grid gap-4 sm:grid-cols-2">
             <PromoCard
-              title="Each bouquet comes in exclusive packaging with branded ribbons and stickers."
-              description="We can also add a card and a festive photo to make your gift truly unforgettable."
+              title="Every bouquet is wrapped in our signature paper and ribbon."
+              description="Add a greeting card with your message, and we can send you a photo before delivery."
             />
           </div>
         </div>
         <div className="space-y-4">
           <div>
             <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
-              Atelier gallery
+              Gallery
             </p>
             <h3 className="mt-2 text-2xl font-semibold text-stone-900 sm:text-3xl">
-              Wrapped bouquet moments
+              Recent bouquets
             </h3>
           </div>
           <div className="space-y-2.5 sm:hidden">
@@ -351,13 +351,12 @@ export default async function HomePage() {
             Delivery areas
           </p>
           <h2 className="mt-2 text-3xl font-semibold text-stone-900 sm:text-4xl">
-            Flower Delivery Across Wheeling & Nearby Suburbs
+            Flower Delivery in Wheeling & Nearby Suburbs
           </h2>
         </div>
         <p className="max-w-3xl text-sm leading-relaxed text-stone-600">
-          We deliver flowers and balloons throughout Wheeling and nearby
-          Northwest Chicago suburbs. Delivery availability is confirmed by
-          address at checkout.
+          Enter your address at checkout to see the delivery fee and
+          available time. We currently deliver to:
         </p>
         <p className="max-w-4xl text-sm leading-relaxed text-stone-600">
           Wheeling, Buffalo Grove, Arlington Heights, Prospect Heights, Rolling
@@ -376,8 +375,8 @@ export default async function HomePage() {
           tone="rose"
         />
         <PromoCard
-          title="Bridal Atelier"
-          description="Reserve a bespoke wedding consultation with our senior florist team."
+          title="Wedding Flowers"
+          description="Bridal bouquets, boutonnieres and venue florals. Contact us to book a consultation."
           tone="leaf"
         />
       </section>
@@ -388,12 +387,12 @@ export default async function HomePage() {
             Build your own bouquet
           </p>
           <h2 className="text-3xl font-semibold text-stone-900 sm:text-4xl">
-            Let our florists craft a bouquet just for you
+            Florist&apos;s choice bouquet
           </h2>
           <p className="text-sm leading-relaxed text-stone-600">
-            Choose your mood, palette, and price point. We will hand-pick the
-            freshest stems and design a one-of-a-kind bouquet with a personal
-            note from our atelier.
+            Tell us the occasion, colors and budget, and our florist will
+            put together a bouquet from the freshest flowers in the studio
+            that day.
           </p>
           <ul className="flex flex-wrap gap-3 text-xs uppercase tracking-[0.22em] text-stone-500">
             <li className="rounded-full border border-stone-200 bg-white/70 px-3 py-1">
@@ -413,14 +412,15 @@ export default async function HomePage() {
       <section className="grid gap-6 rounded-none border-0 bg-transparent p-0 shadow-none sm:rounded-[36px] sm:border sm:border-white/80 sm:bg-white/70 sm:p-8 sm:shadow-sm lg:grid-cols-[0.9fr_1.1fr] animate-rise [animation-delay:520ms]">
         <div className="space-y-4">
           <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
-            Visit our studio
+            Visit us
           </p>
           <h2 className="text-3xl font-semibold text-stone-900 sm:text-4xl">
-            Visit All in Bloom Floral Studio in Wheeling
+            Our Studio in Wheeling
           </h2>
           <p className="text-sm leading-relaxed text-stone-600">
-            Visit our floral studio at 224 S Milwaukee Ave in Wheeling for
-            same-day bouquets, custom arrangements, and pickup orders.
+            {SITE_ADDRESS_LINE_1}, {SITE_CITY}, {SITE_REGION}{" "}
+            {SITE_POSTAL_CODE}. Come in for a ready-made bouquet, pick up an
+            online order, or talk to us about a custom arrangement.
           </p>
         </div>
         <div className="overflow-hidden rounded-[28px] border border-white/80 bg-white">

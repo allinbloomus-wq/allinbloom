@@ -11,7 +11,6 @@ import {
   getShopAllCategoryImages,
 } from "@/lib/home-images";
 import { getBouquetPricing } from "@/lib/pricing";
-import { SITE_DESCRIPTION } from "@/lib/site";
 import { getAuthSession } from "@/lib/auth-session";
 import { getOrdersByEmail } from "@/lib/data/orders";
 import { isFirstOrderEligibleForKnownHistory } from "@/lib/first-order-discount";
@@ -156,19 +155,19 @@ export async function generateMetadata({
   const isShopAllScreen = !hasListingContext && !isFlowersCategoryScreen;
   const isFeatured = params.filter === "featured";
   const title = isShopAllScreen
-    ? "Shop All | All in Bloom Floral Studio"
+    ? "Shop Flowers, Balloons & Gifts"
     : !hasListingContext
-    ? "Bouquet Categories | Chicago Flower Delivery"
+    ? "Bouquets by Category: Mono, Mixed & Seasonal"
     : isFeatured
-    ? "Signature Bouquets | Chicago Florist"
-    : "Bouquet Catalog | Chicago Flower Delivery";
+    ? "Best-Selling Bouquets"
+    : "Order Bouquets Online with Same-Day Delivery";
   const description = isShopAllScreen
-    ? "Browse Flowers, Balloons, Gift Box, and Event Space."
+    ? "Shop bouquets, balloons and gift boxes from All in Bloom Floral Studio in Wheeling, IL, or book our event space. Same-day delivery available."
     : !hasListingContext
-    ? "Choose a bouquet category: mono, mixed, seasonal, or all bouquets."
+    ? "Mono, mixed and seasonal bouquets made to order in Wheeling, IL. Pick a category and filter by flower, color and price."
     : isFeatured
-    ? "Discover our most-loved signature bouquets curated by Chicago florists."
-    : "Browse our full Chicago flower delivery catalog. Filter by flower, palette, bouquet type, and price.";
+    ? "Our most-ordered bouquets, made fresh in Wheeling, IL and delivered the same day."
+    : "Order fresh bouquets online from our Wheeling, IL flower shop. Filter by flower, color, style and price. Same-day delivery to nearby suburbs.";
   const canonical = isShopAllScreen
     ? "/catalog"
     : isFeatured
@@ -185,7 +184,7 @@ export async function generateMetadata({
     },
     openGraph: {
       title,
-      description: SITE_DESCRIPTION,
+      description,
       url: canonical,
     },
   };
@@ -294,15 +293,15 @@ export default async function CatalogPage({
     <div className="flex flex-col gap-7 sm:gap-10">
       <div className="space-y-3">
         <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
-          {isFeatured ? "Signature edit" : "Catalog"}
+          {isFeatured ? "Best sellers" : "Catalog"}
         </p>
         <h1 className="text-3xl font-semibold text-stone-900 sm:text-5xl">
-          {isFeatured ? "Signature sets" : "Bouquets for every mood"}
+          {isFeatured ? "Signature bouquets" : "All bouquets"}
         </h1>
         <p className="max-w-2xl text-balance text-sm leading-relaxed text-stone-600">
           {isFeatured
-            ? "Our most loved bouquets, curated by the All in Bloom Floral Studio team."
-            : "Filter by flower, palette, bouquet type, and price. Every bouquet is assembled fresh on the day of delivery by our in-house florists."}
+            ? "The bouquets our customers order most."
+            : "Filter by flower, color, style and price. Every bouquet is made on the day of delivery."}
         </p>
       </div>
       <CatalogFilters />
