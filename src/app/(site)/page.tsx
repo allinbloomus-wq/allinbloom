@@ -12,6 +12,7 @@ import { getStoreSettings } from "@/lib/data/settings";
 import { getHomeHeroImage, getVisibleHomeGalleryImages } from "@/lib/home-images";
 import { getBouquetPricing } from "@/lib/pricing";
 import {
+  SITE_ADDRESS_LINE_1,
   SITE_CITY,
   SITE_COUNTRY,
   SITE_DESCRIPTION,
@@ -20,19 +21,22 @@ import {
   SITE_NAME,
   SITE_ORIGIN,
   SITE_PHONE,
+  SITE_POSTAL_CODE,
   SITE_REGION,
   SITE_TAGLINE,
 } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Chicago Flower Delivery & Luxury Bouquets",
-  description: SITE_DESCRIPTION,
+  title: "Wheeling Florist & Same-Day Flower Delivery | All in Bloom",
+  description:
+    "Luxury bouquets, balloons and same-day flower delivery in Wheeling, IL and Chicago's Northwest Suburbs. Order online or visit All in Bloom Floral Studio.",
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "Chicago Flower Delivery & Luxury Bouquets",
-    description: SITE_DESCRIPTION,
+    title: "Wheeling Florist & Same-Day Flower Delivery | All in Bloom",
+    description:
+      "Luxury bouquets, balloons and same-day flower delivery in Wheeling, IL and Chicago's Northwest Suburbs. Order online or visit All in Bloom Floral Studio.",
     url: "/",
     images: [
       {
@@ -74,13 +78,37 @@ export default async function HomePage() {
     priceRange: "$$",
     address: {
       "@type": "PostalAddress",
+      streetAddress: SITE_ADDRESS_LINE_1,
       addressLocality: SITE_CITY,
       addressRegion: SITE_REGION,
+      postalCode: SITE_POSTAL_CODE,
       addressCountry: SITE_COUNTRY,
     },
-    areaServed: `${SITE_CITY}, ${SITE_REGION}`,
+    geo: {
+      "@type": "GeoCoordinates",
+      latitude: 42.136281087564285,
+      longitude: -87.9050852153543,
+    },
+    areaServed: [
+      `${SITE_CITY}, ${SITE_REGION}`,
+      "Northwest Chicago Suburbs, IL",
+      "Chicago, IL",
+    ],
     sameAs: [SITE_INSTAGRAM],
-    openingHours: ["Mo-Sa 09:00-19:00"],
+    openingHoursSpecification: [
+      {
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        opens: "08:30",
+        closes: "17:00",
+      },
+      {
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: "Saturday",
+        opens: "10:00",
+        closes: "18:00",
+      },
+    ],
   };
 
   return (
@@ -128,18 +156,17 @@ export default async function HomePage() {
             </div>
           </div>
           <div className="inline-flex items-center gap-2 rounded-full bg-white/70 px-4 py-2 text-xs uppercase tracking-[0.24em] text-stone-700 shadow-sm">
-            Chicago delivery in 2-4 hours
+            Same-day flower delivery in Wheeling & Northwest Suburbs
           </div>
           <div className="lg:hidden animate-rise [animation-delay:80ms]">
             <PromoGallery slides={promoSlides} />
           </div>
           <h1 className="text-3xl font-semibold text-stone-900 text-balance sm:text-5xl lg:text-6xl">
-            All in Bloom Floral Studio
+            Modern Flower Delivery in Wheeling, IL
           </h1>
           <p className="max-w-xl text-balance text-lg text-stone-700">
-            A modern floral atelier for soft, romantic bouquets and effortless
-            gifting. Curated by artisan florists, designed for every elegant
-            moment in your life.
+            Luxury bouquets, balloons and same-day flower delivery in Wheeling,
+            IL and Chicago&apos;s Northwest Suburbs.
           </p>
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
             <Link
@@ -232,10 +259,9 @@ export default async function HomePage() {
           </h2>
           <p className="text-sm leading-relaxed text-stone-600">
             All in Bloom Floral Studio blends old-world floral artistry with
-            contemporary styling. Our designers source premium stems from local
-            growers across the Chicago area, then compose each bouquet with a
-            signature airy silhouette, tactile textures, and a soft palette that
-            feels both timeless and modern.
+            contemporary styling. Our Wheeling floral studio creates premium
+            bouquets for delivery throughout Wheeling, the Northwest Suburbs,
+            and Chicago.
           </p>
           <div className="grid gap-4 sm:grid-cols-2">
             <PromoCard
@@ -308,6 +334,30 @@ export default async function HomePage() {
         </div>
       </section>
 
+      <section className="space-y-4 animate-rise [animation-delay:320ms]">
+        <div>
+          <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
+            Delivery areas
+          </p>
+          <h2 className="mt-2 text-3xl font-semibold text-stone-900 sm:text-4xl">
+            Flower Delivery Across Wheeling & Nearby Suburbs
+          </h2>
+        </div>
+        <p className="max-w-3xl text-sm leading-relaxed text-stone-600">
+          We deliver flowers and balloons throughout Wheeling and nearby
+          Northwest Chicago suburbs. Delivery availability is confirmed by
+          address at checkout.
+        </p>
+        <p className="max-w-4xl text-sm leading-relaxed text-stone-600">
+          Wheeling, Buffalo Grove, Arlington Heights, Prospect Heights, Rolling
+          Meadows, Mount Prospect, Palatine, Northbrook, Glenview, Lincolnshire,
+          Deerfield, Vernon Hills, Mundelein, Lake Zurich, Barrington,
+          Schaumburg, Hoffman Estates, Elk Grove Village, Des Plaines, Park
+          Ridge, Niles, Morton Grove, Skokie, Evanston, and selected North and
+          Northwest Chicago neighborhoods.
+        </p>
+      </section>
+
       <section className="grid gap-6 md:grid-cols-2 animate-rise [animation-delay:360ms]">
         <PromoCard
           title="First Order Offer"
@@ -355,12 +405,11 @@ export default async function HomePage() {
             Visit our studio
           </p>
           <h2 className="text-3xl font-semibold text-stone-900 sm:text-4xl">
-            Find All in Bloom Floral Studio in Chicago
+            Visit All in Bloom Floral Studio in Wheeling
           </h2>
           <p className="text-sm leading-relaxed text-stone-600">
-            Stop by our studio for same-day bouquets, custom arrangements, and
-            in-person consultations. We are open six days a week and always
-            happy to help you choose the perfect stems.
+            Visit our floral studio at 224 S Milwaukee Ave in Wheeling for
+            same-day bouquets, custom arrangements, and pickup orders.
           </p>
         </div>
         <div className="overflow-hidden rounded-[28px] border border-white/80 bg-white">

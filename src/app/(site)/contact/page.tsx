@@ -1,24 +1,34 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import ContactForm from "@/components/contact-form";
-import { SITE_DESCRIPTION, SITE_PHONE } from "@/lib/site";
+import {
+  SITE_ADDRESS_LINE_1,
+  SITE_CITY,
+  SITE_DESCRIPTION,
+  SITE_EMAIL,
+  SITE_HOURS,
+  SITE_PHONE,
+  SITE_PHONE_DISPLAY,
+  SITE_POSTAL_CODE,
+  SITE_REGION,
+} from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Contact | Chicago Flower Delivery",
+  title: "Contact | Wheeling Flower Delivery",
   description:
-    "Contact All in Bloom Floral Studio for custom bouquets, corporate gifting, and event florals in Chicago.",
+    "Contact All in Bloom Floral Studio for custom bouquets, corporate gifting, and event florals in Wheeling, IL.",
   alternates: {
     canonical: "/contact",
   },
   openGraph: {
-    title: "Contact | Chicago Flower Delivery",
+    title: "Contact | Wheeling Flower Delivery",
     description: SITE_DESCRIPTION,
     url: "/contact",
   },
 };
 
 export default function ContactPage() {
-  const smsNumber = SITE_PHONE.replace(/[^+\d]/g, "");
+  const phoneNumber = SITE_PHONE.replace(/[^+\d]/g, "");
 
   return (
     <div className="grid gap-8 sm:gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
@@ -35,19 +45,25 @@ export default function ContactPage() {
         </p>
         <div className="space-y-2 text-sm text-stone-600">
           <p>
-            Studio hotline:{" "}
+            Phone:{" "}
             <a
-              href={`sms:${smsNumber}`}
+              href={`tel:${phoneNumber}`}
               className="font-medium text-stone-700 underline decoration-stone-300 underline-offset-4 transition hover:text-[color:var(--brand)] hover:decoration-[color:var(--brand)]"
             >
-              +1 (224) 213-3823
+              {SITE_PHONE_DISPLAY}
             </a>
           </p>
-          <p>Email: allinbloom.us@gmail.com</p>
+          <p>{SITE_ADDRESS_LINE_1}</p>
+          <p>
+            {SITE_CITY}, {SITE_REGION} {SITE_POSTAL_CODE}
+          </p>
+          <p>Email: {SITE_EMAIL}</p>
           <p>Hours:</p>
-          <p>Mon–Fri: 8:30 AM – 5:00 PM</p>
-          <p>Sat: 10:00 AM – 6:00 PM</p>
-          <p>Sun: Closed</p>
+          {SITE_HOURS.map(({ label, hours }) => (
+            <p key={label}>
+              {label}: {hours}
+            </p>
+          ))}
           <a
             href="https://www.instagram.com/all_in_bloom_studio"
             target="_blank"

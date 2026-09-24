@@ -80,7 +80,7 @@ const sans = localFont({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_ORIGIN),
   title: {
-    default: "All in Bloom Floral Studio | Chicago Flower Delivery",
+    default: "All in Bloom Floral Studio | Wheeling Flower Delivery",
     template: "%s | All in Bloom Floral Studio",
   },
   description: SITE_DESCRIPTION,
@@ -94,7 +94,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: "/",
-    title: "All in Bloom Floral Studio | Chicago Flower Delivery",
+    title: "All in Bloom Floral Studio | Wheeling Flower Delivery",
     description: SITE_DESCRIPTION,
     siteName: SITE_NAME,
     locale: "en_US",
@@ -107,7 +107,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "All in Bloom Floral Studio | Chicago Flower Delivery",
+    title: "All in Bloom Floral Studio | Wheeling Flower Delivery",
     description: SITE_DESCRIPTION,
     images: ["/images/hero-bouquet.webp"],
   },
