@@ -50,13 +50,13 @@ export default function FaqPage() {
         </p>
       </header>
 
-      <nav aria-label="FAQ topics" className="min-w-0 lg:sticky lg:top-28 lg:self-start">
-        <ul className="flex max-w-full gap-2 overflow-x-auto pb-2 lg:flex-col lg:gap-1 lg:overflow-visible">
+      <nav aria-label="FAQ topics" className="hidden lg:sticky lg:top-28 lg:block lg:self-start">
+        <ul className="flex flex-col gap-1">
           {FAQ_GROUPS.map((group) => (
-            <li key={group.id} className="shrink-0">
+            <li key={group.id}>
               <a
                 href={`#${group.id}`}
-                className="flex min-h-11 items-center rounded-full border border-stone-200 bg-white/70 px-4 py-2 text-sm text-stone-700 transition hover:border-[color:var(--brand)] hover:text-[color:var(--brand)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--brand)] lg:rounded-xl lg:border-transparent lg:bg-transparent lg:px-3"
+                className="flex min-h-11 items-center rounded-xl border border-transparent px-3 py-2 text-sm text-stone-700 transition hover:border-[color:var(--brand)] hover:text-[color:var(--brand)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--brand)]"
               >
                 {group.title}
               </a>
