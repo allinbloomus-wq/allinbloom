@@ -18,7 +18,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex h-11 w-full items-center justify-center rounded-full bg-[color:var(--brand)] px-6 text-xs uppercase tracking-[0.3em] text-white transition hover:bg-[color:var(--brand-dark)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+      className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-[color:var(--brand)] px-5 text-sm font-medium text-white transition hover:bg-[color:var(--brand-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--brand)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
     >
       {pending ? "Saving..." : "Save images"}
     </button>
@@ -34,7 +34,7 @@ export default function AdminHomeImagesForm({
       action={action}
       className="relative z-10 max-w-full space-y-6"
     >
-      <section className="space-y-4 rounded-[24px] border border-white/80 bg-white/60 p-4 sm:p-5">
+      <section className="space-y-4 rounded-2xl border border-stone-200 bg-stone-50/60 p-4 sm:p-5">
         <h2 className="text-lg font-semibold text-stone-900">Hero image</h2>
         <AdminImageUpload
           name="homeHeroImage"
@@ -45,7 +45,7 @@ export default function AdminHomeImagesForm({
         />
       </section>
 
-      <section className="space-y-4 rounded-[24px] border border-white/80 bg-white/60 p-4 sm:p-5">
+      <section className="space-y-4 rounded-2xl border border-stone-200 bg-stone-50/60 p-4 sm:p-5">
         <AdminImageList
           name="homeGalleryImages"
           initialImages={getHomeGalleryImages(settings)}
@@ -57,7 +57,7 @@ export default function AdminHomeImagesForm({
         />
       </section>
 
-      <section className="space-y-4 rounded-[24px] border border-white/80 bg-white/60 p-4 sm:p-5">
+      <section className="space-y-4 rounded-2xl border border-stone-200 bg-stone-50/60 p-4 sm:p-5">
         <h2 className="text-lg font-semibold text-stone-900">
           Shop all category images
         </h2>
@@ -93,7 +93,7 @@ export default function AdminHomeImagesForm({
         </div>
       </section>
 
-      <section className="space-y-4 rounded-[24px] border border-white/80 bg-white/60 p-4 sm:p-5">
+      <section className="space-y-4 rounded-2xl border border-stone-200 bg-stone-50/60 p-4 sm:p-5">
         <h2 className="text-lg font-semibold text-stone-900">
           Flowers category images
         </h2>
@@ -129,9 +129,9 @@ export default function AdminHomeImagesForm({
         </div>
       </section>
 
-      <div className="flex flex-wrap gap-3">
+      <div className="sticky bottom-0 z-20 flex flex-wrap items-center justify-end gap-3 rounded-2xl border border-stone-200 bg-white/95 px-4 py-3 shadow-sm">
         <SubmitButton />
-        <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
+        <p className="text-xs font-medium text-stone-500">
           Applies to homepage and catalog category tiles
         </p>
       </div>

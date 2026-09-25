@@ -3,6 +3,7 @@
 import { useEffect, useId, useState } from "react";
 import ImageWithFallback from "@/components/image-with-fallback";
 import { clientFetch } from "@/lib/api-client";
+import { adminInputClass } from "@/lib/ui-classes";
 
 type AdminImageUploadProps = {
   name?: string;
@@ -105,7 +106,7 @@ export default function AdminImageUpload({
     <div className="min-w-0 space-y-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         <div
-          className={`${previewClassName} overflow-hidden rounded-[22px] border border-white/80 bg-white`}
+          className={`${previewClassName} overflow-hidden rounded-2xl border border-stone-200 bg-white`}
         >
           <ImageWithFallback
             src={imageUrl}
@@ -120,29 +121,25 @@ export default function AdminImageUpload({
           <p>Uploads go to Cloudinary and save the URL.</p>
         </div>
       </div>
-      <label className="flex flex-col gap-2 text-sm text-stone-700">
+      <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
         {urlLabel}
         <input
           name={name}
           value={imageUrl}
           onChange={(event) => updateImageUrl(event.target.value)}
           required={required}
-          className={`h-11 w-full min-w-0 rounded-2xl bg-white/80 px-4 py-0 text-sm text-stone-800 outline-none ${
-            isInvalid
-              ? "border border-rose-300 focus:border-rose-500"
-              : "border border-stone-200 focus:border-stone-400"
-          }`}
+          className={adminInputClass(isInvalid)}
         />
       </label>
-      <label className="flex flex-col gap-2 text-sm text-stone-700" htmlFor={fileInputId}>
+      <label className="flex flex-col gap-2 text-sm font-medium text-stone-700" htmlFor={fileInputId}>
         Upload image
         <span
-          className={`flex h-11 w-full min-w-0 items-center justify-between gap-3 rounded-2xl border border-stone-200 bg-white/80 px-4 text-sm text-stone-700 outline-none transition focus-within:border-stone-400 ${
-            uploading ? "cursor-not-allowed opacity-70" : "cursor-pointer"
+          className={`flex h-10 w-full min-w-0 items-center justify-between gap-3 rounded-full border border-stone-300 bg-white px-4 text-sm text-stone-800 outline-none transition focus-within:border-[color:var(--brand)] focus-within:ring-2 focus-within:ring-[color:rgba(var(--brand-rgb),0.18)] ${
+            uploading ? "cursor-not-allowed opacity-60" : "cursor-pointer"
           }`}
         >
           <span className="min-w-0 truncate">{selectedFileName}</span>
-          <span className="inline-flex h-7 shrink-0 items-center rounded-full border border-stone-300 bg-white px-3 text-[10px] uppercase tracking-[0.2em] text-stone-600">
+          <span className="inline-flex h-7 shrink-0 items-center rounded-full border border-stone-300 bg-white px-3 text-xs font-medium text-stone-600">
             Browse
           </span>
         </span>
@@ -156,7 +153,7 @@ export default function AdminImageUpload({
         />
       </label>
       {status ? (
-        <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
+        <p className="text-xs font-medium text-stone-500">
           {status}
         </p>
       ) : null}

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { setAuthSession } from "@/lib/auth-client";
 import { clientFetch } from "@/lib/api-client";
 import { getGoogleRedirectUri } from "@/lib/google-auth";
+import { inputClass } from "@/lib/ui-classes";
 
 type GoogleCodeResponse = {
   code?: string;
@@ -309,9 +310,6 @@ export default function AuthPanel() {
   return (
     <div className="glass w-full max-w-md space-y-4 rounded-[32px] border border-white/80 p-5 text-sm sm:p-6">
       <div className="space-y-2 text-center">
-        <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
-          Secure sign in
-        </p>
         <h1 className="text-3xl font-semibold text-stone-900">
           Welcome back
         </h1>
@@ -320,7 +318,7 @@ export default function AuthPanel() {
         </p>
       </div>
       <div className="space-y-3">
-        <label className="flex flex-col gap-2 text-sm text-stone-700">
+        <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
           Email
           <input
             value={email}
@@ -334,7 +332,7 @@ export default function AuthPanel() {
             }}
             type="email"
             placeholder="you@example.com"
-            className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+            className={inputClass()}
           />
         </label>
         <button
@@ -353,24 +351,24 @@ export default function AuthPanel() {
       {codeSent ? (
         <form onSubmit={verifyCode} className="min-w-0 space-y-3">
           {needsName ? (
-            <label className="flex flex-col gap-2 text-sm text-stone-700">
+            <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
               Full name
               <input
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 type="text"
                 placeholder="Jane Doe"
-                className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+                className={inputClass()}
               />
             </label>
           ) : null}
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
             Verification code
             <input
               value={code}
               onChange={(event) => setCode(event.target.value)}
               placeholder="6-digit code"
-              className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+              className={inputClass()}
             />
           </label>
           <button

@@ -45,6 +45,9 @@ const FALLBACK_SLIDES: PromoSlide[] = [
   },
 ];
 
+const arrowClass =
+  "flex h-10 w-10 items-center justify-center rounded-full border border-stone-300 bg-white/70 text-stone-700 transition hover:border-[color:var(--brand)] hover:text-[color:var(--brand)] disabled:cursor-not-allowed disabled:opacity-40";
+
 export default function PromoGallery({ slides }: PromoGalleryProps) {
   const items = useMemo(
     () => (slides.length ? slides : FALLBACK_SLIDES),
@@ -257,25 +260,49 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
   }, []);
 
   return (
-    <div className="rounded-[28px] border-0 bg-transparent p-0 shadow-none sm:glass sm:rounded-[36px] sm:border sm:border-white/80 sm:p-6">
-      <div className="flex flex-wrap items-end justify-between gap-3 sm:gap-4">
-        <div>
-          <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
-            Studio offers
-          </p>
-          <h2 className="text-2xl font-semibold text-stone-900 sm:text-4xl">
-            Additional options
-          </h2>
-        </div>
-        <div className="hidden text-xs uppercase tracking-[0.28em] text-stone-500 sm:block">
-          Auto-scroll
+    <div>
+      <div className="flex items-end justify-between gap-4">
+        <h2 className="text-2xl font-semibold text-stone-900 sm:text-4xl">
+          Studio offers
+        </h2>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handlePrev}
+            disabled={!canScrollPrev}
+            className={arrowClass}
+            aria-label="Previous promotion"
+          >
+            <svg aria-hidden="true" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+              <path
+                fillRule="evenodd"
+                d="M12.78 4.22a.75.75 0 0 1 0 1.06L8.06 10l4.72 4.72a.75.75 0 1 1-1.06 1.06l-5.25-5.25a.75.75 0 0 1 0-1.06l5.25-5.25a.75.75 0 0 1 1.06 0Z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={handleNext}
+            disabled={!canScrollNext}
+            className={arrowClass}
+            aria-label="Next promotion"
+          >
+            <svg aria-hidden="true" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+              <path
+                fillRule="evenodd"
+                d="M7.22 15.78a.75.75 0 0 1 0-1.06L11.94 10 7.22 5.28a.75.75 0 1 1 1.06-1.06l5.25 5.25a.75.75 0 0 1 0 1.06l-5.25 5.25a.75.75 0 0 1-1.06 0Z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </button>
         </div>
       </div>
 
-      <div className="relative mt-5 sm:mt-6">
+      <div className="relative mt-5">
         <div
           ref={emblaRef}
-          className="touch-pan-y select-none overflow-hidden rounded-[28px] border border-white/80"
+          className="touch-pan-y select-none overflow-hidden rounded-[24px]"
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
@@ -288,7 +315,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
                 key={slide.id}
                 className="w-full min-w-0 flex-shrink-0 snap-start cursor-grab active:cursor-grabbing md:w-[calc((100%-1rem)/2)] lg:w-[calc((100%-2rem)/3)]"
               >
-                <div className="relative w-full overflow-hidden rounded-[24px] border border-white/40 aspect-[9/16] sm:border-white/80 sm:aspect-[9/16] lg:aspect-[9/16]">
+                <div className="relative w-full overflow-hidden rounded-[24px] bg-stone-200 aspect-[9/16]">
                   <ImageWithFallback
                     src={slide.image}
                     alt={slide.title || "Promo slide"}
@@ -302,10 +329,7 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
                     <div className="pointer-events-none absolute left-4 right-4 top-4 text-white sm:left-6 sm:right-auto sm:top-6 sm:max-w-md">
                       {slide.title && (
                         <>
-                          <p className="text-xs uppercase tracking-[0.3em] text-white/70">
-                            Promotion
-                          </p>
-                          <h3 className="mt-2 text-xl font-semibold sm:text-3xl">
+                          <h3 className="text-xl font-semibold sm:text-3xl">
                             {slide.title}
                           </h3>
                         </>
@@ -331,56 +355,8 @@ export default function PromoGallery({ slides }: PromoGalleryProps) {
             ))}
           </div>
         </div>
-
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-between px-2 sm:px-3">
-          <button
-            type="button"
-            onClick={handlePrev}
-            disabled={!canScrollPrev}
-            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/85 text-stone-700 shadow-sm backdrop-blur transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-45 sm:h-11 sm:w-11"
-            aria-label="Previous promotion"
-          >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              className="h-4 w-4"
-            >
-              <path
-                fillRule="evenodd"
-                d="M12.78 4.22a.75.75 0 0 1 0 1.06L8.06 10l4.72 4.72a.75.75 0 1 1-1.06 1.06l-5.25-5.25a.75.75 0 0 1 0-1.06l5.25-5.25a.75.75 0 0 1 1.06 0Z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </button>
-          <button
-            type="button"
-            onClick={handleNext}
-            disabled={!canScrollNext}
-            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/85 text-stone-700 shadow-sm backdrop-blur transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-45 sm:h-11 sm:w-11"
-            aria-label="Next promotion"
-          >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              className="h-4 w-4"
-            >
-              <path
-                fillRule="evenodd"
-                d="M7.22 15.78a.75.75 0 0 1 0-1.06L11.94 10 7.22 5.28a.75.75 0 1 1 1.06-1.06l5.25 5.25a.75.75 0 0 1 0 1.06l-5.25 5.25a.75.75 0 0 1-1.06 0Z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </button>
-        </div>
       </div>
 
-      {hasSlides ? (
-        <p className="mt-3 text-center text-[10px] uppercase tracking-[0.24em] text-stone-500">
-          Swipe to browse
-        </p>
-      ) : null}
 
       {hasSlides ? (
         <div className="mt-4 flex justify-center gap-2">

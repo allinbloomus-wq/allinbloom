@@ -6,18 +6,14 @@ import type { StoreSettings } from "@/lib/api-types";
 import { COLOR_OPTIONS, FLOWER_TYPES } from "@/lib/constants";
 import { normalizeColorValue } from "@/lib/colors";
 import SingleSelectDropdown from "@/components/single-select-dropdown";
+import { adminInputClass } from "@/lib/ui-classes";
 
 type AdminDiscountsFormProps = {
   settings: StoreSettings;
   action: (formData: FormData) => Promise<void>;
 };
 
-const fieldClass = (isInvalid: boolean) =>
-  `h-11 w-full min-w-0 rounded-2xl bg-white/80 px-4 py-0 text-sm text-stone-800 outline-none ${
-    isInvalid
-      ? "border border-rose-300 focus:border-rose-500"
-      : "border border-stone-200 focus:border-stone-400"
-  }`;
+const fieldClass = (isInvalid: boolean) => adminInputClass(isInvalid);
 
 const parseNumber = (value: FormDataEntryValue | null) => {
   const raw = String(value || "").trim();
@@ -47,7 +43,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex h-11 w-full items-center justify-center rounded-full bg-[color:var(--brand)] px-6 text-xs uppercase tracking-[0.3em] text-white transition hover:bg-[color:var(--brand-dark)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+      className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-[color:var(--brand)] px-5 text-sm font-medium text-white transition hover:bg-[color:var(--brand-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--brand)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
     >
       {pending ? "Saving..." : "Save discounts"}
     </button>
@@ -190,14 +186,14 @@ function AdminDiscountsFormEditor({
     <form
       action={action}
       onSubmit={onSubmit}
-      className="glass relative z-10 max-w-full space-y-6 rounded-[28px] border border-white/80 p-4 sm:p-6"
+      className="relative z-10 max-w-full space-y-6 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6"
     >
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="min-w-0 space-y-4">
           <h2 className="text-lg font-semibold text-stone-900">
             Global discount
           </h2>
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
             Discount percent
             <input
               name="globalDiscountPercent"
@@ -208,7 +204,7 @@ function AdminDiscountsFormEditor({
               className={fieldClass(invalidSet.has("globalDiscountPercent"))}
             />
           </label>
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
             Discount comment
             <input
               name="globalDiscountNote"
@@ -223,7 +219,7 @@ function AdminDiscountsFormEditor({
           <h2 className="text-lg font-semibold text-stone-900">
             First order discount
           </h2>
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
             Discount percent
             <input
               name="firstOrderDiscountPercent"
@@ -234,7 +230,7 @@ function AdminDiscountsFormEditor({
               className={fieldClass(false)}
             />
           </label>
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
             Discount comment
             <input
               name="firstOrderDiscountNote"
@@ -251,7 +247,7 @@ function AdminDiscountsFormEditor({
           Category discount
         </h2>
         <div className="grid gap-4 lg:grid-cols-2">
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
             Discount percent
             <input
               name="categoryDiscountPercent"
@@ -271,7 +267,7 @@ function AdminDiscountsFormEditor({
             onChange={setCategoryFlowerType}
             invalid={invalidSet.has("categoryFlowerType")}
           />
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
             Discount comment
             <input
               name="categoryDiscountNote"
@@ -298,7 +294,7 @@ function AdminDiscountsFormEditor({
             onChange={setCategoryColor}
             invalid={invalidSet.has("categoryColor")}
           />
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
             Min price (USD)
             <input
               name="categoryMinPrice"
@@ -313,7 +309,7 @@ function AdminDiscountsFormEditor({
               className={fieldClass(invalidSet.has("categoryMinPrice"))}
             />
           </label>
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
             Max price (USD)
             <input
               name="categoryMaxPrice"
@@ -332,7 +328,7 @@ function AdminDiscountsFormEditor({
       </div>
 
       {errors.length ? (
-        <div className="rounded-2xl border border-rose-300 bg-rose-50/80 px-4 py-3 text-sm text-rose-700">
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           <p className="font-semibold">Please fix the following before saving:</p>
           <ul className="mt-2 list-disc pl-5">
             {errors.map((error) => (
@@ -342,9 +338,9 @@ function AdminDiscountsFormEditor({
         </div>
       ) : null}
 
-      <div className="flex flex-wrap gap-3">
+      <div className="sticky bottom-0 z-20 -mx-4 -mb-4 flex rounded-b-2xl sm:-mb-6 flex-wrap items-center justify-end gap-3 border-t border-stone-200 bg-white/95 px-4 py-3 sm:-mx-6 sm:px-6">
         <SubmitButton />
-        <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
+        <p className="text-xs font-medium text-stone-500">
           Category and global discounts cannot be active together
         </p>
       </div>

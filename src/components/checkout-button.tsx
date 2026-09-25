@@ -3,6 +3,10 @@
 import { useRef, useState } from "react";
 import type { CartItem } from "@/lib/cart";
 import { clientFetch } from "@/lib/api-client";
+import FormError from "@/components/form-error";
+
+const CHECKOUT_START_ERROR =
+  "We couldn’t start checkout. Please try again in a moment, or choose another payment method.";
 
 type CheckoutResponseData = {
   url?: string;
@@ -294,7 +298,7 @@ export default function CheckoutButton({
         setLoading(false);
         onBusyChange?.(false);
         busyRef.current = false;
-        setError(data.error || data.detail || data.message || "Unable to start checkout.");
+        setError(data.error || data.detail || data.message || CHECKOUT_START_ERROR);
         return;
       }
 
@@ -307,12 +311,12 @@ export default function CheckoutButton({
       setLoading(false);
       onBusyChange?.(false);
       busyRef.current = false;
-      setError("Unable to start checkout.");
+      setError(CHECKOUT_START_ERROR);
     } catch {
       setLoading(false);
       onBusyChange?.(false);
       busyRef.current = false;
-      setError("Unable to start checkout.");
+      setError(CHECKOUT_START_ERROR);
     }
   };
 
@@ -336,11 +340,7 @@ export default function CheckoutButton({
         ) : null}
         {loading ? "Redirecting..." : iconOnly && iconSrc ? null : buttonLabel}
       </button>
-      {error ? (
-        <p className="text-xs uppercase tracking-[0.24em] text-rose-700">
-          {error}
-        </p>
-      ) : null}
+      {error ? <FormError>{error}</FormError> : null}
     </div>
   );
 }

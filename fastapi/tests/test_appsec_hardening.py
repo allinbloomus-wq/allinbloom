@@ -29,6 +29,7 @@ from app.api.routes.upload import (
     _normalized_upload_options,
     _read_and_validate_file,
     _upload_to_cloudinary,
+    public_review_upload_limiter,
     router as upload_router,
 )
 from app.core.config import settings
@@ -65,7 +66,7 @@ class ReviewAndUploadSecurityTests(unittest.TestCase):
         Base.metadata.drop_all(self.engine)
         self.engine.dispose()
 
-    def test_public_review_is_pending_and_rejects_attached_image(self):
+    def test_public_review_is_pending_and_only_accepts_trusted_image(self):
         review = create_review(
             ReviewCreatePublic(
                 name="Customer",
@@ -82,19 +83,35 @@ class ReviewAndUploadSecurityTests(unittest.TestCase):
         self.assertFalse(stored.is_read)
         self.assertIsNone(stored.image)
 
-        with self.assertRaises(HTTPException) as raised:
-            create_review(
+        with patch.object(settings, "cloudinary_cloud_name", "all-in-bloom"):
+            with_photo = create_review(
                 ReviewCreatePublic(
                     name="Customer",
                     email="customer2@example.com",
                     rating=5,
                     text="Beautiful flowers.",
-                    image="/images/photo.webp",
+                    image="https://res.cloudinary.com/all-in-bloom/image/upload/v1/review.webp",
                 ),
                 _request("/api/reviews"),
                 self.db,
             )
-        self.assertEqual(raised.exception.status_code, 400)
+            stored_with_photo = self.db.get(Review, with_photo.id)
+            self.assertFalse(stored_with_photo.is_active)
+            self.assertIsNotNone(stored_with_photo.image)
+
+            with self.assertRaises(HTTPException) as raised:
+                create_review(
+                    ReviewCreatePublic(
+                        name="Customer",
+                        email="customer3@example.com",
+                        rating=5,
+                        text="Beautiful flowers.",
+                        image="https://attacker.invalid/track.gif",
+                    ),
+                    _request("/api/reviews"),
+                    self.db,
+                )
+            self.assertEqual(raised.exception.status_code, 400)
 
     def test_public_response_hides_legacy_untrusted_remote_image(self):
         review = Review(
@@ -128,10 +145,11 @@ class ReviewAndUploadSecurityTests(unittest.TestCase):
                 )
             )
 
-    def test_public_review_upload_route_is_not_registered(self):
+    def test_public_review_upload_route_is_registered_and_rate_limited(self):
         paths = {route.path for route in upload_router.routes}
-        self.assertNotIn("/api/upload/review", paths)
+        self.assertIn("/api/upload/review", paths)
         self.assertIn("/api/upload", paths)
+        self.assertLessEqual(public_review_upload_limiter.limit, 10)
 
     def test_upload_options_apply_bounded_incoming_transformation(self):
         options = _normalized_upload_options(max_width=1200, max_height=900, fmt="webp")

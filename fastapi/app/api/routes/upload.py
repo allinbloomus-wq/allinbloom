@@ -8,6 +8,7 @@ import httpx
 
 from app.api.deps import require_admin
 from app.core.config import settings
+from app.core.rate_limit import SlidingWindowRateLimiter, enforce_rate_limit
 from app.schemas.upload import UploadResponse
 
 router = APIRouter(prefix="/api/upload", tags=["upload"])
@@ -19,6 +20,9 @@ MAX_MULTIPART_BODY_BYTES = MAX_IMAGE_SIZE_BYTES + 128 * 1024
 MAX_IMAGE_DIMENSION = 4096
 DEFAULT_IMAGE_DIMENSION = 2048
 DEFAULT_IMAGE_FORMAT = "webp"
+REVIEW_IMAGE_MAX_WIDTH = 1200
+REVIEW_IMAGE_MAX_HEIGHT = 900
+public_review_upload_limiter = SlidingWindowRateLimiter(limit=6, window_seconds=30 * 60)
 
 
 def _detected_image_content_type(content: bytes) -> str | None:
@@ -164,6 +168,34 @@ async def _upload_to_cloudinary(
     return UploadResponse(
         url=raw_url,
         public_id=payload.get("public_id"),
+    )
+
+
+@router.post("/review", response_model=UploadResponse)
+async def upload_review_image(
+    request: Request,
+    file: UploadFile = File(...),
+):
+    """Public review photo upload.
+
+    Anyone can attach a photo to a review, so this route is rate-limited per
+    client and ignores caller-supplied options: every image is re-encoded to a
+    bounded WebP by Cloudinary.  The review itself stays hidden until staff
+    approve it, so an uploaded photo is never shown before moderation.
+    """
+    enforce_rate_limit(
+        request,
+        public_review_upload_limiter,
+        detail="Too many uploads. Please try again later.",
+    )
+    _reject_oversized_multipart(request)
+    content = await _read_and_validate_file(file)
+    return await _upload_to_cloudinary(
+        file,
+        content,
+        max_width=REVIEW_IMAGE_MAX_WIDTH,
+        max_height=REVIEW_IMAGE_MAX_HEIGHT,
+        fmt="webp",
     )
 
 

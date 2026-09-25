@@ -26,13 +26,13 @@ export default function AdminCatalogProductsPanel({
 
   return (
     <div className="grid gap-4">
-      <label className="flex min-w-0 items-center gap-2 rounded-full border border-stone-200 bg-white/80 p-1.5">
+      <label className="flex min-w-0 items-center gap-2 rounded-full border border-stone-300 bg-white p-1.5 transition-colors focus-within:border-[color:var(--brand)] focus-within:ring-2 focus-within:ring-[color:rgba(var(--brand-rgb),0.18)]">
         <span className="sr-only">Search {label}</span>
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder={`Search ${label.toLowerCase()} by name`}
-          className="h-10 min-w-0 flex-1 rounded-full border-0 bg-transparent px-3 text-sm text-stone-800 outline-none"
+          className="h-10 min-w-0 flex-1 rounded-full border-0 bg-transparent px-3 text-sm text-stone-800 outline-none placeholder:text-stone-400"
         />
         {query ? (
           <button
@@ -45,7 +45,7 @@ export default function AdminCatalogProductsPanel({
           </button>
         ) : null}
       </label>
-      <div className="flex items-center justify-between gap-2 text-xs uppercase tracking-[0.2em] text-stone-500">
+      <div className="flex items-center justify-between gap-2 text-xs font-medium text-stone-500">
         <span>Shown {label.toLowerCase()}</span>
         <span>{visibleProducts.length}</span>
       </div>
@@ -59,7 +59,7 @@ export default function AdminCatalogProductsPanel({
           />
         ))
       ) : (
-        <div className="rounded-[24px] border border-stone-200/80 bg-white/70 p-5 text-sm text-stone-600">
+        <div className="rounded-2xl border border-dashed border-stone-300 bg-stone-50/60 p-5 text-sm text-stone-600">
           No {label.toLowerCase()} match this search.
         </div>
       )}

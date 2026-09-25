@@ -174,7 +174,7 @@ export default function AdminOrdersList({
             <h2 className="text-lg font-semibold text-stone-900">
               {getLabel(week.weekStartKey)}
             </h2>
-            <span className="text-xs uppercase tracking-[0.2em] text-stone-500">
+            <span className="text-xs font-medium text-stone-500">
               {week.orders.length} orders
             </span>
           </div>
@@ -183,10 +183,10 @@ export default function AdminOrdersList({
               {groupOrdersByDay(week.orders).map((dayGroup) => (
                 <section key={`${week.weekStartKey}-${dayGroup.dayKey}`} className="space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-stone-600">
+                    <h3 className="text-sm font-semibold text-stone-600">
                       {getDayLabel(dayGroup.dayKey)}
                     </h3>
-                    <span className="text-[10px] uppercase tracking-[0.2em] text-stone-500">
+                    <span className="text-xs font-medium text-stone-500">
                       {dayGroup.orders.length} orders
                     </span>
                   </div>
@@ -204,7 +204,7 @@ export default function AdminOrdersList({
               ))}
             </div>
           ) : (
-            <div className="glass rounded-[28px] border border-white/80 p-6 text-sm text-stone-600">
+            <div className="rounded-2xl border border-stone-200 bg-white shadow-sm p-6 text-sm text-stone-600">
               {mode === "deleted"
                 ? "No deleted orders for this week."
                 : "No orders for this week."}
@@ -217,7 +217,7 @@ export default function AdminOrdersList({
           type="button"
           onClick={loadOlderOrders}
           disabled={isLoading}
-          className="inline-flex h-11 w-full items-center justify-center rounded-full border border-stone-300 bg-white/80 px-4 text-xs uppercase tracking-[0.3em] text-stone-600 transition hover:border-stone-400 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+          className="inline-flex h-10 w-full items-center justify-center rounded-full border border-stone-300 bg-white px-4 text-xs font-medium text-stone-600 transition hover:border-stone-400 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
         >
           {isLoading
             ? "Loading..."
@@ -225,7 +225,7 @@ export default function AdminOrdersList({
             ? "Load previous deleted week"
             : "Load previous week"}
         </button>
-        {error ? <p className="text-xs text-rose-500">{error}</p> : null}
+        {error ? <p className="text-xs text-red-700">{error}</p> : null}
       </div>
     </div>
   );

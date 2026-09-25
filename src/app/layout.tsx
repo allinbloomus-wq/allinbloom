@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import Providers from "./providers";
@@ -120,7 +120,31 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: "/favicon.ico",
+    apple: "/logo.png",
   },
+  category: "Florist",
+  formatDetection: {
+    telephone: true,
+    address: true,
+  },
+  other: {
+    "geo.region": "US-IL",
+    "geo.placename": "Wheeling",
+    "geo.position": "42.136281;-87.905085",
+    ICBM: "42.136281, -87.905085",
+  },
+  // Set these env vars with the codes from Google Search Console / Bing
+  // Webmaster Tools to verify site ownership.
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || undefined,
+    other: process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION
+      ? { "msvalidate.01": process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION }
+      : undefined,
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#d1cbc1",
 };
 
 export default function RootLayout({

@@ -29,9 +29,9 @@ type AdminCatalogProductFormProps = {
 };
 
 const controlClass =
-  "h-11 w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-0 text-sm text-stone-800 outline-none focus:border-stone-400";
+  "h-10 w-full min-w-0 rounded-full border border-stone-300 bg-white px-3 py-0 text-sm text-stone-800 outline-none focus:border-[color:var(--brand)] focus:ring-2 focus:ring-[color:rgba(var(--brand-rgb),0.2)]";
 const textareaClass =
-  "w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400";
+  "w-full min-w-0 rounded-2xl border border-stone-300 bg-white px-3 py-2.5 text-sm text-stone-800 outline-none focus:border-[color:var(--brand)] focus:ring-2 focus:ring-[color:rgba(var(--brand-rgb),0.2)]";
 
 function SubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
@@ -39,7 +39,7 @@ function SubmitButton({ label }: { label: string }) {
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex h-11 w-full items-center justify-center rounded-full bg-[color:var(--brand)] px-6 text-xs uppercase tracking-[0.3em] text-white transition hover:bg-[color:var(--brand-dark)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+      className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-[color:var(--brand)] px-5 text-sm font-medium text-white transition hover:bg-[color:var(--brand-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--brand)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
     >
       {pending ? "Saving..." : label}
     </button>
@@ -132,7 +132,7 @@ export default function AdminCatalogProductForm({
     <form
       action={action}
       onSubmit={validate}
-      className="glass relative z-10 max-w-full space-y-6 rounded-[28px] border border-white/80 p-4 sm:p-6"
+      className="relative z-10 max-w-full space-y-6 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6"
     >
       {product ? <input type="hidden" name="id" value={product.id} /> : null}
       <input type="hidden" name="catalogType" value={catalogType} />
@@ -140,11 +140,11 @@ export default function AdminCatalogProductForm({
 
       <div className="grid gap-6 lg:grid-cols-2 lg:items-start xl:gap-8">
         <div className="min-w-0 space-y-4">
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
             Name
             <input name="name" defaultValue={product?.name} required className={controlClass} />
           </label>
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
             Description
             <textarea
               name="description"
@@ -155,7 +155,7 @@ export default function AdminCatalogProductForm({
             />
           </label>
           {!isEventSpace ? (
-            <label className="flex flex-col gap-2 text-sm text-stone-700">
+            <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
               Price (USD)
               <input
                 name="price"
@@ -170,7 +170,7 @@ export default function AdminCatalogProductForm({
           ) : null}
           {supportsVideo ? (
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="flex flex-col gap-2 text-sm text-stone-700 sm:col-span-2">
+              <label className="flex flex-col gap-2 text-sm font-medium text-stone-700 sm:col-span-2">
                 YouTube video URL (optional)
                 <input
                   name="videoUrl"
@@ -202,7 +202,7 @@ export default function AdminCatalogProductForm({
           ) : null}
           {!isEventSpace ? (
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="flex flex-col gap-2 text-sm text-stone-700">
+              <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
                 Discount percent
                 <input
                   name="discountPercent"
@@ -213,7 +213,7 @@ export default function AdminCatalogProductForm({
                   className={controlClass}
                 />
               </label>
-              <label className="flex flex-col gap-2 text-sm text-stone-700">
+              <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
                 Discount comment
                 <input
                   name="discountNote"
@@ -224,15 +224,15 @@ export default function AdminCatalogProductForm({
             </div>
           ) : null}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <label className="flex items-center gap-2 text-sm text-stone-700">
+            <label className="flex items-center gap-2 text-sm font-medium text-stone-700">
               <input name="isFeatured" type="checkbox" defaultChecked={product?.isFeatured} />
               Featured
             </label>
-            <label className="flex items-center gap-2 text-sm text-stone-700">
+            <label className="flex items-center gap-2 text-sm font-medium text-stone-700">
               <input name="isActive" type="checkbox" defaultChecked={product ? product.isActive : true} />
               Visible in catalog
             </label>
-            <label className="flex items-center gap-2 text-sm text-stone-700">
+            <label className="flex items-center gap-2 text-sm font-medium text-stone-700">
               <input name="isSoldOut" type="checkbox" defaultChecked={product?.isSoldOut} />
               Sold out
             </label>
@@ -260,17 +260,17 @@ export default function AdminCatalogProductForm({
                 {tiers.map((tier, index) => (
                   <div
                     key={`tier-${index}`}
-                    className="relative grid gap-3 rounded-[24px] border border-stone-200/70 bg-white/45 p-3"
+                    className="relative grid gap-3 rounded-2xl border border-stone-200 bg-stone-50/60 p-3"
                   >
                     <button
                       type="button"
                       onClick={() => removeTier(index)}
-                      className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-stone-200 bg-white/90 text-sm text-stone-600 transition hover:border-stone-300 hover:text-stone-800"
+                      className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-stone-200 bg-white text-sm text-stone-600 transition hover:border-stone-300 hover:text-stone-800"
                       aria-label={`Remove tier ${index + 1}`}
                     >
                       ×
                     </button>
-                    <label className="flex flex-col gap-2 pr-8 text-sm text-stone-700">
+                    <label className="flex flex-col gap-2 pr-8 text-sm font-medium text-stone-700">
                       Tier {index + 1} price (USD)
                       <input
                         name="tierPrice"
@@ -282,7 +282,7 @@ export default function AdminCatalogProductForm({
                         className={controlClass}
                       />
                     </label>
-                    <label className="flex flex-col gap-2 text-sm text-stone-700">
+                    <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
                       Title (optional)
                       <input
                         name="tierTitle"
@@ -291,7 +291,7 @@ export default function AdminCatalogProductForm({
                         className={controlClass}
                       />
                     </label>
-                    <label className="flex flex-col gap-2 text-sm text-stone-700">
+                    <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
                       Description
                       <textarea
                         name="tierDescription"
@@ -307,7 +307,7 @@ export default function AdminCatalogProductForm({
               <button
                 type="button"
                 onClick={() => setTiers((current) => [...current, createTier()])}
-                className="inline-flex h-10 w-full items-center justify-center rounded-full border border-stone-300 bg-white/85 px-4 text-[11px] uppercase tracking-[0.22em] text-stone-700 transition hover:border-stone-400"
+                className="inline-flex h-10 w-full items-center justify-center rounded-full border border-stone-300 bg-white px-4 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
               >
                 Add tier
               </button>
@@ -317,14 +317,14 @@ export default function AdminCatalogProductForm({
       </div>
 
       {error ? (
-        <p className="rounded-2xl border border-rose-300 bg-rose-50/80 px-4 py-3 text-sm text-rose-700">
+        <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {error}
         </p>
       ) : null}
 
-      <div className="flex flex-wrap gap-3">
+      <div className="sticky bottom-0 z-20 -mx-4 -mb-4 flex rounded-b-2xl sm:-mb-6 flex-wrap items-center justify-end gap-3 border-t border-stone-200 bg-white/95 px-4 py-3 sm:-mx-6 sm:px-6">
         <SubmitButton label={`Save ${noun}`} />
-        <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
+        <p className="text-xs font-medium text-stone-500">
           Changes apply instantly
         </p>
       </div>

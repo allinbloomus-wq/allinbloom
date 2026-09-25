@@ -60,7 +60,7 @@ export default function SingleSelectDropdown({
   return (
     <div
       ref={rootRef}
-      className={`relative flex min-w-0 flex-col gap-2 text-sm text-stone-700 ${
+      className={`relative flex min-w-0 flex-col gap-2 text-sm font-medium text-stone-700 ${
         isOpen ? "z-30" : "z-0"
       }`}
     >
@@ -74,7 +74,8 @@ export default function SingleSelectDropdown({
         aria-controls={`${controlId}-listbox`}
         onClick={() => setIsOpen((current) => !current)}
         data-open={isOpen}
-        className={`custom-select-trigger ${invalid ? "!border-rose-300" : ""}`}
+        data-invalid={invalid ? "true" : undefined}
+        className="custom-select-trigger"
       >
         <span className="pr-8">{selectedLabel}</span>
         <svg
@@ -117,9 +118,9 @@ export default function SingleSelectDropdown({
               >
                 <span>{option.label}</span>
                 {active ? (
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[color:var(--brand)]">
-                    Current
-                  </span>
+                  <svg aria-hidden="true" viewBox="0 0 16 16" className="h-4 w-4 shrink-0 text-[color:var(--brand)]">
+                    <path d="M3.5 8.5l3 3 6-7" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
                 ) : null}
               </button>
             );

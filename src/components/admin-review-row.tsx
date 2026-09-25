@@ -15,7 +15,7 @@ type AdminReviewRowProps = {
 };
 
 const badgeClass =
-  "inline-flex h-8 items-center justify-center rounded-full border px-3 text-[10px] uppercase tracking-[0.24em] whitespace-nowrap";
+  "inline-flex h-6 items-center justify-center rounded-full border px-2.5 text-xs font-medium whitespace-nowrap";
 
 export default function AdminReviewRow({ review, onRemoved }: AdminReviewRowProps) {
   const [isRead, setIsRead] = useState(review.isRead);
@@ -124,7 +124,7 @@ export default function AdminReviewRow({ review, onRemoved }: AdminReviewRowProp
   };
 
   return (
-    <div className="relative rounded-[24px] border border-white/80 bg-white/70 p-4 shadow-sm">
+    <div className="relative rounded-2xl border border-stone-200 bg-white transition hover:border-stone-300 p-4 shadow-sm">
       <div ref={menuRef} className="absolute right-4 top-4 z-20">
         <button
           type="button"
@@ -132,7 +132,7 @@ export default function AdminReviewRow({ review, onRemoved }: AdminReviewRowProp
           aria-expanded={isMenuOpen}
           onClick={() => setIsMenuOpen((current) => !current)}
           disabled={isBusy}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-stone-200 bg-white/90 transition hover:border-stone-300 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-stone-200 bg-white transition hover:border-stone-300 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <span className="inline-flex items-center gap-0.5">
             <span className="h-1 w-1 rounded-full bg-stone-600" />
@@ -146,7 +146,7 @@ export default function AdminReviewRow({ review, onRemoved }: AdminReviewRowProp
               type="button"
               onClick={deleteReview}
               disabled={isBusy}
-              className="flex w-full items-center rounded-xl px-3 py-2 text-left text-xs uppercase tracking-[0.18em] text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex w-full items-center rounded-xl px-3 py-2 text-left text-sm text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isDeleting ? "Deleting..." : "Delete Forever"}
             </button>
@@ -156,7 +156,7 @@ export default function AdminReviewRow({ review, onRemoved }: AdminReviewRowProp
 
       <div className="flex flex-col gap-4 pr-10">
         <div className="flex min-w-0 items-start gap-3">
-          <div className="h-16 w-16 overflow-hidden rounded-2xl border border-white/80 bg-white">
+          <div className="h-16 w-16 overflow-hidden rounded-2xl border border-stone-200 bg-white">
             <ImageWithFallback
               src={review.image || ""}
               alt={`${review.name} review photo`}
@@ -183,7 +183,7 @@ export default function AdminReviewRow({ review, onRemoved }: AdminReviewRowProp
             className={`${badgeClass} transition ${
               isRead
                 ? "border-emerald-200 bg-emerald-100 text-emerald-700"
-                : "border-stone-200 bg-white/80 text-stone-600"
+                : "border-stone-200 bg-white text-stone-600"
             } ${isBusy ? "cursor-not-allowed opacity-70" : ""}`}
           >
             {isRead ? "Read" : "Unread"}
@@ -202,7 +202,7 @@ export default function AdminReviewRow({ review, onRemoved }: AdminReviewRowProp
           </button>
           <Link
             href={`/admin/reviews/${review.id}/edit`}
-            className={`${badgeClass} border-stone-300 bg-white/80 text-stone-600 transition hover:border-stone-400`}
+            className={`${badgeClass} border-stone-300 bg-white text-stone-600 transition hover:border-stone-400`}
           >
             Edit
           </Link>

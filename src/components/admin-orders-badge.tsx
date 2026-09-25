@@ -55,7 +55,7 @@ export default function AdminOrdersBadge() {
   }, []);
 
   return count > 0 ? (
-    <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-[color:var(--brand)] text-[10px] font-semibold text-white">
+    <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[color:var(--brand)] px-1.5 text-[11px] font-semibold tabular-nums text-white">
       {count}
     </span>
   ) : null;

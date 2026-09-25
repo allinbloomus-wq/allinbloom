@@ -44,6 +44,9 @@ export default function Footer() {
           <Link href="/reviews" className="block hover:text-stone-800">
             Reviews
           </Link>
+          <Link href="/faq" className="block hover:text-stone-800">
+            FAQ
+          </Link>
           <Link href="/contact" className="block hover:text-stone-800">
             Contact
           </Link>

@@ -4,8 +4,15 @@ export const formatMoney = (cents: number) =>
     currency: "USD",
   }).format(cents / 100);
 
+// Enum values whose plain title-case form reads wrong in English.
+const LABEL_OVERRIDES: Record<string, string> = {
+  RANUNCULUSES: "Ranunculus",
+};
+
 export const formatLabel = (value: string) =>
-  value
+  value && LABEL_OVERRIDES[value.toUpperCase()]
+    ? LABEL_OVERRIDES[value.toUpperCase()]
+    : value
     ? value
         .split(/[_\s]+/)
         .filter(Boolean)

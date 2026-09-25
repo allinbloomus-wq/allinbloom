@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AdminPageHeader } from "@/components/admin-ui";
 import { notFound } from "next/navigation";
 import type { CatalogType } from "@/lib/api-types";
 import { getBouquetById } from "@/lib/data/bouquets";
@@ -26,22 +26,10 @@ export default async function AdminCatalogProductEditorPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
-            {isEditing ? `Edit ${label}` : `New ${label}`}
-          </p>
-          <h1 className="text-2xl font-semibold text-stone-900 sm:text-3xl">
-            {isEditing ? product?.name : `Add a ${label}`}
-          </h1>
-        </div>
-        <Link
-          href={basePath}
-          className="inline-flex h-11 w-full items-center justify-center rounded-full border border-stone-300 bg-white/80 px-4 text-center text-xs uppercase tracking-[0.3em] text-stone-600 sm:w-auto"
-        >
-          Back to {label}s
-        </Link>
-      </div>
+      <AdminPageHeader
+        title={isEditing ? product?.name : `New ${label}`} description={isEditing ? `Edit ${label}` : undefined}
+        back={{ href: basePath, label: `${label.charAt(0).toUpperCase()}${label.slice(1)}s` }}
+      />
       <AdminCatalogProductForm
         key={product?.id || `new-${catalogType}`}
         catalogType={catalogType}

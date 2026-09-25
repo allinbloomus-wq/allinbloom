@@ -25,7 +25,7 @@ const orderStatusBadgeClass = (status: OrderStatus) => {
     case "PENDING":
       return "border-amber-200 bg-amber-100 text-amber-700";
     case "FAILED":
-      return "border-rose-200 bg-rose-100 text-rose-700";
+      return "border-red-200 bg-red-100 text-red-700";
     case "CANCELED":
       return "border-stone-300 bg-stone-200 text-stone-700";
     case "PARTIALLY_REFUNDED":
@@ -58,9 +58,6 @@ export default async function AccountPage() {
     <div className="mx-auto flex max-w-2xl flex-col gap-4 sm:gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
-            Account
-          </p>
           <h1 className="text-3xl font-semibold text-stone-900 sm:text-5xl">
             Welcome back
           </h1>

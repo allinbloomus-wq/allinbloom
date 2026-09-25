@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AdminPageHeader } from "@/components/admin-ui";
 import { notFound } from "next/navigation";
 import {
   getOrderById,
@@ -267,37 +267,14 @@ export default async function AdminOrderDetailPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
-            Order details
-          </p>
-          <h1 className="text-2xl font-semibold text-stone-900 sm:text-3xl">
-            Order {order.id.slice(0, 8)}
-          </h1>
-        </div>
-        <Link
-          href="/admin/orders"
-          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border border-stone-300 bg-white/80 px-4 text-center text-xs uppercase tracking-[0.3em] text-stone-600 sm:w-auto"
-        >
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            className="h-4 w-4"
-          >
-            <path
-              fillRule="evenodd"
-              d="M12.78 4.22a.75.75 0 0 1 0 1.06L8.06 10l4.72 4.72a.75.75 0 1 1-1.06 1.06l-5.25-5.25a.75.75 0 0 1 0-1.06l5.25-5.25a.75.75 0 0 1 1.06 0Z"
-              clipRule="evenodd"
-            />
-          </svg>
-          Back to orders
-        </Link>
-      </div>
+      <AdminPageHeader
+        title={`Order ${order.id.slice(0, 8)}`}
+        description="Order details"
+        back={{ href: "/admin/orders", label: "Orders" }}
+      />
 
       <div className="space-y-6">
-        <div className="glass rounded-[28px] border border-white/80 p-4 sm:p-6">
+        <div className="rounded-2xl border border-stone-200 bg-white shadow-sm p-4 sm:p-6">
           <h2 className="text-lg font-semibold text-stone-900">
             Items in order
           </h2>
@@ -327,7 +304,7 @@ export default async function AdminOrderDetailPage({
           </div>
         </div>
 
-        <div className="glass rounded-[28px] border border-white/80 p-4 text-sm text-stone-600 sm:p-6">
+        <div className="rounded-2xl border border-stone-200 bg-white shadow-sm p-4 text-sm text-stone-600 sm:p-6">
             <h2 className="text-lg font-semibold text-stone-900">
               Order summary
             </h2>
@@ -356,11 +333,11 @@ export default async function AdminOrderDetailPage({
         </div>
 
         {hasPaymentDiagnostics ? (
-          <details className="glass rounded-[28px] border border-white/80 p-4 text-sm text-stone-600 sm:p-6">
+          <details className="rounded-2xl border border-stone-200 bg-white shadow-sm p-4 text-sm text-stone-600 sm:p-6">
               <summary className="cursor-pointer list-none text-lg font-semibold text-stone-900 [&::-webkit-details-marker]:hidden">
                 <span className="flex items-center justify-between gap-3">
                   Technical payment diagnostics
-                  <span className="text-xs font-normal uppercase tracking-[0.2em] text-stone-500">
+                  <span className="text-xs font-medium text-stone-500">
                     Show details
                   </span>
                 </span>
@@ -428,7 +405,7 @@ export default async function AdminOrderDetailPage({
                 {cvcCheck ? <p>CVC check: {cvcCheck}</p> : null}
                 {storedFailureDetails ? (
                   <div className="pt-2">
-                    <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
+                    <p className="text-xs font-medium text-stone-500">
                       Technical details
                     </p>
                     <p className="break-words whitespace-pre-line">
@@ -440,7 +417,7 @@ export default async function AdminOrderDetailPage({
           </details>
         ) : null}
 
-        <div className="glass rounded-[28px] border border-white/80 p-4 text-sm text-stone-600 sm:p-6">
+        <div className="rounded-2xl border border-stone-200 bg-white shadow-sm p-4 text-sm text-stone-600 sm:p-6">
             <h2 className="text-lg font-semibold text-stone-900">
               Delivery address
             </h2>
@@ -468,7 +445,7 @@ export default async function AdminOrderDetailPage({
                   ) : null}
                   {order.orderComment ? (
                     <div className="pt-2">
-                      <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
+                      <p className="text-xs font-medium text-stone-500">
                         Order comment
                       </p>
                       <p className="break-words">{order.orderComment}</p>
@@ -499,11 +476,11 @@ export default async function AdminOrderDetailPage({
         </div>
 
         {paymentEvents.length ? (
-          <details className="glass rounded-[28px] border border-white/80 p-4 text-sm text-stone-600 sm:p-6">
+          <details className="rounded-2xl border border-stone-200 bg-white shadow-sm p-4 text-sm text-stone-600 sm:p-6">
             <summary className="cursor-pointer list-none text-lg font-semibold text-stone-900 [&::-webkit-details-marker]:hidden">
               <span className="flex items-center justify-between gap-3">
                 Technical payment timeline
-                <span className="text-xs font-normal uppercase tracking-[0.2em] text-stone-500">
+                <span className="text-xs font-medium text-stone-500">
                   Show details
                 </span>
               </span>
@@ -525,7 +502,7 @@ export default async function AdminOrderDetailPage({
                         <p className="font-medium text-stone-900">
                           {eventLabel}
                         </p>
-                        <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
+                        <p className="text-xs font-medium text-stone-500">
                           {sourceLabel} - {formatLabel(event.provider)}
                         </p>
                       </div>

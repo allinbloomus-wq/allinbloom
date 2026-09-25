@@ -93,14 +93,14 @@ function AdminImageListEditor({
         {images.map((image, index) => (
           <div
             key={image.id}
-            className="relative min-w-0 rounded-[24px] border border-stone-200/70 bg-white/45 p-3"
+            className="relative min-w-0 rounded-2xl border border-stone-200 bg-stone-50/60 p-3"
           >
             <div className="absolute right-2 top-2 z-10 flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => moveImage(index, -1)}
                 disabled={index === 0}
-                className="inline-flex h-7 min-w-7 items-center justify-center rounded-full border border-stone-200 bg-white/90 px-1 text-xs text-stone-600 transition hover:border-stone-300 hover:text-stone-800 disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex h-7 min-w-7 items-center justify-center rounded-full border border-stone-200 bg-white px-1 text-xs text-stone-600 transition hover:border-stone-300 hover:text-stone-800 disabled:cursor-not-allowed disabled:opacity-40"
                 aria-label={`Move photo ${index + 1} earlier`}
               >
                 ↑
@@ -109,7 +109,7 @@ function AdminImageListEditor({
                 type="button"
                 onClick={() => moveImage(index, 1)}
                 disabled={index === images.length - 1}
-                className="inline-flex h-7 min-w-7 items-center justify-center rounded-full border border-stone-200 bg-white/90 px-1 text-xs text-stone-600 transition hover:border-stone-300 hover:text-stone-800 disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex h-7 min-w-7 items-center justify-center rounded-full border border-stone-200 bg-white px-1 text-xs text-stone-600 transition hover:border-stone-300 hover:text-stone-800 disabled:cursor-not-allowed disabled:opacity-40"
                 aria-label={`Move photo ${index + 1} later`}
               >
                 ↓
@@ -117,13 +117,13 @@ function AdminImageListEditor({
               <button
                 type="button"
                 onClick={() => removeImage(index)}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-stone-200 bg-white/90 text-sm text-stone-600 transition hover:border-stone-300 hover:text-stone-800"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-stone-200 bg-white text-sm text-stone-600 transition hover:border-stone-300 hover:text-stone-800"
                 aria-label={`Remove photo ${index + 1}`}
               >
                 ×
               </button>
             </div>
-            <p className="mb-3 text-xs uppercase tracking-[0.2em] text-stone-500">
+            <p className="mb-3 text-xs font-medium text-stone-500">
               Photo {index + 1}
             </p>
             <AdminImageUpload
@@ -153,11 +153,11 @@ function AdminImageListEditor({
             { id: `new-${Date.now()}-${current.length}`, value: "" },
           ])
         }
-        className="inline-flex h-10 w-full items-center justify-center rounded-full border border-stone-300 bg-white/85 px-4 text-[11px] uppercase tracking-[0.22em] text-stone-700 transition hover:border-stone-400"
+        className="inline-flex h-10 w-full items-center justify-center rounded-full border border-stone-300 bg-white px-4 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
       >
         Add photo
       </button>
-      <p className="text-xs uppercase tracking-[0.2em] text-stone-500">
+      <p className="text-xs font-medium text-stone-500">
         Drag-free order: the first six photos are the public gallery.
       </p>
     </section>

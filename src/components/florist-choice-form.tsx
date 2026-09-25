@@ -6,6 +6,7 @@ import { useToast } from "@/components/toast-provider";
 import { COLOR_OPTIONS, FLOWER_TYPES } from "@/lib/constants";
 import { formatLabel } from "@/lib/format";
 import MultiCheckboxDropdown from "@/components/multi-checkbox-dropdown";
+import { textareaClass } from "@/lib/ui-classes";
 
 const paletteOptions = COLOR_OPTIONS.map((value) => formatLabel(value));
 
@@ -62,7 +63,7 @@ function ChoiceDropdown({
   return (
     <div
       ref={rootRef}
-      className={`relative flex min-w-0 flex-col gap-2 text-sm text-stone-700 ${
+      className={`relative flex min-w-0 flex-col gap-2 text-sm font-medium text-stone-700 ${
         isOpen ? "z-30" : "z-0"
       }`}
     >
@@ -118,9 +119,9 @@ function ChoiceDropdown({
               >
                 <span>{option}</span>
                 {active ? (
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[color:var(--brand)]">
-                    Current
-                  </span>
+                  <svg aria-hidden="true" viewBox="0 0 16 16" className="h-4 w-4 shrink-0 text-[color:var(--brand)]">
+                    <path d="M3.5 8.5l3 3 6-7" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
                 ) : null}
               </button>
             );
@@ -255,13 +256,13 @@ export default function FloristChoiceForm() {
         />
         <label htmlFor="mixed">Mixed bouquet</label>
       </div>
-      <label className="flex flex-col gap-2 text-sm text-stone-700">
+      <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
         Note to florist (optional)
         <textarea
           value={note}
           onChange={(event) => setNote(event.target.value)}
           rows={3}
-          className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white px-4 py-2 text-sm text-stone-800 outline-none focus:border-stone-400"
+          className={textareaClass()}
         />
       </label>
       <button

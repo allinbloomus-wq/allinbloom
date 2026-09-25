@@ -21,7 +21,7 @@ export default function AdminReviewsList({ initialReviews }: AdminReviewsListPro
 
   if (!reviews.length) {
     return (
-      <div className="rounded-[24px] border border-white/80 bg-white/70 p-6 text-sm text-stone-600">
+      <div className="rounded-2xl border border-stone-200 bg-white transition hover:border-stone-300 p-6 text-sm text-stone-600">
         No reviews yet.
       </div>
     );

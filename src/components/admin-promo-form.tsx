@@ -1,25 +1,25 @@
 import type { PromoSlide } from "@/lib/api-types";
 import AdminImageUpload from "@/components/admin-image-upload";
+import { adminInputClass } from "@/lib/ui-classes";
 
 type AdminPromoFormProps = {
   slide?: PromoSlide;
   action: (formData: FormData) => Promise<void>;
 };
 
-const fieldClass =
-  "h-11 w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-0 text-sm text-stone-800 outline-none focus:border-stone-400";
+const fieldClass = adminInputClass();
 
 export default function AdminPromoForm({ slide, action }: AdminPromoFormProps) {
   return (
     <form
       action={action}
-      className="glass relative z-10 max-w-full space-y-6 rounded-[28px] border border-white/80 p-4 sm:p-6"
+      className="relative z-10 max-w-full space-y-6 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6"
     >
       {slide ? <input type="hidden" name="id" value={slide.id} /> : null}
 
       <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="min-w-0 space-y-4">
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
             Title (optional)
             <input
               name="title"
@@ -27,7 +27,7 @@ export default function AdminPromoForm({ slide, action }: AdminPromoFormProps) {
               className={fieldClass}
             />
           </label>
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
             Subtitle (optional)
             <input
               name="subtitle"
@@ -35,7 +35,7 @@ export default function AdminPromoForm({ slide, action }: AdminPromoFormProps) {
               className={fieldClass}
             />
           </label>
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
             Link (optional)
             <input
               name="link"
@@ -44,7 +44,7 @@ export default function AdminPromoForm({ slide, action }: AdminPromoFormProps) {
               className={fieldClass}
             />
           </label>
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
             Position (lower shows first)
             <input
               name="position"
@@ -53,7 +53,7 @@ export default function AdminPromoForm({ slide, action }: AdminPromoFormProps) {
               className={fieldClass}
             />
           </label>
-          <label className="flex items-center gap-2 text-sm text-stone-700">
+          <label className="flex items-center gap-2 text-sm font-medium text-stone-700">
             <input
               type="checkbox"
               name="isActive"
@@ -69,14 +69,14 @@ export default function AdminPromoForm({ slide, action }: AdminPromoFormProps) {
           />
         </div>
       </div>
-      <div className="flex flex-wrap gap-3">
+      <div className="sticky bottom-0 z-20 -mx-4 -mb-4 flex rounded-b-2xl sm:-mb-6 flex-wrap items-center justify-end gap-3 border-t border-stone-200 bg-white/95 px-4 py-3 sm:-mx-6 sm:px-6">
         <button
           type="submit"
-          className="inline-flex h-11 w-full items-center justify-center rounded-full bg-[color:var(--brand)] px-6 text-xs uppercase tracking-[0.3em] text-white transition hover:bg-[color:var(--brand-dark)] sm:w-auto"
+          className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-[color:var(--brand)] px-5 text-sm font-medium text-white transition hover:bg-[color:var(--brand-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--brand)] focus-visible:ring-offset-2 sm:w-auto"
         >
           Save slide
         </button>
-        <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
+        <p className="text-xs font-medium text-stone-500">
           Changes apply instantly
         </p>
       </div>

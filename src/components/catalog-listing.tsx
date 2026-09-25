@@ -18,7 +18,8 @@ const getInitialPageSize = async () => {
 
 type CatalogListingProps = {
   catalogType: CatalogType;
-  eyebrow: string;
+  /** @deprecated kept for call-site compatibility; no longer rendered. */
+  eyebrow?: string;
   title: string;
   description: string;
   cardVariant?: CatalogGridVariant;
@@ -30,7 +31,6 @@ type CatalogListingProps = {
 /** Shared, filter-free catalog shell for the new top-level catalog sections. */
 export default async function CatalogListing({
   catalogType,
-  eyebrow,
   title,
   description,
   cardVariant = "bouquet",
@@ -70,9 +70,6 @@ export default async function CatalogListing({
   return (
     <div className="flex flex-col gap-7 sm:gap-10">
       <div className="space-y-3">
-        <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
-          {eyebrow}
-        </p>
         <h1 className="text-3xl font-semibold text-stone-900 sm:text-5xl">
           {title}
         </h1>

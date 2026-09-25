@@ -213,9 +213,6 @@ export default async function CatalogPage({
     return (
       <div className="flex flex-col gap-6 sm:gap-8">
         <div className="space-y-3">
-          <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
-            Full catalog
-          </p>
           <h1 className="text-3xl font-semibold text-stone-900 sm:text-5xl">
             Shop all
           </h1>
@@ -228,9 +225,6 @@ export default async function CatalogPage({
     return (
       <div className="flex flex-col gap-6 sm:gap-8">
         <div className="space-y-3">
-          <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
-            Catalog
-          </p>
           <h1 className="text-3xl font-semibold text-stone-900 sm:text-5xl">
             Choose your bouquet category
           </h1>
@@ -292,9 +286,6 @@ export default async function CatalogPage({
   return (
     <div className="flex flex-col gap-7 sm:gap-10">
       <div className="space-y-3">
-        <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
-          {isFeatured ? "Best sellers" : "Catalog"}
-        </p>
         <h1 className="text-3xl font-semibold text-stone-900 sm:text-5xl">
           {isFeatured ? "Signature bouquets" : "All bouquets"}
         </h1>

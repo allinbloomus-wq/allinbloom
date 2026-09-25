@@ -72,7 +72,7 @@ export default function MultiCheckboxDropdown({
   return (
     <div
       ref={rootRef}
-      className={`relative flex min-w-0 flex-col gap-2 text-sm text-stone-700 ${
+      className={`relative flex min-w-0 flex-col gap-2 text-sm font-medium text-stone-700 ${
         isOpen ? "z-30" : "z-0"
       }`}
     >
@@ -130,7 +130,7 @@ export default function MultiCheckboxDropdown({
                     checked={checked}
                     disabled={disableUnchecked}
                     onChange={() => onToggle(option.value)}
-                    className="h-4 w-4 accent-[color:var(--brand)]"
+                    className="h-4 w-4 shrink-0 accent-[color:var(--brand)]"
                   />
                   <span>{option.label}</span>
                 </label>

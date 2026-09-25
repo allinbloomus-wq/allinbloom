@@ -21,7 +21,7 @@ const orderStatusBadgeClass = (status: Order["status"]) => {
     case "PENDING":
       return "border-amber-200 bg-amber-100 text-amber-700";
     case "FAILED":
-      return "border-rose-200 bg-rose-100 text-rose-700";
+      return "border-red-200 bg-red-100 text-red-700";
     case "CANCELED":
       return "border-stone-300 bg-stone-200 text-stone-700";
     case "PARTIALLY_REFUNDED":
@@ -32,12 +32,12 @@ const orderStatusBadgeClass = (status: Order["status"]) => {
     case "REVERSED":
       return "border-violet-200 bg-violet-100 text-violet-700";
     default:
-      return "border-stone-200 bg-white/80 text-stone-600";
+      return "border-stone-200 bg-white text-stone-600";
   }
 };
 
 const orderMetaBadgeClass =
-  "inline-flex h-8 items-center justify-center rounded-full border px-3 text-[10px] uppercase tracking-[0.24em] whitespace-nowrap";
+  "inline-flex h-6 items-center justify-center rounded-full border px-2.5 text-xs font-medium whitespace-nowrap";
 
 export default function AdminOrderRow({
   order,
@@ -170,7 +170,7 @@ export default function AdminOrderRow({
   };
 
   return (
-    <div className="relative rounded-[24px] border border-white/80 bg-white/70 p-4 shadow-sm">
+    <div className="relative rounded-2xl border border-stone-200 bg-white transition hover:border-stone-300 p-4 shadow-sm">
       <div ref={menuRef} className="absolute right-4 top-4 z-20">
         <button
           type="button"
@@ -178,7 +178,7 @@ export default function AdminOrderRow({
           aria-expanded={isMenuOpen}
           onClick={() => setIsMenuOpen((current) => !current)}
           disabled={isBusy}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-stone-200 bg-white/90 transition hover:border-stone-300 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-stone-200 bg-white transition hover:border-stone-300 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <span className="inline-flex items-center gap-0.5">
             <span className="h-1 w-1 rounded-full bg-stone-600" />
@@ -194,7 +194,7 @@ export default function AdminOrderRow({
                   type="button"
                   onClick={restoreOrder}
                   disabled={isBusy}
-                  className="flex w-full items-center rounded-xl px-3 py-2 text-left text-xs uppercase tracking-[0.18em] text-emerald-700 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex w-full items-center rounded-xl px-3 py-2 text-left text-sm text-emerald-700 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isRestoring ? "Restoring..." : "Restore"}
                 </button>
@@ -204,7 +204,7 @@ export default function AdminOrderRow({
                 type="button"
                 onClick={softDelete}
                 disabled={isBusy}
-                className="flex w-full items-center rounded-xl px-3 py-2 text-left text-xs uppercase tracking-[0.18em] text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex w-full items-center rounded-xl px-3 py-2 text-left text-sm text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isDeleting ? "Deleting..." : "Delete"}
               </button>
@@ -214,7 +214,7 @@ export default function AdminOrderRow({
       </div>
       <div className="flex flex-col gap-4 pr-10">
         <div className="min-w-0">
-          <p className="text-xs uppercase tracking-[0.2em] text-stone-500">
+          <p className="text-xs font-medium text-stone-500">
             Order {order.id.slice(0, 8)}
           </p>
           <p className="break-words text-sm font-semibold text-stone-900">
@@ -242,7 +242,7 @@ export default function AdminOrderRow({
             className={`${orderMetaBadgeClass} transition ${
               isRead
                 ? "border-emerald-200 bg-emerald-100 text-emerald-700"
-                : "border-stone-200 bg-white/80 text-stone-600"
+                : "border-stone-200 bg-white text-stone-600"
             } ${isLoading ? "cursor-wait opacity-70" : ""} ${
               isBusy && !isLoading ? "opacity-70" : ""
             }`}
@@ -250,14 +250,14 @@ export default function AdminOrderRow({
             {isRead ? "Read" : "Unread"}
           </button>
           <div
-            className={`${orderMetaBadgeClass} border-stone-200 bg-white/80 text-stone-600`}
+            className={`${orderMetaBadgeClass} border-stone-200 bg-white text-stone-600`}
           >
             {order.items.length} items
           </div>
           <Link
             href={`/admin/orders/${order.id}`}
             onClick={storeScrollPosition}
-            className={`${orderMetaBadgeClass} border-stone-300 bg-white/80 text-stone-600 transition hover:border-stone-400`}
+            className={`${orderMetaBadgeClass} border-stone-300 bg-white text-stone-600 transition hover:border-stone-400`}
           >
             Details
           </Link>

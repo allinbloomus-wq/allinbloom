@@ -51,14 +51,14 @@ export default function AdminBouquetRow({ bouquet }: { bouquet: Bouquet }) {
   };
 
   return (
-    <div className="relative rounded-[24px] border border-white/80 bg-white/70 p-4 shadow-sm">
+    <div className="relative rounded-2xl border border-stone-200 bg-white transition hover:border-stone-300 p-4 shadow-sm">
       <div ref={menuRef} className="absolute right-4 top-4 z-20">
         <button
           type="button"
           aria-label="Bouquet actions"
           aria-expanded={isMenuOpen}
           onClick={() => setIsMenuOpen((current) => !current)}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-stone-200 bg-white/90 transition hover:border-stone-300"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-stone-200 bg-white transition hover:border-stone-300"
         >
           <span className="inline-flex items-center gap-0.5">
             <span className="h-1 w-1 rounded-full bg-stone-600" />
@@ -72,7 +72,7 @@ export default function AdminBouquetRow({ bouquet }: { bouquet: Bouquet }) {
               <input type="hidden" name="id" value={bouquet.id} />
               <button
                 type="submit"
-                className="flex w-full items-center rounded-xl px-3 py-2 text-left text-xs uppercase tracking-[0.18em] text-rose-700 transition hover:bg-rose-50"
+                className="flex w-full items-center rounded-xl px-3 py-2 text-left text-sm text-red-700 transition hover:bg-red-50"
               >
                 Delete Forever
               </button>
@@ -82,7 +82,7 @@ export default function AdminBouquetRow({ bouquet }: { bouquet: Bouquet }) {
       </div>
       <div className="flex max-w-full flex-col gap-4 pr-10 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 flex-1 items-center gap-4">
-          <div className="h-16 w-16 overflow-hidden rounded-2xl border border-white/80 bg-white">
+          <div className="h-16 w-16 overflow-hidden rounded-2xl border border-stone-200 bg-white">
             <ImageWithFallback
               src={bouquet.image}
               alt={bouquet.name}
@@ -95,7 +95,7 @@ export default function AdminBouquetRow({ bouquet }: { bouquet: Bouquet }) {
             <p className="text-sm font-semibold text-stone-900 break-words [overflow-wrap:anywhere]">
               {bouquet.name}
             </p>
-            <p className="break-words text-xs uppercase tracking-[0.2em] text-stone-500">
+            <p className="break-words text-xs font-medium text-stone-500">
               {formatLabel(bouquet.flowerType)} - {formatMoney(bouquet.priceCents)}
             </p>
           </div>
@@ -121,7 +121,7 @@ export default function AdminBouquetRow({ bouquet }: { bouquet: Bouquet }) {
           <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
             <Link
               href={`/admin/bouquets/${bouquet.id}/edit`}
-              className="inline-flex h-11 w-full items-center justify-center rounded-full border border-stone-300 bg-white/80 px-4 text-center text-xs uppercase tracking-[0.3em] text-stone-600 sm:w-auto"
+              className="inline-flex h-10 w-full items-center justify-center rounded-full border border-stone-300 bg-white px-4 text-center text-sm font-medium text-stone-700 transition hover:bg-stone-50 sm:w-auto"
             >
               Edit
             </Link>

@@ -1,5 +1,6 @@
 import type { AdminReview } from "@/lib/api-types";
 import AdminImageUpload from "@/components/admin-image-upload";
+import { adminInputClass, dateWrapClass, textareaClass } from "@/lib/ui-classes";
 
 type AdminReviewFormProps = {
   review?: AdminReview;
@@ -8,17 +9,14 @@ type AdminReviewFormProps = {
 
 const ADMIN_TIMEZONE = "America/Chicago";
 
-const fieldClass =
-  "h-11 w-full min-w-0 max-w-full rounded-2xl border border-stone-200 bg-white/80 px-4 py-0 text-sm text-stone-800 outline-none focus:border-stone-400";
+const fieldClass = adminInputClass();
 
-const textareaClass =
-  "w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400";
+const textareaFieldClass = textareaClass();
 
-const dateTimeFieldWrapClass =
-  "relative h-11 w-full min-w-0 max-w-full overflow-hidden rounded-2xl border border-stone-200 bg-white/80 transition-colors focus-within:border-stone-400";
+const dateTimeFieldWrapClass = dateWrapClass(false, true);
 
 const dateTimeFieldClass =
-  "admin-datetime-input block h-full w-full min-w-0 max-w-full border-0 bg-transparent py-0 pl-4 pr-10 text-left text-sm leading-[2.75rem] text-stone-800 outline-none [inline-size:100%] [min-inline-size:0] [max-inline-size:100%]";
+  "admin-datetime-input block h-full w-full min-w-0 max-w-full border-0 bg-transparent py-0 pl-4 pr-10 text-left text-sm leading-[2.5rem] text-stone-800 outline-none [inline-size:100%] [min-inline-size:0] [max-inline-size:100%]";
 
 const REVIEW_TEXT_MAX_LENGTH = 1024;
 
@@ -64,13 +62,13 @@ export default function AdminReviewForm({ review, action }: AdminReviewFormProps
   return (
     <form
       action={action}
-      className="glass relative z-10 max-w-full space-y-6 rounded-[28px] border border-white/80 p-4 sm:p-6"
+      className="relative z-10 max-w-full space-y-6 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6"
     >
       {review ? <input type="hidden" name="id" value={review.id} /> : null}
 
       <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="min-w-0 space-y-4">
-          <label className="flex min-w-0 flex-col gap-2 text-sm text-stone-700">
+          <label className="flex min-w-0 flex-col gap-2 text-sm font-medium text-stone-700">
             Name
             <input
               name="name"
@@ -79,7 +77,7 @@ export default function AdminReviewForm({ review, action }: AdminReviewFormProps
               className={fieldClass}
             />
           </label>
-          <label className="flex min-w-0 flex-col gap-2 text-sm text-stone-700">
+          <label className="flex min-w-0 flex-col gap-2 text-sm font-medium text-stone-700">
             Email
             <input
               name="email"
@@ -89,7 +87,7 @@ export default function AdminReviewForm({ review, action }: AdminReviewFormProps
               className={fieldClass}
             />
           </label>
-          <label className="flex min-w-0 flex-col gap-2 text-sm text-stone-700">
+          <label className="flex min-w-0 flex-col gap-2 text-sm font-medium text-stone-700">
             Rating
             <input
               name="rating"
@@ -101,7 +99,7 @@ export default function AdminReviewForm({ review, action }: AdminReviewFormProps
               className={fieldClass}
             />
           </label>
-          <label className="flex min-w-0 max-w-full flex-col gap-2 text-sm text-stone-700">
+          <label className="flex min-w-0 max-w-full flex-col gap-2 text-sm font-medium text-stone-700">
             Created at
             <div className={dateTimeFieldWrapClass}>
               <input
@@ -113,7 +111,7 @@ export default function AdminReviewForm({ review, action }: AdminReviewFormProps
               />
             </div>
           </label>
-          <label className="flex min-w-0 flex-col gap-2 text-sm text-stone-700">
+          <label className="flex min-w-0 flex-col gap-2 text-sm font-medium text-stone-700">
             Review text
             <textarea
               name="text"
@@ -121,14 +119,14 @@ export default function AdminReviewForm({ review, action }: AdminReviewFormProps
               defaultValue={review?.text || ""}
               required
               maxLength={REVIEW_TEXT_MAX_LENGTH}
-              className={textareaClass}
+              className={textareaFieldClass}
             />
           </label>
           <p className="text-xs text-stone-500">
             Maximum review length: 1024 characters.
           </p>
           <div className="grid gap-2">
-            <label className="flex items-center gap-2 text-sm text-stone-700">
+            <label className="flex items-center gap-2 text-sm font-medium text-stone-700">
               <input
                 type="checkbox"
                 name="isActive"
@@ -136,7 +134,7 @@ export default function AdminReviewForm({ review, action }: AdminReviewFormProps
               />
               Visible in public reviews
             </label>
-            <label className="flex items-center gap-2 text-sm text-stone-700">
+            <label className="flex items-center gap-2 text-sm font-medium text-stone-700">
               <input
                 type="checkbox"
                 name="isRead"
@@ -161,10 +159,10 @@ export default function AdminReviewForm({ review, action }: AdminReviewFormProps
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-3">
+      <div className="sticky bottom-0 z-20 -mx-4 -mb-4 flex rounded-b-2xl sm:-mb-6 flex-wrap items-center justify-end gap-3 border-t border-stone-200 bg-white/95 px-4 py-3 sm:-mx-6 sm:px-6">
         <button
           type="submit"
-          className="inline-flex h-11 w-full items-center justify-center rounded-full bg-[color:var(--brand)] px-6 text-xs uppercase tracking-[0.3em] text-white transition hover:bg-[color:var(--brand-dark)] sm:w-auto"
+          className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-[color:var(--brand)] px-5 text-sm font-medium text-white transition hover:bg-[color:var(--brand-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--brand)] focus-visible:ring-offset-2 sm:w-auto"
         >
           Save review
         </button>

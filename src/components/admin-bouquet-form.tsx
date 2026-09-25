@@ -14,26 +14,16 @@ import AdminImageList from "@/components/admin-image-list";
 import MultiCheckboxDropdown from "@/components/multi-checkbox-dropdown";
 import SingleSelectDropdown from "@/components/single-select-dropdown";
 import { getBouquetGalleryImages } from "@/lib/bouquet-images";
+import { adminInputClass, textareaClass } from "@/lib/ui-classes";
 
 type AdminBouquetFormProps = {
   bouquet?: Bouquet;
   action: (formData: FormData) => Promise<void>;
 };
 
-const fieldStateClass = (isInvalid: boolean) =>
-  isInvalid
-    ? "border border-rose-300 focus:border-rose-500"
-    : "border border-stone-200 focus:border-stone-400";
+const controlFieldClass = (isInvalid: boolean) => adminInputClass(isInvalid);
 
-const controlFieldClass = (isInvalid: boolean) =>
-  `h-11 w-full min-w-0 rounded-2xl bg-white/80 px-4 py-0 text-sm text-stone-800 outline-none ${fieldStateClass(
-    isInvalid
-  )}`;
-
-const textareaFieldClass = (isInvalid: boolean) =>
-  `w-full min-w-0 rounded-2xl bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none ${fieldStateClass(
-    isInvalid
-  )}`;
+const textareaFieldClass = (isInvalid: boolean) => textareaClass(isInvalid);
 
 const COLOR_OPTIONS_SET = new Set<string>(COLOR_OPTIONS);
 const FLOWER_TYPE_SET = new Set<string>(FLOWER_TYPES);
@@ -93,7 +83,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex h-11 w-full items-center justify-center rounded-full bg-[color:var(--brand)] px-6 text-xs uppercase tracking-[0.3em] text-white transition hover:bg-[color:var(--brand-dark)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+      className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-[color:var(--brand)] px-5 text-sm font-medium text-white transition hover:bg-[color:var(--brand-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--brand)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
     >
       {pending ? "Saving..." : "Save bouquet"}
     </button>
@@ -320,13 +310,13 @@ function AdminBouquetFormEditor({
     <form
       action={action}
       onSubmit={onSubmit}
-      className="glass relative z-10 max-w-full space-y-6 rounded-[28px] border border-white/80 p-4 sm:p-6"
+      className="relative z-10 max-w-full space-y-6 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6"
     >
       {bouquet ? <input type="hidden" name="id" value={bouquet.id} /> : null}
 
       <div className="grid gap-6 lg:grid-cols-2 lg:items-start xl:gap-8">
         <div className="min-w-0 grid auto-rows-max gap-4">
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
             Name
             <input
               name="name"
@@ -335,7 +325,7 @@ function AdminBouquetFormEditor({
               className={controlFieldClass(invalidSet.has("name"))}
             />
           </label>
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
             Description
             <textarea
               name="description"
@@ -346,7 +336,7 @@ function AdminBouquetFormEditor({
             />
           </label>
           <div className="grid gap-4 sm:grid-cols-2 sm:items-end">
-            <label className="flex flex-col gap-2 text-sm text-stone-700">
+            <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
               Price (USD)
               <input
                 name="price"
@@ -360,7 +350,7 @@ function AdminBouquetFormEditor({
                 className={controlFieldClass(invalidSet.has("price"))}
               />
             </label>
-            <label className="flex flex-col gap-2 text-sm text-stone-700">
+            <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
               Default quantity
               <input
                 name="defaultFlowerQuantity"
@@ -375,7 +365,7 @@ function AdminBouquetFormEditor({
                 )} disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-stone-400`}
               />
             </label>
-            <label className="flex flex-col gap-2 text-sm text-stone-700">
+            <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
               Discount percent
               <input
                 name="discountPercent"
@@ -386,7 +376,7 @@ function AdminBouquetFormEditor({
                 className={controlFieldClass(false)}
               />
             </label>
-            <label className="flex flex-col gap-2 text-sm text-stone-700 sm:col-span-2">
+            <label className="flex flex-col gap-2 text-sm font-medium text-stone-700 sm:col-span-2">
               Discount comment
               <input
                 name="discountNote"
@@ -407,7 +397,7 @@ function AdminBouquetFormEditor({
               onClick={() => setIsColorMenuOpen((current) => !current)}
               aria-haspopup="true"
               aria-expanded={isColorMenuOpen}
-              className="flex h-11 w-full items-center justify-between rounded-2xl border border-stone-200 bg-white/80 px-4 text-sm text-stone-800 outline-none transition hover:border-stone-300 focus:border-stone-400"
+              className="flex h-10 w-full items-center justify-between rounded-full border border-stone-300 bg-white px-4 text-sm text-stone-800 outline-none transition hover:border-stone-400 focus:border-[color:var(--brand)] focus:ring-2 focus:ring-[color:rgba(var(--brand-rgb),0.18)]"
             >
               <span
                 className={`truncate text-left ${
@@ -455,14 +445,14 @@ function AdminBouquetFormEditor({
                   <button
                     type="button"
                     onClick={() => setSelectedColors([])}
-                    className="text-[10px] uppercase tracking-[0.2em] text-stone-500 transition hover:text-stone-700"
+                    className="text-xs font-medium text-stone-500 transition hover:text-stone-700"
                   >
                     Clear
                   </button>
                   <button
                     type="button"
                     onClick={() => setIsColorMenuOpen(false)}
-                    className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--brand)] transition hover:text-[color:var(--brand-dark)]"
+                    className="text-xs font-medium text-[color:var(--brand)] transition hover:text-[color:var(--brand-dark)]"
                   >
                     Done
                   </button>
@@ -480,7 +470,7 @@ function AdminBouquetFormEditor({
             previewAlt="Bouquet gallery image"
             recommendedSize="1000x1000"
           />
-          <div className={invalidSet.has("flowerTypes") ? "rounded-2xl border border-rose-300 p-2" : ""}>
+          <div className={invalidSet.has("flowerTypes") ? "rounded-2xl border border-red-400 p-2 ring-2 ring-red-100" : ""}>
             <input type="hidden" name="style" value={selectedFlowerTypesValue} />
             <input
               type="hidden"
@@ -500,7 +490,7 @@ function AdminBouquetFormEditor({
               emptyLabel="Select flower types"
             />
             {flowerTypeLimitWarning ? (
-              <p className="text-[11px] uppercase tracking-[0.18em] text-rose-500">
+              <p className="text-xs font-medium text-red-700">
                 {flowerTypeLimitWarning}
               </p>
             ) : null}
@@ -520,13 +510,13 @@ function AdminBouquetFormEditor({
               invalid={invalidSet.has("bouquetType")}
             />
             {bouquetTypeWarning ? (
-              <p className="text-[11px] uppercase tracking-[0.18em] text-rose-500">
+              <p className="text-xs font-medium text-red-700">
                 {bouquetTypeWarning}
               </p>
             ) : null}
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <label className="flex items-center gap-2 text-sm text-stone-700">
+            <label className="flex items-center gap-2 text-sm font-medium text-stone-700">
               <input
                 type="checkbox"
                 name="isFeatured"
@@ -534,7 +524,7 @@ function AdminBouquetFormEditor({
               />
               Featured on homepage
             </label>
-            <label className="flex items-center gap-2 text-sm text-stone-700">
+            <label className="flex items-center gap-2 text-sm font-medium text-stone-700">
               <input
                 type="checkbox"
                 name="isActive"
@@ -542,7 +532,7 @@ function AdminBouquetFormEditor({
               />
               Visible in catalog
             </label>
-            <label className="flex items-center gap-2 text-sm text-stone-700">
+            <label className="flex items-center gap-2 text-sm font-medium text-stone-700">
               <input
                 type="checkbox"
                 name="isSoldOut"
@@ -550,7 +540,7 @@ function AdminBouquetFormEditor({
               />
               Sold out
             </label>
-            <label className="flex items-center gap-2 text-sm text-stone-700">
+            <label className="flex items-center gap-2 text-sm font-medium text-stone-700">
               <input
                 type="checkbox"
                 name="allowFlowerQuantity"
@@ -566,7 +556,7 @@ function AdminBouquetFormEditor({
       </div>
 
       {errors.length ? (
-        <div className="rounded-2xl border border-rose-300 bg-rose-50/80 px-4 py-3 text-sm text-rose-700">
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           <p className="font-semibold">Please fix the following before saving:</p>
           <ul className="mt-2 list-disc pl-5">
             {errors.map((error) => (
@@ -576,9 +566,9 @@ function AdminBouquetFormEditor({
         </div>
       ) : null}
 
-      <div className="flex flex-wrap gap-3">
+      <div className="sticky bottom-0 z-20 -mx-4 -mb-4 flex rounded-b-2xl sm:-mb-6 flex-wrap items-center justify-end gap-3 border-t border-stone-200 bg-white/95 px-4 py-3 sm:-mx-6 sm:px-6">
         <SubmitButton />
-        <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
+        <p className="text-xs font-medium text-stone-500">
           Changes apply instantly
         </p>
       </div>

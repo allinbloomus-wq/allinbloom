@@ -219,7 +219,7 @@ function FilterDropdown({
   return (
     <div
       ref={rootRef}
-      className={`relative flex min-w-0 flex-col gap-2 text-sm text-stone-700 ${
+      className={`relative flex min-w-0 flex-col gap-2 text-sm font-medium text-stone-700 ${
         isOpen ? "z-30" : "z-0"
       }`}
     >
@@ -275,9 +275,9 @@ function FilterDropdown({
               >
                 <span>{option.label}</span>
                 {active ? (
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[color:var(--brand)]">
-                    Current
-                  </span>
+                  <svg aria-hidden="true" viewBox="0 0 16 16" className="h-4 w-4 shrink-0 text-[color:var(--brand)]">
+                    <path d="M3.5 8.5l3 3 6-7" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
                 ) : null}
               </button>
             );
@@ -299,7 +299,7 @@ export default function AdminBouquetsPanel({ bouquets }: { bouquets: Bouquet[] }
   );
   const [openDropdown, setOpenDropdown] = useState<DropdownField | null>(null);
   const priceFieldClass =
-    "h-11 w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-0 text-[0.93rem] leading-[1.35] text-stone-800 outline-none focus:border-[color:var(--brand)]";
+    "h-10 w-full min-w-0 rounded-full border border-stone-300 bg-white px-3 py-0 text-[0.93rem] leading-[1.35] text-stone-800 outline-none focus:border-[color:var(--brand)] focus:ring-2 focus:ring-[color:rgba(var(--brand-rgb),0.2)]";
 
   const dropdownOptions = useMemo(
     () => ({
@@ -479,7 +479,7 @@ export default function AdminBouquetsPanel({ bouquets }: { bouquets: Bouquet[] }
               event.preventDefault();
               setIsSearchOpen(false);
             }}
-            className="flex min-w-0 flex-1 items-center gap-2 rounded-full border border-stone-200 bg-white/80 p-1.5"
+            className="flex min-w-0 flex-1 items-center gap-2 rounded-full border border-stone-300 bg-white p-1.5 transition-colors focus-within:border-[color:var(--brand)] focus-within:ring-2 focus-within:ring-[color:rgba(var(--brand-rgb),0.18)]"
           >
             <input
               value={searchInput}
@@ -492,7 +492,7 @@ export default function AdminBouquetsPanel({ bouquets }: { bouquets: Bouquet[] }
                 setIsSearchOpen(Boolean(nextValue.trim()));
               }}
               placeholder="Search bouquet by name"
-              className="h-10 min-w-0 flex-1 rounded-full border-0 bg-transparent px-3 text-sm text-stone-800 outline-none"
+              className="h-10 min-w-0 flex-1 rounded-full border-0 bg-transparent px-3 text-sm text-stone-800 outline-none placeholder:text-stone-400"
             />
             {searchInput.trim() ? (
               <button
@@ -509,7 +509,7 @@ export default function AdminBouquetsPanel({ bouquets }: { bouquets: Bouquet[] }
             ) : null}
             <button
               type="submit"
-              className="inline-flex h-10 shrink-0 items-center justify-center rounded-full bg-[color:var(--brand)] px-5 text-[10px] uppercase tracking-[0.24em] text-white transition hover:bg-[color:var(--brand-dark)] sm:text-xs sm:tracking-[0.3em]"
+              className="inline-flex h-10 shrink-0 items-center justify-center rounded-full bg-[color:var(--brand)] px-5 text-xs font-medium text-white transition hover:bg-[color:var(--brand-dark)] "
             >
               Find
             </button>
@@ -531,7 +531,7 @@ export default function AdminBouquetsPanel({ bouquets }: { bouquets: Bouquet[] }
                   </button>
                 ))
               ) : (
-                <div className="px-3 py-2.5 text-xs uppercase tracking-[0.2em] text-stone-500">
+                <div className="px-3 py-2.5 text-xs font-medium text-stone-500">
                   No matches found
                 </div>
               )}
@@ -545,7 +545,7 @@ export default function AdminBouquetsPanel({ bouquets }: { bouquets: Bouquet[] }
       </div>
 
       {isFiltersOpen ? (
-        <div className="rounded-[24px] border border-white/80 bg-white/60 p-4 sm:p-5">
+        <div className="rounded-2xl border border-stone-200 bg-stone-50/60 p-4 sm:p-5">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <MultiCheckboxDropdown
               label="Flower type"
@@ -578,7 +578,7 @@ export default function AdminBouquetsPanel({ bouquets }: { bouquets: Bouquet[] }
               onClose={() => setOpenDropdown(null)}
               onSelect={(value) => setDropdownValue("bouquetType", value)}
             />
-            <label className="flex flex-col gap-2 text-sm text-stone-700">
+            <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
               Min price (${PRICE_LIMITS.min})
               <input
                 type="number"
@@ -592,7 +592,7 @@ export default function AdminBouquetsPanel({ bouquets }: { bouquets: Bouquet[] }
                 className={priceFieldClass}
               />
             </label>
-            <label className="flex flex-col gap-2 text-sm text-stone-700">
+            <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
               Max price (${PRICE_LIMITS.max})
               <input
                 type="number"
@@ -622,7 +622,7 @@ export default function AdminBouquetsPanel({ bouquets }: { bouquets: Bouquet[] }
               <button
                 type="button"
                 onClick={() => setFilters(emptyFilters())}
-                className="inline-flex h-10 items-center justify-center rounded-full border border-stone-200 bg-white/80 px-4 text-[10px] uppercase tracking-[0.24em] text-stone-700 transition hover:border-stone-300 sm:text-xs sm:tracking-[0.3em]"
+                className="inline-flex h-10 items-center justify-center rounded-full border border-stone-200 bg-white px-4 text-xs font-medium text-stone-700 transition hover:border-stone-300 "
               >
                 Clear filters
               </button>
@@ -631,7 +631,7 @@ export default function AdminBouquetsPanel({ bouquets }: { bouquets: Bouquet[] }
         </div>
       ) : null}
 
-      <div className="flex items-center justify-between gap-2 text-xs uppercase tracking-[0.2em] text-stone-500">
+      <div className="flex items-center justify-between gap-2 text-xs font-medium text-stone-500">
         <span>Shown bouquets</span>
         <span>{filteredAndSorted.length}</span>
       </div>
@@ -641,7 +641,7 @@ export default function AdminBouquetsPanel({ bouquets }: { bouquets: Bouquet[] }
           <AdminBouquetRow key={bouquet.id} bouquet={bouquet} />
         ))
       ) : (
-        <div className="rounded-[24px] border border-stone-200/80 bg-white/70 p-5 text-sm text-stone-600">
+        <div className="rounded-2xl border border-dashed border-stone-300 bg-stone-50/60 p-5 text-sm text-stone-600">
           No bouquets match current search and filters.
         </div>
       )}

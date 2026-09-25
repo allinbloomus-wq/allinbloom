@@ -4,6 +4,7 @@ import {
   addWeeksToWeekStartKey,
   getCurrentWeekStartKey,
 } from "@/lib/admin-orders";
+import { AdminPageHeader } from "@/components/admin-ui";
 import AdminOrdersList from "@/components/admin-orders-list";
 
 type OrdersSearchParams = {
@@ -34,22 +35,15 @@ export default async function AdminOrdersPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
-          Admin studio
-        </p>
-        <h1 className="text-2xl font-semibold text-stone-900 sm:text-3xl">
-          Customer orders
-        </h1>
-      </div>
-      <div className="inline-flex rounded-full border border-stone-200 bg-white/80 p-1">
+      <AdminPageHeader title="Orders" description="Orders grouped by week, newest first." />
+      <div className="inline-flex rounded-full border border-stone-200 bg-white p-1 shadow-sm">
         <Link
           href="/admin/orders?tab=active"
           prefetch={false}
-          className={`inline-flex h-10 items-center justify-center whitespace-nowrap rounded-full px-3 text-[10px] uppercase tracking-[0.18em] transition sm:px-5 sm:text-xs sm:tracking-[0.28em] ${
+          className={`inline-flex h-8 items-center justify-center whitespace-nowrap rounded-full px-3 text-sm font-medium transition sm:px-4 ${
             activeTab === "active"
-              ? "bg-stone-900 text-white"
-              : "text-stone-600 hover:bg-stone-100"
+              ? "bg-[color:var(--brand)] text-white"
+              : "text-stone-600 hover:bg-stone-50 hover:text-stone-900"
           }`}
         >
           Active orders
@@ -57,17 +51,17 @@ export default async function AdminOrdersPage({
         <Link
           href="/admin/orders?tab=deleted"
           prefetch={false}
-          className={`inline-flex h-10 items-center justify-center whitespace-nowrap rounded-full px-3 text-[10px] uppercase tracking-[0.18em] transition sm:px-5 sm:text-xs sm:tracking-[0.28em] ${
+          className={`inline-flex h-8 items-center justify-center whitespace-nowrap rounded-full px-3 text-sm font-medium transition sm:px-4 ${
             activeTab === "deleted"
-              ? "bg-stone-900 text-white"
-              : "text-stone-600 hover:bg-stone-100"
+              ? "bg-[color:var(--brand)] text-white"
+              : "text-stone-600 hover:bg-stone-50 hover:text-stone-900"
           }`}
         >
           Deleted orders
         </Link>
       </div>
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-stone-900">
+        <h2 className="sr-only">
           {activeTab === "deleted" ? "Deleted orders" : "Active orders"}
         </h2>
         <AdminOrdersList

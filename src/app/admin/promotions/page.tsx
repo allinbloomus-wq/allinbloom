@@ -1,41 +1,29 @@
-import Link from "next/link";
 import { getAdminPromoSlides } from "@/lib/data/promotions";
 import AdminPromoRow from "@/components/admin-promo-row";
+import { AdminEmptyState, AdminPageHeader, AdminPanel } from "@/components/admin-ui";
 
 export default async function AdminPromotionsPage() {
   const slides = await getAdminPromoSlides();
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
-            Admin studio
-          </p>
-          <h1 className="text-2xl font-semibold text-stone-900 sm:text-3xl">
-            Promotions gallery
-          </h1>
-        </div>
-        <Link
-          href="/admin/promotions/new"
-          className="inline-flex h-11 w-full items-center justify-center rounded-full bg-[color:var(--brand)] px-5 text-center text-xs uppercase tracking-[0.3em] text-white transition hover:bg-[color:var(--brand-dark)] sm:w-auto"
-        >
-          Add slide
-        </Link>
-      </div>
-      <div className="glass rounded-[28px] border border-white/80 p-4 sm:p-6">
-        <div className="grid gap-4">
+      <AdminPageHeader
+        title="Promotions"
+        description="Slides shown in the homepage promotions gallery."
+        action={{ href: "/admin/promotions/new", label: "New slide" }}
+      />
+      <AdminPanel>
+        <div className="grid gap-3">
           {slides.length ? (
-            slides.map((slide) => (
-              <AdminPromoRow key={slide.id} slide={slide} />
-            ))
+            slides.map((slide) => <AdminPromoRow key={slide.id} slide={slide} />)
           ) : (
-            <div className="rounded-[24px] border border-white/80 bg-white/70 p-6 text-sm text-stone-600">
-              No slides yet. Add your first promotion.
-            </div>
+            <AdminEmptyState
+              message="No slides yet. Add a promotion to feature it on the homepage."
+              action={{ href: "/admin/promotions/new", label: "New slide" }}
+            />
           )}
         </div>
-      </div>
+      </AdminPanel>
     </div>
   );
 }

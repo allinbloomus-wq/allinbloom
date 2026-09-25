@@ -165,20 +165,15 @@ def create_review(
         public_review_limiter,
         detail="Too many requests. Please try again later.",
     )
-    # Public submissions are moderated before publication.  Images are added
-    # only by staff after moderation through the authenticated upload route.
-    if (payload.image or "").strip():
-        raise HTTPException(
-            status_code=400,
-            detail="Photos can be added by staff after review moderation.",
-        )
-
+    # Public submissions (including an optional photo) stay hidden until staff
+    # approve them.  Only same-origin or this deployment's Cloudinary URLs are
+    # accepted, so a submitter cannot point the gallery at a remote tracker.
     review = Review(
         name=_normalize_name(payload.name),
         email=_normalize_email(payload.email),
         rating=_normalize_rating(payload.rating),
         text=_normalize_text(payload.text),
-        image=None,
+        image=_normalize_image(payload.image),
         is_active=False,
         is_read=False,
     )

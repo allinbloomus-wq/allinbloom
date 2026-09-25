@@ -14,8 +14,10 @@ import {
 import { formatMoney } from "@/lib/format";
 import { applyPercentDiscount, getCartItemDiscount } from "@/lib/pricing";
 import CheckoutButton from "@/components/checkout-button";
+import FormError, { FieldError } from "@/components/form-error";
 import ImageWithFallback from "@/components/image-with-fallback";
 import SingleSelectDropdown from "@/components/single-select-dropdown";
+import { dateWrapClass, inputClass, textareaClass } from "@/lib/ui-classes";
 
 type DiscountInfo = {
   percent: number;
@@ -268,14 +270,47 @@ type CheckoutField =
   | "recipientName"
   | "recipientPhone";
 
-const dateTimeFieldWrapClass =
-  "relative h-11 w-full min-w-0 max-w-full overflow-hidden rounded-2xl border border-stone-200 bg-white/80 transition-colors focus-within:border-stone-400";
+const CHECKOUT_FIELD_LABELS: Record<CheckoutField, string> = {
+  email: "email address",
+  street: "street address",
+  city: "city",
+  state: "state",
+  postalCode: "ZIP code",
+  deliveryDate: "delivery date",
+  deliveryTimeWindow: "delivery time window",
+  idealTime: "ideal delivery time",
+  phone: "sender phone number",
+  recipientName: "recipient name",
+  recipientPhone: "recipient phone number",
+};
+
+const joinFieldLabels = (fields: CheckoutField[]) =>
+  fields.map((field) => CHECKOUT_FIELD_LABELS[field]).join(", ");
+
+const PHONE_FORMAT_ERROR =
+  "Enter a 10-digit US phone number, for example +1 312 555 0123.";
+
+const dateTimeFieldWrapClass = dateWrapClass();
 
 const dateTimeFieldClass =
   "admin-datetime-input block h-full w-full min-w-0 max-w-full border-0 bg-transparent py-0 pl-4 pr-10 text-left text-sm leading-[2.75rem] text-stone-800 outline-none [inline-size:100%] [min-inline-size:0] [max-inline-size:100%]";
 
-const fieldClass =
-  "w-full min-w-0 max-w-full rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400";
+const fieldClass = inputClass();
+// Phone fields show a fixed "+1" inside the input; the input itself holds
+// only the 10-digit US number, so both fields share the same placeholder.
+const PHONE_PREFIX_CLASS =
+  "pointer-events-none absolute inset-y-0 left-4 flex items-center text-sm text-stone-800";
+const formatLocalPhone = (localDigits: string) =>
+  [localDigits.slice(0, 3), localDigits.slice(3, 6), localDigits.slice(6, 10)]
+    .filter(Boolean)
+    .join(" ");
+// Accept typed or pasted numbers ("312...", "+1 312...", "1-312-..."): drop a
+// leading country code only when it precedes a full 10-digit number.
+const toLocalDigits = (value: string) => {
+  const digits = value.replace(/\D/g, "");
+  const local = digits.length > 10 && digits.startsWith("1") ? digits.slice(1) : digits;
+  return local.slice(0, 10);
+};
 
 const isValidDateValue = (value: string) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -1322,7 +1357,30 @@ export default function CartView({
   );
   const [checkoutHint, setCheckoutHint] = useState<string | null>(null);
 
+  const suppressInvalidClearRef = useRef(false);
+  const checkoutSummaryId = `checkout-${addressAutofillId}-summary`;
+  const fieldErrorId = (field: CheckoutField) =>
+    `checkout-${addressAutofillId}-${field}-error`;
+
+  // aria-invalid / aria-describedby for a required input. `hasMessage` is true
+  // when a FieldError with fieldErrorId(field) is rendered under it.
+  const fieldAria = (field: CheckoutField, hasMessage = false) => {
+    const flagged = invalidFields.has(field);
+    if (!flagged && !hasMessage) return {};
+    const describedBy = [
+      hasMessage ? fieldErrorId(field) : null,
+      flagged && checkoutHint ? checkoutSummaryId : null,
+    ]
+      .filter(Boolean)
+      .join(" ");
+    return {
+      "aria-invalid": true as const,
+      "aria-describedby": describedBy || undefined,
+    };
+  };
+
   const clearInvalidField = (field: CheckoutField) => {
+    if (suppressInvalidClearRef.current) return;
     setInvalidFields((current) => {
       if (!current.has(field)) return current;
       const next = new Set(current);
@@ -1343,8 +1401,8 @@ export default function CartView({
   const invalidFieldClass = (field: CheckoutField) =>
     invalidFields.has(field)
       ? field === "deliveryDate"
-        ? "text-rose-700 [&_div]:border-rose-400 [&_div]:bg-rose-50/70"
-        : "text-rose-700 [&_input]:border-rose-400 [&_input]:bg-rose-50/70"
+        ? "text-red-800 [&_div]:border-red-400 [&_div]:ring-2 [&_div]:ring-red-100"
+        : "text-red-800 [&_input]:border-red-400 [&_input]:ring-2 [&_input]:ring-red-100"
       : "";
 
   // Mirrors the *CheckoutDisabled conditions so the buttons stay clickable and
@@ -1364,23 +1422,56 @@ export default function CartView({
     if (!recipientPhoneValid) missing.push("recipientPhone");
 
     if (missing.length) {
+      // Empty fields go under "fill in"; filled-but-wrong ones under "correct".
+      const emptyByField: Record<CheckoutField, boolean> = {
+        email: !checkoutEmail,
+        street: true,
+        city: true,
+        state: true,
+        postalCode: true,
+        deliveryDate: !deliveryDate.trim(),
+        deliveryTimeWindow: true,
+        idealTime: !idealDeliveryTime.trim(),
+        phone: !phoneLocal,
+        recipientName: true,
+        recipientPhone: !recipientPhoneLocal,
+      };
+      const empty = missing.filter((field) => emptyByField[field]);
+      const incorrect = missing.filter((field) => !emptyByField[field]);
+      const parts: string[] = [];
+      if (empty.length) parts.push(`Please fill in: ${joinFieldLabels(empty)}.`);
+      if (incorrect.length) {
+        parts.push(
+          `Please correct: ${joinFieldLabels(incorrect)} (see the note under each field).`
+        );
+      }
       setInvalidFields(new Set(missing));
-      setCheckoutHint("Please fill in the required fields highlighted in red.");
-      document
-        .querySelector(`[data-checkout-field="${missing[0]}"]`)
-        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      setCheckoutHint(parts.join(" "));
+      const wrapper = document.querySelector<HTMLElement>(
+        `[data-checkout-field="${missing[0]}"]`
+      );
+      wrapper?.scrollIntoView({ behavior: "smooth", block: "center" });
+      const focusTarget = wrapper?.querySelector<HTMLElement>(
+        "input:not([disabled]), button:not([disabled]), select, textarea"
+      );
+      if (focusTarget) {
+        // Programmatic focus must not clear the red state it is pointing at.
+        suppressInvalidClearRef.current = true;
+        focusTarget.focus({ preventScroll: true });
+        suppressInvalidClearRef.current = false;
+      }
       return false;
     }
 
     setInvalidFields(new Set());
     if (quoteLoading) {
-      setCheckoutHint("Checking delivery, please wait a moment.");
+      setCheckoutHint("We\u2019re still checking delivery to this address. Please wait a moment and try again.");
       return false;
     }
     if (!quote || quoteError) {
       setCheckoutHint(
         quoteError
-          ? "We can't deliver to this address yet. Please check it and try again."
+          ? "We can\u2019t deliver to this address yet. Please check the address above and press \u201cCheck delivery\u201d again."
           : "Press \u201cCheck delivery\u201d to calculate the delivery fee first."
       );
       return false;
@@ -1392,7 +1483,9 @@ export default function CartView({
   const requestQuote = async () => {
     if (!hasRequiredAddress) {
       setQuote(null);
-      setQuoteError("Please enter street, city, state, and ZIP.");
+      setQuoteError(
+        "Enter the street address, city, state and ZIP code, then press \u201cCheck delivery\u201d."
+      );
       return;
     }
 
@@ -1418,7 +1511,7 @@ export default function CartView({
           payload?.detail ||
             payload?.error ||
             payload?.message ||
-            "Unable to calculate delivery."
+            "We couldn\u2019t calculate delivery for this address. Check the address and press \u201cCheck delivery\u201d again."
         );
         return;
       }
@@ -1432,7 +1525,7 @@ export default function CartView({
     } catch {
       if (quoteRequestIdRef.current !== requestId) return;
       setQuote(null);
-      setQuoteError("Unable to calculate delivery.");
+      setQuoteError("We couldn\u2019t calculate delivery for this address. Check the address and press \u201cCheck delivery\u201d again.");
     } finally {
       if (quoteRequestIdRef.current === requestId) {
         setQuoteLoading(false);
@@ -1596,7 +1689,7 @@ export default function CartView({
                 <button
                   type="button"
                   onClick={() => removeItem(item.id)}
-                  className="rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-xs uppercase tracking-[0.3em] text-rose-700"
+                  className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-xs uppercase tracking-[0.3em] text-red-700"
                 >
                   Remove
                 </button>
@@ -1610,7 +1703,7 @@ export default function CartView({
           <h3 className="text-lg font-semibold text-stone-900">Delivery details</h3>
           <label
             {...checkoutFieldProps("email")}
-            className={`flex flex-col gap-2 text-sm text-stone-700 ${invalidFieldClass("email")}`}
+            className={`flex flex-col gap-2 text-sm font-medium text-stone-700 ${invalidFieldClass("email")}`}
           >
             Email for receipt
             <input
@@ -1623,17 +1716,18 @@ export default function CartView({
               type="email"
               autoComplete="email"
               disabled={isAuthenticated}
-              className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400 disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-stone-500"
+              {...fieldAria("email", showEmailError)}
+              className={inputClass()}
             />
+            {showEmailError ? (
+              <FieldError id={fieldErrorId("email")}>
+                Enter a valid email address, for example you@example.com.
+              </FieldError>
+            ) : null}
           </label>
-          {showEmailError ? (
-            <p className="text-xs uppercase tracking-[0.24em] text-rose-700">
-              Enter a valid email address.
-            </p>
-          ) : null}
           <label
             {...checkoutFieldProps("street")}
-            className={`flex flex-col gap-2 text-sm text-stone-700 ${invalidFieldClass("street")}`}
+            className={`flex flex-col gap-2 text-sm font-medium text-stone-700 ${invalidFieldClass("street")}`}
           >
             Street address
             <div className="relative">
@@ -1700,19 +1794,22 @@ export default function CartView({
                       addressSuggestions[activeAddressSuggestionIndex]
                     ).catch(() => {
                       setQuote(null);
-                      setQuoteError("Unable to fill address automatically.");
+                      setQuoteError(
+                  "We couldn\u2019t fill in this address automatically. Please type the street, city, state and ZIP code yourself."
+                );
                       closeAddressSuggestions();
                     });
                   }
                 }}
                 placeholder="123 Main St"
+                {...fieldAria("street")}
                 autoComplete={ADDRESS_BROWSER_AUTOCOMPLETE}
                 autoCorrect="off"
                 autoCapitalize="words"
                 spellCheck={false}
                 data-lpignore="true"
                 data-1p-ignore="true"
-                className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400 disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-stone-400"
+                className={inputClass()}
               />
               {googleAutocompleteMode !== "none" &&
               (addressSuggestionsOpen || addressSuggestionsLoading) ? (
@@ -1735,7 +1832,9 @@ export default function CartView({
                             onClick={() => {
                               void applySuggestionPlace(suggestion).catch(() => {
                                 setQuote(null);
-                                setQuoteError("Unable to fill address automatically.");
+                                setQuoteError(
+                  "We couldn\u2019t fill in this address automatically. Please type the street, city, state and ZIP code yourself."
+                );
                                 closeAddressSuggestions();
                               });
                             }}
@@ -1763,7 +1862,7 @@ export default function CartView({
             </div>
           </label>
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className="flex flex-col gap-2 text-sm text-stone-700">
+            <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
               <span className="min-h-[2.5rem]">Apartment / Suite (optional)</span>
               <input
                 name={addressFieldNames.apartment}
@@ -1775,10 +1874,10 @@ export default function CartView({
                 spellCheck={false}
                 data-lpignore="true"
                 data-1p-ignore="true"
-                className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+                className={inputClass()}
               />
             </label>
-            <label className="flex flex-col gap-2 text-sm text-stone-700">
+            <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
               <span className="min-h-[2.5rem]">Floor (optional)</span>
               <input
                 name={addressFieldNames.floor}
@@ -1790,14 +1889,14 @@ export default function CartView({
                 spellCheck={false}
                 data-lpignore="true"
                 data-1p-ignore="true"
-                className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+                className={inputClass()}
               />
             </label>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
             <label
               {...checkoutFieldProps("city")}
-              className={`flex flex-col gap-2 text-sm text-stone-700 ${invalidFieldClass("city")}`}
+              className={`flex flex-col gap-2 text-sm font-medium text-stone-700 ${invalidFieldClass("city")}`}
             >
               City
               <input
@@ -1809,17 +1908,18 @@ export default function CartView({
                   setQuoteError(null);
                 }}
                 placeholder="Chicago"
+                {...fieldAria("city")}
                 autoComplete={ADDRESS_BROWSER_AUTOCOMPLETE}
                 autoCorrect="off"
                 spellCheck={false}
                 data-lpignore="true"
                 data-1p-ignore="true"
-                className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+                className={inputClass()}
               />
             </label>
             <label
               {...checkoutFieldProps("state")}
-              className={`flex flex-col gap-2 text-sm text-stone-700 ${invalidFieldClass("state")}`}
+              className={`flex flex-col gap-2 text-sm font-medium text-stone-700 ${invalidFieldClass("state")}`}
             >
               State
               <input
@@ -1835,18 +1935,19 @@ export default function CartView({
                   setQuoteError(null);
                 }}
                 placeholder="IL"
+                {...fieldAria("state")}
                 autoComplete={ADDRESS_BROWSER_AUTOCOMPLETE}
                 autoCorrect="off"
                 spellCheck={false}
                 data-lpignore="true"
                 data-1p-ignore="true"
                 maxLength={2}
-                className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 uppercase outline-none focus:border-stone-400"
+                className={`${inputClass()} uppercase`}
               />
             </label>
             <label
               {...checkoutFieldProps("postalCode")}
-              className={`flex flex-col gap-2 text-sm text-stone-700 ${invalidFieldClass("postalCode")}`}
+              className={`flex flex-col gap-2 text-sm font-medium text-stone-700 ${invalidFieldClass("postalCode")}`}
             >
               ZIP code
               <input
@@ -1862,15 +1963,16 @@ export default function CartView({
                   setQuoteError(null);
                 }}
                 placeholder="60601"
+                {...fieldAria("postalCode")}
                 autoComplete={ADDRESS_BROWSER_AUTOCOMPLETE}
                 inputMode="numeric"
                 data-lpignore="true"
                 data-1p-ignore="true"
-                className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+                className={inputClass()}
               />
             </label>
           </div>
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
             Country
             <input
               name={addressFieldNames.country}
@@ -1886,14 +1988,14 @@ export default function CartView({
               spellCheck={false}
               data-lpignore="true"
               data-1p-ignore="true"
-              className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+              className={inputClass()}
             />
           </label>
           <div className="space-y-3">
             <div className="grid gap-3 sm:grid-cols-2">
               <label
                 {...checkoutFieldProps("deliveryDate")}
-                className={`flex flex-col gap-2 text-sm text-stone-700 ${invalidFieldClass("deliveryDate")}`}
+                className={`flex flex-col gap-2 text-sm font-medium text-stone-700 ${invalidFieldClass("deliveryDate")}`}
               >
                 Delivery date
                 <div className={dateTimeFieldWrapClass}>
@@ -1906,6 +2008,10 @@ export default function CartView({
                     aria-label="Delivery date"
                     title="Choose a delivery date within the next month."
                     onChange={(event) => setDeliveryDate(event.target.value)}
+                    {...fieldAria(
+                      "deliveryDate",
+                      Boolean(deliveryDate) && !deliveryDateValid
+                    )}
                     className={dateTimeFieldClass}
                     lang="en-US"
                   />
@@ -1930,13 +2036,13 @@ export default function CartView({
               </div>
             </div>
             {deliveryDate && !deliveryDateValid ? (
-              <p className="text-xs uppercase tracking-[0.24em] text-rose-700">
-                Choose a valid delivery date within the next month.
-              </p>
+              <FieldError id={fieldErrorId("deliveryDate")}>
+                Choose a delivery date between today and one month from now.
+              </FieldError>
             ) : null}
             <label
               {...checkoutFieldProps("idealTime")}
-              className={`flex flex-col gap-2 text-sm text-stone-700 ${invalidFieldClass("idealTime")}`}
+              className={`flex flex-col gap-2 text-sm font-medium text-stone-700 ${invalidFieldClass("idealTime")}`}
             >
               Ideal delivery time
               <input
@@ -1947,6 +2053,10 @@ export default function CartView({
                 placeholder="2:30 PM"
                 pattern="^(0?[1-9]|1[0-2]):[0-5][0-9]\s?(AM|PM|am|pm)$"
                 title={idealDeliveryTimeHelp}
+                {...fieldAria(
+                  "idealTime",
+                  Boolean(idealDeliveryTime) && !idealDeliveryTimeValid
+                )}
                 onChange={(event) =>
                   setIdealDeliveryTime(
                     event.target.value
@@ -1961,9 +2071,9 @@ export default function CartView({
                 className={fieldClass}
               />
               {idealDeliveryTime && !idealDeliveryTimeValid ? (
-                <span className="text-xs uppercase tracking-[0.24em] text-rose-700">
+                <FieldError id={fieldErrorId("idealTime")}>
                   {idealDeliveryTimeHelp}
-                </span>
+                </FieldError>
               ) : null}
               <span className="text-xs text-stone-500">
                 We will do our best to deliver at this time or within the selected
@@ -1973,33 +2083,30 @@ export default function CartView({
           </div>
           <label
             {...checkoutFieldProps("phone")}
-            className={`flex flex-col gap-2 text-sm text-stone-700 ${invalidFieldClass("phone")}`}
+            className={`flex flex-col gap-2 text-sm font-medium text-stone-700 ${invalidFieldClass("phone")}`}
           >
             Sender phone number
-            <input
-              value={phoneValue}
-              onChange={(event) => {
-                const digits = event.target.value.replace(/\D/g, "");
-                const local =
-                  digits.startsWith("1") ? digits.slice(1) : digits;
-                setPhoneLocal(local.slice(0, 10));
-              }}
-              placeholder="+1 312 555 0123"
-              inputMode="numeric"
-              autoComplete="tel"
-              maxLength={15}
-              pattern="^\\+1 \\d{3} \\d{3} \\d{4}$"
-              className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400 disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-stone-400"
-            />
+            <span className="relative block">
+              <span aria-hidden className={PHONE_PREFIX_CLASS}>
+                +1
+              </span>
+              <input
+                type="tel"
+                value={formatLocalPhone(phoneLocal)}
+                onChange={(event) => setPhoneLocal(toLocalDigits(event.target.value))}
+                inputMode="numeric"
+                autoComplete="tel-national"
+                {...fieldAria("phone", phoneLocal.length > 0 && !phoneValid)}
+                className={`${inputClass()} pl-11`}
+              />
+            </span>
+            {phoneLocal.length > 0 && !phoneValid ? (
+              <FieldError id={fieldErrorId("phone")}>{PHONE_FORMAT_ERROR}</FieldError>
+            ) : null}
           </label>
-          {phoneLocal.length > 0 && !phoneValid ? (
-            <p className="text-xs uppercase tracking-[0.24em] text-rose-700">
-              Use format +1 312 555 0123.
-            </p>
-          ) : null}
           <label
             {...checkoutFieldProps("recipientName")}
-            className={`flex flex-col gap-2 text-sm text-stone-700 ${invalidFieldClass("recipientName")}`}
+            className={`flex flex-col gap-2 text-sm font-medium text-stone-700 ${invalidFieldClass("recipientName")}`}
           >
             Recipient name
             <input
@@ -2007,44 +2114,50 @@ export default function CartView({
               required
               onChange={(event) => setRecipientName(event.target.value.slice(0, 120))}
               placeholder="Recipient name"
+              {...fieldAria("recipientName")}
               autoComplete="off"
               className={fieldClass}
             />
           </label>
           <label
             {...checkoutFieldProps("recipientPhone")}
-            className={`flex flex-col gap-2 text-sm text-stone-700 ${invalidFieldClass("recipientPhone")}`}
+            className={`flex flex-col gap-2 text-sm font-medium text-stone-700 ${invalidFieldClass("recipientPhone")}`}
           >
             Recipient phone number
-            <input
-              value={recipientPhoneLocal ? recipientPhoneValue : ""}
-              required
-              onChange={(event) => {
-                const digits = event.target.value.replace(/\D/g, "");
-                const local = digits.startsWith("1") ? digits.slice(1) : digits;
-                setRecipientPhoneLocal(local.slice(0, 10));
-              }}
-              placeholder="+1 312 555 0123"
-              inputMode="numeric"
-              autoComplete="off"
-              maxLength={15}
-              pattern="^\\+1 \\d{3} \\d{3} \\d{4}$"
-              className={fieldClass}
-            />
+            <span className="relative block">
+              <span aria-hidden className={PHONE_PREFIX_CLASS}>
+                +1
+              </span>
+              <input
+                type="tel"
+                value={formatLocalPhone(recipientPhoneLocal)}
+                required
+                onChange={(event) =>
+                  setRecipientPhoneLocal(toLocalDigits(event.target.value))
+                }
+                inputMode="numeric"
+                autoComplete="off"
+                {...fieldAria(
+                  "recipientPhone",
+                  recipientPhoneLocal.length > 0 && !recipientPhoneValid
+                )}
+                className={`${fieldClass} pl-11`}
+              />
+            </span>
+            {recipientPhoneLocal.length > 0 && !recipientPhoneValid ? (
+              <FieldError id={fieldErrorId("recipientPhone")}>
+                {PHONE_FORMAT_ERROR}
+              </FieldError>
+            ) : null}
           </label>
-          {recipientPhoneLocal.length > 0 && !recipientPhoneValid ? (
-            <p className="text-xs uppercase tracking-[0.24em] text-rose-700">
-              Use format +1 312 555 0123.
-            </p>
-          ) : null}
-          <label className="flex flex-col gap-2 text-sm text-stone-700">
+          <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
             Order comment (optional)
             <textarea
               value={orderComment}
               onChange={(event) => setOrderComment(event.target.value.slice(0, 500))}
               placeholder="Delivery instructions, recipient notes, etc."
               rows={3}
-              className="min-h-[6.5rem] w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+              className={`${textareaClass()} min-h-[6.5rem]`}
             />
           </label>
           <button
@@ -2060,11 +2173,7 @@ export default function CartView({
               Distance: {quote.distanceText}
             </p>
           ) : null}
-          {quoteError ? (
-            <p className="text-xs uppercase tracking-[0.24em] text-rose-700">
-              {quoteError}
-            </p>
-          ) : null}
+          {quoteError ? <FormError>{quoteError}</FormError> : null}
         </div>
         <div className="space-y-4 rounded-[24px] border border-white/80 bg-white/55 p-4 sm:p-5 xl:sticky xl:top-24">
           <div className="space-y-2 text-sm text-stone-600">
@@ -2118,12 +2227,7 @@ export default function CartView({
             paymentMethod="stripe"
           />
           {checkoutHint ? (
-            <p
-              role="alert"
-              className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-700"
-            >
-              {checkoutHint}
-            </p>
+            <FormError id={checkoutSummaryId}>{checkoutHint}</FormError>
           ) : null}
           <div className="flex min-w-0 max-w-full items-center gap-3 overflow-x-auto py-1 lg:justify-start">
             {[
@@ -2233,12 +2337,8 @@ export default function CartView({
             disabled={checkoutBusy}
             onBeforeCheckout={() => validateCheckout("paypal")}
             onBusyChange={setCheckoutBusy}
-            label="PayPal"
+            label="PAYPAL"
             paymentMethod="paypal"
-            iconSrc="/paypal.webp"
-            iconAlt="PayPal"
-            iconClassName="h-5 w-auto"
-            iconOnly
           />
           <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
             Secure checkout with Stripe or PayPal

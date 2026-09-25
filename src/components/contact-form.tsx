@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { inputClass, textareaClass } from "@/lib/ui-classes";
 
 export default function ContactForm() {
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">(
@@ -43,40 +44,40 @@ export default function ContactForm() {
         className="absolute left-[-10000px] top-auto h-0 w-0 overflow-hidden"
         aria-hidden="true"
       >
-        <label className="flex flex-col gap-2 text-sm text-stone-700">
+        <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
           Website
           <input
             name="website"
             tabIndex={-1}
             autoComplete="off"
-            className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none"
+            className={inputClass()}
           />
         </label>
       </div>
-      <label className="flex flex-col gap-2 text-sm text-stone-700">
+      <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
         Name
         <input
           name="name"
           required
-          className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+          className={inputClass()}
         />
       </label>
-      <label className="flex flex-col gap-2 text-sm text-stone-700">
+      <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
         Email
         <input
           name="email"
           type="email"
           required
-          className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+          className={inputClass()}
         />
       </label>
-      <label className="flex flex-col gap-2 text-sm text-stone-700">
+      <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
         Message
         <textarea
           name="message"
           rows={5}
           required
-          className="w-full min-w-0 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-800 outline-none focus:border-stone-400"
+          className={textareaClass()}
         />
       </label>
       <button
@@ -92,7 +93,7 @@ export default function ContactForm() {
         </p>
       ) : null}
       {status === "error" ? (
-        <p className="text-xs uppercase tracking-[0.24em] text-rose-700">
+        <p className="text-xs uppercase tracking-[0.24em] text-red-700">
           Something went wrong. Please try again.
         </p>
       ) : null}

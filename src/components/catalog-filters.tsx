@@ -135,7 +135,7 @@ export function FilterDropdown({
   return (
     <div
       ref={rootRef}
-      className={`relative flex min-w-0 flex-col gap-2 text-sm text-stone-700 ${
+      className={`relative flex min-w-0 flex-col gap-2 text-sm font-medium text-stone-700 ${
         isOpen ? "z-30" : "z-0"
       }`}
     >
@@ -191,9 +191,9 @@ export function FilterDropdown({
               >
                 <span>{option.label}</span>
                 {active && showCurrentLabel ? (
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[color:var(--brand)]">
-                    Current
-                  </span>
+                  <svg aria-hidden="true" viewBox="0 0 16 16" className="h-4 w-4 shrink-0 text-[color:var(--brand)]">
+                    <path d="M3.5 8.5l3 3 6-7" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
                 ) : null}
               </button>
             );
@@ -353,7 +353,7 @@ function CatalogFiltersForm({ initialValues }: CatalogFiltersFormProps) {
               onClose={() => setOpenDropdown(null)}
               onSelect={(value) => setDropdownValue("bouquetType", value)}
             />
-            <label className="flex flex-col gap-2 text-sm text-stone-700">
+            <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
               Min price (${PRICE_LIMITS.min})
               <input
                 type="number"
@@ -367,7 +367,7 @@ function CatalogFiltersForm({ initialValues }: CatalogFiltersFormProps) {
                 className={priceFieldClass}
               />
             </label>
-            <label className="flex flex-col gap-2 text-sm text-stone-700">
+            <label className="flex flex-col gap-2 text-sm font-medium text-stone-700">
               Max price (${PRICE_LIMITS.max})
               <input
                 type="number"

@@ -33,6 +33,39 @@ export const SITE_HOURS = [
 ] as const;
 export const SITE_INSTAGRAM =
   "https://www.instagram.com/all_in_bloom_studio";
+export const SITE_GEO = {
+  latitude: 42.136281087564285,
+  longitude: -87.9050852153543,
+} as const;
+export const SITE_MAP_URL = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+  `${SITE_ADDRESS_LINE_1}, ${SITE_CITY}, ${SITE_REGION} ${SITE_POSTAL_CODE}`
+)}`;
+export const SITE_DELIVERY_AREAS = [
+  "Wheeling",
+  "Buffalo Grove",
+  "Arlington Heights",
+  "Prospect Heights",
+  "Rolling Meadows",
+  "Mount Prospect",
+  "Palatine",
+  "Northbrook",
+  "Glenview",
+  "Lincolnshire",
+  "Deerfield",
+  "Vernon Hills",
+  "Mundelein",
+  "Lake Zurich",
+  "Barrington",
+  "Schaumburg",
+  "Hoffman Estates",
+  "Elk Grove Village",
+  "Des Plaines",
+  "Park Ridge",
+  "Niles",
+  "Morton Grove",
+  "Skokie",
+  "Evanston",
+] as const;
 
 const RAW_SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || "https://allinbloom.us";

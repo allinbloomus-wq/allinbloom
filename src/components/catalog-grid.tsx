@@ -198,7 +198,7 @@ export default function CatalogGrid({
           <span>All {productLabel} loaded</span>
         )}
         {error ? (
-          <span className="text-[11px] uppercase tracking-[0.22em] text-rose-500">
+          <span className="text-[11px] uppercase tracking-[0.22em] text-red-700">
             {error}
           </span>
         ) : null}
